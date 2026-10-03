@@ -58,7 +58,7 @@
 //     and refuses it afterwards (WRONG_PHASE: the match's loadout is locked, the stored one applies to the next match).
 
 import { randomBytes, randomInt } from 'node:crypto';
-import { ERR, MAX_SEATS, ROOM_CODE_LEN, modeIdFor } from '../shared/constants.js';
+import { ERR, MAX_SEATS, ROOM_CODE_LEN, modeIdFor, normalizeDifficultyLevel } from '../shared/constants.js';
 import { checkLoadout } from '../shared/protocol.js';
 import { encode, isDroppable, isErrCode, sendRaw, sendSession } from './net.js';
 import { getData as defaultGetData, lookup } from './data.js';
@@ -102,10 +102,11 @@ function freezeLoadout(loadout) {
 /** One room: 4 seat slots, host, difficulty, optional running match. */
 export class Room {
   /** @param {string} code @param {'solo'|'coop'} mode @param {string} difficulty @param {number} now */
-  constructor(code, mode, difficulty, now) {
+  constructor(code, mode, difficulty, now, difficultyLevel = 0) {
     this.code = code;
     this.mode = mode;
     this.difficulty = difficulty;
+    this.difficultyLevel = difficulty === 'ASCENSION' ? normalizeDifficultyLevel(difficultyLevel) : 0;
     /** @type {string | null} */
     this.hostId = null;
     /** @type {(Seat | null)[]} */
@@ -150,6 +151,7 @@ export class Room {
       hostId: this.hostId,
       mode: this.mode,
       difficulty: this.difficulty,
+      difficultyLevel: this.difficultyLevel,
       inMatch: !!this.match,
       seats: this.seats.map((s) => (s
         ? { seat: s.seat, playerId: s.playerId, name: s.name, isBot: s.isBot, ready: s.ready, connected: s.connected && !s.left }
@@ -306,7 +308,7 @@ export class Lobby {
   // room.* handlers
   // ---------------------------------------------------------------------------------------------------
 
-  create(session, { mode, difficulty }) {
+  create(session, { mode, difficulty, difficultyLevel = 0 }) {
     const cur = this.roomOf(session);
     if (cur && cur.match) return fail(ERR.ROOM_STARTED, 'leave your running match first');
     if (this.rooms.size >= this.opts.maxRooms) return fail(ERR.INTERNAL, 'too many rooms');
@@ -322,7 +324,7 @@ export class Lobby {
     const code = this.genCode();
     if (!code) return fail(ERR.INTERNAL, 'no room code available');
     if (cur) this.removeMember(cur, session.playerId);
-    const room = new Room(code, mode, difficulty, this.now());
+    const room = new Room(code, mode, difficulty, this.now(), difficultyLevel);
     room.ownerKey = key;
     room.seats[0] = this.humanSeat(0, session);
     room.hostId = session.playerId;
@@ -376,14 +378,16 @@ export class Lobby {
     return OK;
   }
 
-  setDifficulty(session, { difficulty }) {
+  setDifficulty(session, { difficulty, difficultyLevel }) {
     const room = this.roomOf(session);
     if (!room) return fail(ERR.NOT_IN_ROOM);
     if (room.hostId !== session.playerId) return fail(ERR.NOT_HOST);
     if (room.match) return fail(ERR.ROOM_STARTED);
     this.dropReplay(room, session.playerId);
-    if (room.difficulty !== difficulty) {
+    const level = difficulty === 'ASCENSION' ? normalizeDifficultyLevel(difficultyLevel ?? room.difficultyLevel) : 0;
+    if (room.difficulty !== difficulty || room.difficultyLevel !== level) {
       room.difficulty = difficulty;
+      room.difficultyLevel = level;
       for (const s of room.seats) if (s && !s.isBot && s.playerId !== room.hostId) s.ready = false;
       this.broadcastState(room);
     }
@@ -493,6 +497,7 @@ export class Lobby {
         roomCode: room.code,
         mode: room.mode,
         difficulty: room.difficulty,
+        difficultyLevel: room.difficultyLevel,
         modeId: modeIdFor(room.mode, room.difficulty),
         seats,
         seed,

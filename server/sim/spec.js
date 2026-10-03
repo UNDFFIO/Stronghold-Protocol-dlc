@@ -24,6 +24,7 @@
 import { Battle } from './Battle.js';
 import { toDataSource, withUnitLoadouts } from './simdata.js';
 import { BOSS_POOL_MIN_HP } from './constants.js';
+import { normalizeDifficultyLevel } from '../../shared/constants.js';
 
 export const SPEC_VERSION = 1;
 
@@ -53,6 +54,7 @@ export function buildBattleSpec(o = {}) {
     kind: o.kind ?? 'normal',
     seed: (Number(o.seed) >>> 0) || 1,
     modeId: o.modeId ?? null,
+    difficultyLevel: normalizeDifficultyLevel(o.difficultyLevel),
     round: Number.isInteger(o.round) ? o.round : 0,
     stageId: o.stageId ?? null,
     rect: o.rect ?? null,
@@ -107,6 +109,7 @@ export function createBattleFromSpec(spec, dataSource, opts = {}) {
     seed: s.seed,
     kind: s.kind,
     modeId: s.modeId,
+    difficultyLevel: s.difficultyLevel,
     round: s.round,
     stageId: s.stageId,
     rect: s.rect ?? undefined,

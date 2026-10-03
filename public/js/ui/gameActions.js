@@ -9,7 +9,7 @@ import { audio } from '../audio.js';
 
 const SUCCESS_SFX = {
   'g.buy': 'buy', 'g.sell': 'sell', 'g.refresh': 'refresh', 'g.freeze': 'freeze', 'g.levelUp': 'levelup',
-  'g.move': 'drop', 'g.equip': 'equip', 'g.art': 'artPlace', 'g.reward': 'pick', 'g.choice': 'pick',
+  'g.move': 'drop', 'g.equip': 'equip', 'g.art': 'artPlace', 'g.reward': 'pick', 'g.choice': 'pick', 'g.relic': 'pick',
   'g.band': 'confirm', 'g.bandSkip': 'back', 'g.infoReady': 'ready', 'g.emote': 'emote', 'g.destroy': 'back',
 };
 
@@ -64,6 +64,7 @@ export const actions = {
   art: (itemUid, row, col, dir) => act('g.art', dir ? { itemUid, row, col, dir } : { itemUid, row, col }),
   destroy: (uid) => act('g.destroy', { uid }),
   reward: (idx) => act('g.reward', { idx }),
+  relic: (offerId, idx) => act('g.relic', { offerId, idx }),
   choice: (idx) => act('g.choice', { idx }),
   ready: (ready) => act('g.ready', { ready }, { sfx: ready ? 'ready' : 'back' }),
   emote: (id) => act('g.emote', { id }, { quiet: true }),

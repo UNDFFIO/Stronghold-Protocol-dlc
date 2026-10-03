@@ -303,13 +303,13 @@ export class GameData {
     return arr[level - 1] ?? 99;
   }
 
-  shopSlots(level) {
+  /** Two additional operator offers unlock after round 8, independently of shop level. */
+  shopSlots(level, round = 1) {
     const s = this.mode.shopSlots && this.mode.shopSlots[String(level)];
     const d = DEFAULTS.shopSlots[level] || DEFAULTS.shopSlots[6];
-    if (!s || typeof s !== 'object') return { ...d };
-    const chess = Number.isInteger(s.chess) && s.chess >= 0 ? s.chess : d.chess;
-    const item = Number.isInteger(s.item) && s.item >= 0 ? s.item : d.item;
-    return { chess: Math.min(chess, 8), item: Math.min(item, 4) };
+    const chess = Number.isInteger(s?.chess) && s.chess >= 0 ? s.chess : d.chess;
+    const item = Number.isInteger(s?.item) && s.item >= 0 ? s.item : d.item;
+    return { chess: Math.min(chess, 8) + (round > 8 ? 2 : 0), item: Math.min(item, 4) };
   }
 
   /** Real-second prep timer for round r (null = untimed). */

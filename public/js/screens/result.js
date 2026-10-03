@@ -18,6 +18,7 @@ import { normalizeResult, fmtNum } from '../ui/gameLogic.js';
 import { enemyIconUrl, titleIconUrl, uiUrl } from '../ui/assetUrls.js';
 import { store, useStore, emptyMatch } from '../store.js';
 import { audio } from '../audio.js';
+import { RelicList, relicEntries } from '../ui/relicPanel.js';
 
 const cx = (...p) => p.flat().filter(Boolean).join(' ');
 
@@ -29,7 +30,7 @@ const STAT_ROWS = [
   ['refreshes', '刷新次数'], ['leaks', '未击倒'], ['lpLost', '损失生命'],
 ];
 
-function PlayerCard({ p, myId, titles, best, solo = false }) {
+function PlayerCard({ p, relics, myId, titles, best, solo = false }) {
   const gd = useGameData();
   const titleRec = p.title ? titles.find((t) => t.id === p.title.id) || null : null;
   const titleName = p.title?.name || titleRec?.name || null;
@@ -64,6 +65,10 @@ function PlayerCard({ p, myId, titles, best, solo = false }) {
       ${stats.map(([k, label]) => html`<div key=${k} class=${cx('rstat', best[k] === p.playerId && 'is-best')}><span>${label}</span><b class="num">${fmtNum(p.stats[k])}</b></div>`)}
       ${Number.isFinite(p.lp) ? html`<div class="rstat" title=${p.lpShared && !solo ? '最终攻势起全队共享目标生命值' : ''}><span>${p.lpShared && !solo ? '同盟剩余生命' : '剩余生命'}</span><${LpTower} value=${p.lp} size="sm" /></div>` : null}
     </div>
+    <details class="rcard__relics">
+      <summary><${Icon} name="key" /><span>本局收藏品 · <b class="num">${relicEntries(relics).length}</b></span><span class="rcard__relicshint">查看效果</span></summary>
+      <${RelicList} relics=${relics} />
+    </details>
   </article>`;
 }
 
@@ -75,6 +80,8 @@ export function ResultScreen() {
   const hasRoom = useStore((s) => !!s.room);
   const gd = useGameData();
   const r = normalizeResult(res, pub);
+  // normalizeResult tolerates older payloads and has a fixed schema: retain this new per-player list by identity.
+  const playerRelics = new Map((Array.isArray(res?.players) ? res.players : []).filter((p) => p && p.playerId).map((p) => [p.playerId, p.relics]));
   const titles = Array.isArray(gd.config?.titles) ? gd.config.titles : [];
   const best = {};
   for (const [k] of STAT_ROWS) {
@@ -96,7 +103,7 @@ export function ResultScreen() {
     <main class="result__main">
       <section class="result__hero">
         <div class="result__logo"><${Sprite} k="entry/season_logo_settle" class="result__logoimg" fallback=${html`<${MicroLabel} tone="mint">STRONGHOLD PROTOCOL</${MicroLabel}>`} /></div>
-        ${r.difficulty ? html`<${DifficultyTag} difficulty=${r.difficulty} size="lg" />` : null}
+        ${r.difficulty ? html`<${DifficultyTag} difficulty=${r.difficulty} difficultyLevel=${r.difficultyLevel} size="lg" />` : null}
         <h1 class="result__headline">${r.victory ? '模拟完成' : '模拟失败'}</h1>
         <p class="result__sub">${r.victory ? '成功卫戍 · 敌方领袖已被击败' : '防线已被突破'}</p>
         <div class="result__rounds">
@@ -119,7 +126,7 @@ export function ResultScreen() {
       </section>
       <section class="result__players">
         <h2 class="brief-h"><span>同盟成员</span><${MicroLabel}>ALLIANCE REPORT</${MicroLabel}></h2>
-        ${r.players.length ? r.players.map((p) => html`<${PlayerCard} key=${p.playerId} p=${p} myId=${myId} titles=${titles} best=${best} solo=${r.players.length < 2} />`)
+        ${r.players.length ? r.players.map((p) => html`<${PlayerCard} key=${p.playerId} p=${p} relics=${playerRelics.get(p.playerId)} myId=${myId} titles=${titles} best=${best} solo=${r.players.length < 2} />`)
           : html`<p class="t-dim">暂无结算数据</p>`}
       </section>
     </main>

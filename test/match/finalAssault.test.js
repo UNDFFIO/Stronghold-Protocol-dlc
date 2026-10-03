@@ -84,7 +84,8 @@ for (const n of [1, 2, 3, 4]) {
     const pub = m.publicView();
     assert.equal(pub.teamLp, m.teamLp);
     assert.deepEqual(pub.bossHp, { hp: Math.round(pool.hp), max: Math.round(pool.maxHp) });
-    const end = h.runToEnd();
+    assert.ok(h.drive(() => !!h.ended), 'finish after the post-battle collectible choice');
+    const end = h.ended;
     assert.equal(end.victory, true);
     assert.equal(end.roundsPassed, 14);
     assert.equal(end.hiddenReached, false, 'FUNNY has no hidden core');

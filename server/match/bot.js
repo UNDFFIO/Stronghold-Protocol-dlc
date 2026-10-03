@@ -1169,7 +1169,7 @@ function refreshValue(m, ps, ctx) {
   let total = 0;
   for (const e of m.pool.entries.values()) if (e.left > 0 && e.tier <= L) total += e.left;
   if (!(total > 0)) return 0;
-  const slots = m.gd.shopSlots(L).chess;
+  const slots = m.gd.shopSlots(L, m.round).chess;
   let v = 0;
   for (const [b, k] of ctx.copies) {
     const e = m.pool.entries.get(b);

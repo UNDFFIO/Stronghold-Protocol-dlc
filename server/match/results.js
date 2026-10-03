@@ -14,6 +14,7 @@
 
 import { bondList } from './bondsMeta.js';
 import { boardOrder } from './board.js';
+import { relicsView } from './relics.js';
 
 const STAT_OF = {
   bossDamage: (ps) => ps.stats.bossDamage,
@@ -112,6 +113,7 @@ export function buildResult(m, outcome) {
       eliminatedRound: ps.eliminatedRound,
       lp: Math.max(0, ps.lp),
       bandId: ps.bandId,
+      relics: relicsView(ps),
       lineup,
       bonds: bondList(gd, ps.bonds).filter((b) => b.active || b.layers > 0),
       stats: {
@@ -136,6 +138,7 @@ export function buildResult(m, outcome) {
     teamLp: m.teamLp != null ? Math.max(0, Math.round(m.teamLp)) : null,
     modeId: m.modeId,
     difficulty: m.difficulty,
+    difficultyLevel: m.difficultyLevel,
     stageId: m.stageId,
     bossId: m.bossId,
     hiddenBossId: m.hiddenBossId,

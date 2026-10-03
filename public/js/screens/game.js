@@ -76,6 +76,7 @@ import { EnemyDrawer } from '../ui/enemyDrawer.js';
 import { Ticker } from '../ui/ticker.js';
 import { EmoteWheel } from '../ui/emotes.js';
 import { EffectsList } from '../ui/effectsList.js';
+import { RelicCollection, RelicChoice } from '../ui/relicPanel.js';
 import { CombatHud } from '../ui/combatHud.js';
 import { SettingsModal } from '../ui/settings.js';
 import { ExitModal, AwayOverlay, awayStore } from '../ui/matchChrome.js';
@@ -255,6 +256,7 @@ function MatchScreen() {
     phase, round: pub?.round, lp: priv?.lp, statsLeaks: priv?.stats?.leaks, alive,
     leaks: ownLeaks(localLeaks, meP?.pendingLp), cap: gd.config?.lpCapPerRound,
     uniteLeft: leaker ? uniteRemaining(localLeft, meP?.uniteLeft) : null,
+    shield: phase === PHASE.UNITE || localLeaks != null ? priv?.lpShield : 0,
   });
   lpBaseRef.current = liveLpNow.base;
 
@@ -1176,7 +1178,7 @@ function MatchScreen() {
   // bonds this mode never activates (标准: 10 of 23, 奥术 among them) — shown 本局禁用 on cards, chips and the popup
   const offBonds = modeOffBonds(getMode(pub?.modeId));
 
-  return html`<div class=${cx('screen', 'gm', `gm--${mode}`, drag && 'is-dragging', collapsed && 'is-collapsed', sp && 'has-sp', pen && 'is-pen', readyWhy && 'has-readywhy')}
+  return html`<div class=${cx('screen', 'gm', `gm--${mode}`, drag && 'is-dragging', collapsed && 'is-collapsed', showShop && !collapsed && 'has-shop', sp && 'has-sp', pen && 'is-pen', readyWhy && 'has-readywhy')}
       data-camera=${pen ? 'pen' : camKind}>
     <div class="gm__field" ref=${hostRef} onContextMenu=${(e) => e.preventDefault()}></div>
     ${viewKind === 'loading' ? html`<div class="gm__loading"><${Spinner} label="LOADING FIELD" /></div>` : null}
@@ -1201,7 +1203,10 @@ function MatchScreen() {
         self=${Number.isFinite(priv?.lp) ? { lp: priv.lp, pending: liveLpNow.pending, unite: liveLpNow.unite, left: liveLpNow.left } : null}
         observe=${cc ? { canObserve: (p) => observeTarget(p, pub, myId, { observing: watchingOther, ownDone: localDone }), observing: watchingOther, onBack: backHome } : null} />
 
-      <div class="gm__effects"><${EffectsList} effects=${priv?.effects} /></div>
+      <div class="gm__effects">
+        <${RelicCollection} relics=${priv?.relics} reward=${priv?.relicReward} round=${pub?.round || 1} shield=${priv?.lpShield} nextShield=${priv?.nextLpShield} />
+        <div class="gm__effect-base"><${EffectsList} effects=${priv?.effects} /></div>
+      </div>
 
       ${watchingOther && !combat ? html`<div class="gm__watching" role="status">
         <${GIcon} name="eye" /><span>正在查看 <b>${watchedName}</b> 的阵地（只读）</span>
@@ -1225,6 +1230,7 @@ function MatchScreen() {
         client=${cc ? { progress, observing: observingName ? { name: observingName } : null, onBack: alive ? backHome : null, layers, layer, onLayer: setLayer } : null} />` : null}
 
       ${showDeadPill(alive, phase) ? html`<div class="gm__dead" role="status"><${Icon} name="close" />你已被淘汰 · 可继续观战队友</div>` : null}
+      ${alive && pub?.relicChoosing && !priv?.relicOffer ? html`<div class="gm__relic-wait" role="status"><${Icon} name="check" />等待队友选择收藏品</div>` : null}
 
       <${Ticker} />
 
@@ -1258,6 +1264,7 @@ function MatchScreen() {
 
     ${banner ? html`<${PhaseBanner} key=${banner.key} mode="overlay" title=${banner.title} sub=${banner.sub} micro=${banner.micro}
       tone=${banner.tone} duration=${banner.duration || 1500} onDone=${() => setBanner(null)} />` : null}
+    <${RelicChoice} offer=${priv?.relicOffer} deadline=${pub?.deadline} onChoose=${actions.relic} />
 
     ${facing && view ? html`<${FacingWheel} key=${`${facing.uid}:${facing.row},${facing.col}`} view=${view} row=${facing.row} col=${facing.col}
       grid=${facing.grid} name=${facing.name} onPreview=${previewFacing} onCommit=${commitFacing} onCancel=${cancelFacing} />` : null}

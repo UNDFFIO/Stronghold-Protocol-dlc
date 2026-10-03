@@ -21,6 +21,7 @@ import { RAW, joinUrl, safeName, urlBase, urlDir } from './sources.mjs';
 import { kindOf } from './formats.mjs';
 import { pickUnitSfx, UI_SFX, BATTLE_SFX, resolveSpec } from './audio.mjs';
 import { literal } from './manifest.mjs';
+import { relicIconTemplate } from './relics.mjs';
 
 /**
  * Enemies whose Spine no community dump carries: the web model is another enemy's (research 07 §5.6). Their official
@@ -475,7 +476,7 @@ export function buildPlan({ assets07, ops03, enemies05, maps05, audio, modelsDat
   for (const [name, spec] of Object.entries(BATTLE_SFX)) { const l = soundLeaf(resolveSpec(spec, audio.bank)); if (l) sfxBattle[name] = l; else notes.push(`battle SFX ${name}: no sound`); }
 
   const template = {
-    chars, enemies, tokens, bonds, items, bands, skills, skillsById, ui, prof,
+    chars, enemies, tokens, bonds, items, bands, skills, skillsById, ui, prof, relics: relicIconTemplate(),
     audio: { bgm, bossBgm: Object.fromEntries(Object.entries(bossBgm).sort(([a], [b]) => a.localeCompare(b, 'en', { numeric: true }))), sfx: { ui: sfxUi, battle: sfxBattle, units: unitsSfx } },
   };
   return { template, models, notes };

@@ -55,7 +55,7 @@ export function makeMatch(o = {}) {
     if (o.script) FakeBattle.script = o.script;
   }
   h.m = new Match({
-    roomCode: 'TEST', mode, difficulty, seats, seed: o.seed ?? 1, matchNo: o.matchNo, data: o.data ?? DATA, log,
+    roomCode: 'TEST', mode, difficulty, difficultyLevel: o.difficultyLevel, seats, seed: o.seed ?? 1, matchNo: o.matchNo, data: o.data ?? DATA, log,
     send: (id, msg) => {
       for (const fn of h.onSend) fn(id, msg);
       if (msg.t === 'b.snap' || msg.t === 'b.ev') { h.frames++; if (!captureFrames) return true; }
@@ -91,7 +91,17 @@ export function makeMatch(o = {}) {
     assert.ok(ok && m.phase === phase && (round == null || m.round === round), `expected ${phase}${round != null ? ' R' + round : ''}, got ${m.phase} R${m.round}${h.ended ? ' (ended)' : ''}`);
     return h;
   };
-  h.runToEnd = (opts = {}) => { h.run(() => h.ended != null, opts); assert.ok(h.ended, `match did not end (phase ${m.phase} R${m.round})`); return h.ended; };
+  h.runToEnd = (opts = {}) => {
+    h.run(() => {
+      // 藏品选择属于新增结算步骤；保留原有战斗推进方式，并完成待选奖励。
+      for (const ps of m.players.values()) if (m.phase === 'SETTLE' && ps.relicOffer && !ps.left) {
+        m.handle(ps.playerId, { t: 'g.relic', offerId: ps.relicOffer.id, idx: 0 });
+      }
+      return h.ended != null;
+    }, opts);
+    assert.ok(h.ended, `match did not end (phase ${m.phase} R${m.round})`);
+    return h.ended;
+  };
   /** last message of a type sent to a player (unicast) */
   h.lastTo = (id, type) => { for (let i = h.sent.length - 1; i >= 0; i--) if (h.sent[i][0] === id && h.sent[i][1].t === type) return h.sent[i][1]; return null; };
   h.lastBc = (type) => { for (let i = h.bc.length - 1; i >= 0; i--) if (h.bc[i].t === type) return h.bc[i]; return null; };
@@ -115,6 +125,7 @@ export function makeMatch(o = {}) {
       if (h.ended) return !!pred();
       for (const ps of m.players.values()) {
         if (ps.isBot || ps.left) continue;
+        if (m.phase === 'SETTLE' && ps.relicOffer) m.handle(ps.playerId, { t: 'g.relic', offerId: ps.relicOffer.id, idx: 0 });
         if (m.phase === 'INFO_CHECK' && !ps.infoReady) m.handle(ps.playerId, { t: 'g.infoReady' });
         if (m.phase === 'BAND_DRAFT' && m.draftTurn() === ps.playerId) m.handle(ps.playerId, { t: 'g.band', bandId: band });
         if (m.phase === 'SP_DRAFT' && m.spTurn() === ps.playerId) {

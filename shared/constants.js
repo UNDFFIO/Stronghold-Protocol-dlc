@@ -9,13 +9,15 @@ export const MAX_SEATS = 4;
 export const ROOM_CODE_LEN = 4;
 export const NAME_MAX_LEN = 12;
 
-export const DIFFICULTIES = ['FUNNY', 'NORMAL', 'HARD', 'ABYSS'];
-export const DIFFICULTY_NAMES = { FUNNY: '标准模拟', NORMAL: '险境模拟', HARD: '绝境模拟', ABYSS: '终极模拟' };
-export const DIFFICULTY_COLORS = { FUNNY: '#f6a329', NORMAL: '#e85a1a', HARD: '#e73118', ABYSS: '#ff0024' };
+export const DIFFICULTIES = ['FUNNY', 'NORMAL', 'HARD', 'ABYSS', 'ASCENSION'];
+export const DIFFICULTY_NAMES = { FUNNY: '标准模拟', NORMAL: '险境模拟', HARD: '绝境模拟', ABYSS: '终极模拟', ASCENSION: '超限模拟' };
+export const DIFFICULTY_COLORS = { FUNNY: '#f6a329', NORMAL: '#e85a1a', HARD: '#e73118', ABYSS: '#ff0024', ASCENSION: '#ff3156' };
+export { MAX_DIFFICULTY_LEVEL, normalizeDifficultyLevel, difficultyEffects, DIFFICULTY_RULES } from './difficulty.js';
+export const baseDifficulty = (difficulty) => difficulty === 'ASCENSION' ? 'ABYSS' : difficulty;
 
 // modeId in data/config.json = `mode_${type}_${difficulty.toLowerCase()}` with type single|multi
 export const modeIdFor = (roomMode, difficulty) =>
-  `mode_${roomMode === 'solo' ? 'single' : 'multi'}_${difficulty.toLowerCase()}`;
+  `mode_${roomMode === 'solo' ? 'single' : 'multi'}_${baseDifficulty(difficulty).toLowerCase()}`;
 
 export const PHASE = Object.freeze({
   LOBBY: 'LOBBY',

@@ -18,6 +18,7 @@ import { LoadoutButton } from './loadout.js';
 import { net } from '../net.js';
 import { store, useStore, shallowEqual, emptyMatch } from '../store.js';
 import { difficultyInfo } from './lobby.js';
+import { DifficultyLevelPicker } from '../ui/difficultyLevel.js';
 
 /**
  * Seats padded to the room's capacity (co-op 4, solo 1), each null or a seat record.
@@ -171,7 +172,7 @@ function InviteBox({ code }) {
 function DifficultyPicker({ room, isHost, busy, onPick }) {
   if (!isHost) {
     return html`<div class="dpick dpick--ro">
-      <${DifficultyTag} difficulty=${room.difficulty} size="lg" code=${difficultyInfo(room.mode, room.difficulty).code} />
+      <${DifficultyTag} difficulty=${room.difficulty} difficultyLevel=${room.difficultyLevel} size="lg" code=${difficultyInfo(room.mode, room.difficulty).code} />
       <span class="t-dim">由创建者选择</span>
     </div>`;
   }
@@ -216,7 +217,9 @@ export function RoomScreen() {
   const start = () => run('start', () => net.request('room.start', {}));
   const addBot = () => run('add', () => net.request('room.addBot', {}));
   const removeBot = (seat) => run(`rm${seat}`, () => net.request('room.removeBot', { seat }));
-  const setDifficulty = (difficulty) => run('diff', () => net.request('room.setDifficulty', { difficulty }));
+  const setDifficulty = (difficulty, difficultyLevel = room.difficultyLevel ?? 0) => run('diff', () => net.request('room.setDifficulty', { difficulty, difficultyLevel }));
+  const levelPicker = room.difficulty === 'ASCENSION' ? html`<${DifficultyLevelPicker} value=${room.difficultyLevel}
+    onChange=${(n) => setDifficulty('ASCENSION', n)} disabled=${!!busy || !online} readOnly=${!facts.isHost} />` : null;
   const leave = async () => {
     if (inFlight.current) return;
     const othersHere = facts.humans.some((s) => s.playerId !== me.playerId);
@@ -250,7 +253,7 @@ export function RoomScreen() {
         ? html`<span class="t-mint">已就绪 · 等待创建者开始模拟</span>`
         : html`<span class="t-lo">准备就绪后，创建者即可开始模拟</span>`;
 
-  return html`<div class="screen room-screen">
+  return html`<div class=${`screen room-screen${room.difficulty === 'ASCENSION' ? ' has-level' : ''}`}>
     <header class="topbar">
       <div class="topbar__left">
         <${Tooltip} text="离开同盟" placement="bottom">
@@ -264,7 +267,7 @@ export function RoomScreen() {
       </div>
       <div class="topbar__center">
         <${MicroLabel} tone="mint">${coop ? 'ALLIANCE LOBBY' : 'SOLO SIMULATION'}<//>
-        <h1 class="topbar__title">${coop ? '同盟模拟' : '独立模拟'}<span class="topbar__sep"></span><${DifficultyTag} difficulty=${room.difficulty} size="lg" /></h1>
+        <h1 class="topbar__title">${coop ? '同盟模拟' : '独立模拟'}<span class="topbar__sep"></span><${DifficultyTag} difficulty=${room.difficulty} difficultyLevel=${room.difficultyLevel} size="lg" /></h1>
       </div>
       <div class="topbar__right">
         ${coop ? html`<${InviteBox} code=${room.code} />` : html`<div class="solo-note"><${MicroLabel}>SINGLE OPERATOR<//><span>仅限 1 名博士</span></div>`}
@@ -283,8 +286,10 @@ export function RoomScreen() {
           <li>共 <b class="num">${info.rounds}</b> 回合${info.hidden ? '，满足条件时进入隐秘核心' : ''}</li>
           <li>独立模拟中休整期与机变阶段不限时</li>
         </ul>
+        ${levelPicker}
       </aside>`}
     </main>
+    ${coop && levelPicker ? html`<div class="room-level">${levelPicker}</div>` : null}
 
     <footer class="room-bar">
       <div class="room-bar__left">

@@ -38,6 +38,16 @@ async function player(name, token) {
 }
 const ok = async (c, msg) => { const r = await c.request(msg); assert.equal(r.t, 'ok', `${msg.t}: ${JSON.stringify(r)}`); return r; };
 
+async function chooseRelic(c) {
+  // 单人结算选择不限时，收到真实奖励后选择，才能推进到下一回合。
+  const priv = await c.waitFor('m.private', (p) => !!p.relicOffer, 10000);
+  const offer = priv.relicOffer;
+  assert.equal(offer.options.length, 3);
+  await ok(c, { t: 'g.relic', offerId: offer.id, idx: 0 });
+  const selected = await c.waitFor('m.private', (p) => !p.relicOffer && p.relics?.length === 1, 10000);
+  assert.equal(selected.relics[0].id, offer.options[0]);
+}
+
 after(async () => {
   for (const c of clients) await c.terminate().catch(() => {});
   if (srv) await srv.close();
@@ -75,6 +85,7 @@ test('solo over websockets: briefing → band → prep → buy/place/ready → c
   const start = await c.waitFor('b.start', (x) => x.authoritative, 10000);
   assert.equal(start.fieldId, `n:${c.id}`);
   assert.equal(start.spec.kind, 'normal');
+  await chooseRelic(c);
   await c.waitFor('m.public', (p) => p.phase === 'PREP' && p.round === 2, 15000);
   assert.ok(c.sim.log.some((x) => x.t === 'b.result' && x.battleId === start.battleId), 'the client reported its battle');
   assert.equal(c.log.filter((x) => x.t === 'b.snap' || x.t === 'b.ev').length, 0, 'no combat streaming');
@@ -144,6 +155,7 @@ test('server-run fallback (SP_COMBAT=server): the match simulates every field an
     await ok(c, { t: 'g.ready', ready: true });
     await c.waitFor('m.field', () => true, 10000);
     await c.waitFor('b.snap', (s) => typeof s.gt === 'number', 10000);
+    await chooseRelic(c);
     await c.waitFor('m.public', (p) => p.phase === 'PREP' && p.round === 2, 15000);
     assert.equal(c.log.filter((x) => x.t === 'b.start').length, 0);
     await ok(c, { t: 'g.leave' });

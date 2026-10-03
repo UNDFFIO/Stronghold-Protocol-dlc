@@ -85,6 +85,10 @@ class Client {
     while (Date.now() - t0 < timeout) {
       last = await this.st();
       if (pred(last)) return last;
+      if (last.phase === 'SETTLE' && await this.exists('.relic-choice__card:not(:disabled)')) {
+        await this.click('.relic-choice__card:not(:disabled)');
+        this.note(`藏品三选一 picked (round ${last.round})`);
+      }
       await sleep(250);
     }
     throw new Error(`${this.label}: timed out waiting for ${what} (last: ${JSON.stringify(last)})`);
@@ -550,6 +554,8 @@ describe('real server + real browsers', { skip: !ENABLED && 'set SP_REAL_E2E=1 (
               c.note(`机变 picked (round ${s.round})`);
             }
           }
+        } else if (hs.phase === 'SETTLE') {
+          for (const c of both) if (await c.exists('.relic-choice__card:not(:disabled)')) await c.click('.relic-choice__card:not(:disabled)');
         } else if (['COMBAT', 'UNITE', 'FINAL_ASSAULT', 'HIDDEN_CORE'].includes(hs.phase) && lastCombatRound !== hs.round * 10 + (hs.phase === 'UNITE' ? 1 : 0)) {
           lastCombatRound = hs.round * 10 + (hs.phase === 'UNITE' ? 1 : 0);
           assert.equal(await host.viewKind(), 'engine', 'the Pixi render engine is mounted (not the DOM fallback)');

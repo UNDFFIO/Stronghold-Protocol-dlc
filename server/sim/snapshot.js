@@ -64,7 +64,7 @@ export function flagsOf(u) {
   // 失去隐匿"; targeting.js canTargetEnemy): a blocked 逐火 余烬 is drawn solid while the team beats it
   if (u.side === 'enemy' ? (f.stealth && !f.reveal && !u.blockedBy) || f.camou : f.stealth || f.camou) bits |= UF.STEALTH;
   if (u.skill && u.skill.active && u.skill.kind !== 'passive') bits |= UF.SKILL;
-  if (u.s.shield > 0 || u.buffs.some((b) => b.shieldHits > 0)) bits |= UF.SHIELD;
+  if (f.ascensionShield || u.s.shield > 0 || u.buffs.some((b) => b.shieldHits > 0)) bits |= UF.SHIELD;
   if (f.invulnerable) bits |= UF.INVULN;
   if (f.cold) bits |= UF.COLD;
   if (f.sleep) bits |= UF.SLEEP;

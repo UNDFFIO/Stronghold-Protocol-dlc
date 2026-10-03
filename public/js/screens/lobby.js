@@ -8,7 +8,8 @@
 // plays 战场#01, 险境 draws one of 8, 绝境 / 终极 one of 7 (m01 excluded).
 
 import { useEffect, useRef, useState } from '../../vendor/hooks.module.js';
-import { DIFFICULTIES, DIFFICULTY_NAMES, DIFFICULTY_COLORS, ROOM_CODE_LEN, MAX_SEATS, modeIdFor } from '../../../shared/constants.js';
+import { DIFFICULTIES, DIFFICULTY_NAMES, DIFFICULTY_COLORS, ROOM_CODE_LEN, MAX_SEATS, modeIdFor, baseDifficulty, normalizeDifficultyLevel } from '../../../shared/constants.js';
+import { DifficultyLevelPicker } from '../ui/difficultyLevel.js';
 import { html, Button, Icon, MicroLabel, Panel, TextField, PingPill, AvatarFrame, Tooltip, Spinner, DifficultyIcon, doctorNo } from '../ui/components.js';
 import { toast, toastError } from '../ui/toasts.js';
 import { GuideButton } from '../ui/guide.js';
@@ -34,7 +35,7 @@ export const MODE_TEXT = {
 };
 
 /** Battlefield pool per difficulty when config.json is absent (the modes' `stages` lists; same for solo and co-op). */
-export const STAGE_POOL = { FUNNY: ['act1autochess_m01'], NORMAL: 8, HARD: 7, ABYSS: 7 };
+export const STAGE_POOL = { FUNNY: ['act1autochess_m01'], NORMAL: 8, HARD: 7, ABYSS: 7, ASCENSION: 7 };
 
 /**
  * Display name of a stage: stages.json when it is loaded, else derived from the id (act1 m0N → 战场#0N, act2 m0N → 战场#0(N+4)).
@@ -82,7 +83,7 @@ const MODE_CARDS = [
  * @returns {{ code: string, desc: string, effects: string[], rounds: number, hidden: boolean, stageNote: string }}
  */
 export function difficultyInfo(roomMode, difficulty) {
-  const fallback = MODE_TEXT[roomMode === 'solo' ? 'single' : 'multi'][difficulty] || { code: '', desc: '', effects: [] };
+  const fallback = MODE_TEXT[roomMode === 'solo' ? 'single' : 'multi'][baseDifficulty(difficulty)] || { code: '', desc: '', effects: [] };
   // modeIdFor() lower-cases the difficulty: never call it with a value the server did not validate.
   const m = DIFFICULTIES.includes(difficulty) ? getMode(modeIdFor(roomMode, difficulty)) : null;
   const effects = Array.isArray(m?.effectDescList)
@@ -90,8 +91,8 @@ export function difficultyInfo(roomMode, difficulty) {
     : fallback.effects;
   const rounds = Number.isFinite(m?.lastRound) ? m.lastRound : roomMode === 'solo' && difficulty === 'FUNNY' ? 9 : 14;
   return {
-    code: typeof m?.code === 'string' ? m.code : fallback.code,
-    desc: typeof m?.desc === 'string' ? m.desc : fallback.desc,
+    code: difficulty === 'ASCENSION' ? 'AC-5' : typeof m?.code === 'string' ? m.code : fallback.code,
+    desc: difficulty === 'ASCENSION' ? '在终极模拟之上，逐级挑战超限协议' : typeof m?.desc === 'string' ? m.desc : fallback.desc,
     effects,
     rounds,
     hidden: difficulty !== 'FUNNY',
@@ -221,6 +222,7 @@ export function LobbyScreen() {
     const d = loadPref('lobby.difficulty', 'FUNNY');
     return DIFFICULTIES.includes(d) ? d : 'FUNNY';
   });
+  const [difficultyLevel, setDifficultyLevel] = useState(() => normalizeDifficultyLevel(loadPref('lobby.difficultyLevel', 0)));
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(null);
   const [recent] = useState(recentRooms);
@@ -233,6 +235,7 @@ export function LobbyScreen() {
 
   const pickMode = (m) => { setRoomMode(m); savePref('lobby.mode', m); };
   const pickDifficulty = (d) => { setDifficulty(d); savePref('lobby.difficulty', d); };
+  const pickLevel = (n) => { setDifficultyLevel(n); savePref('lobby.difficultyLevel', n); };
 
   const run = async (kind, fn) => {
     if (inFlight.current) return;
@@ -244,7 +247,7 @@ export function LobbyScreen() {
       if (alive.current) setBusy(null);
     }
   };
-  const create = () => run('create', () => net.request('room.create', { mode: roomMode, difficulty }));
+  const create = () => run('create', () => net.request('room.create', { mode: roomMode, difficulty, difficultyLevel: difficulty === 'ASCENSION' ? difficultyLevel : 0 }));
   const join = (c = code) => {
     const k = normalizeCode(c);
     if (!CODE_RE.test(k)) { toast(`同盟密钥为 ${ROOM_CODE_LEN} 位字母或数字`, 'warn'); return; }
@@ -255,7 +258,7 @@ export function LobbyScreen() {
     store.set((s) => ({ session: { ...s.session, entered: false } }));
   };
 
-  return html`<div class="screen lobby-screen">
+  return html`<div class=${`screen lobby-screen${difficulty === 'ASCENSION' ? ' has-level' : ''}`}>
     <header class="topbar">
       <div class="topbar__left">
         <${Button} variant="ghost" size="sm" icon="chevronLeft" onClick=${backToTitle} title="返回标题">返回<//>
@@ -298,7 +301,8 @@ export function LobbyScreen() {
               : html`<span class="t-dim">向同伴索取 ${ROOM_CODE_LEN} 位同盟密钥，或直接打开邀请链接</span>`}
           </div>
         <//>
-        <${TipsPanel} />
+        ${difficulty === 'ASCENSION' ? null : html`<${TipsPanel} />`}
+        ${difficulty === 'ASCENSION' ? html`<${DifficultyLevelPicker} value=${difficultyLevel} onChange=${pickLevel} disabled=${!!busy} />` : null}
       </section>
 
       <section class="lobby-right">

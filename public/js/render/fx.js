@@ -156,6 +156,11 @@ const num = (v, d) => { const n = typeof v === 'number' ? v : typeof v === 'stri
  * kinds fall back to a keyword guess, then to a generic sparkle (fxSpec).
  */
 export const FX_KINDS = Object.freeze({
+  // Ascension: fixed ground hazards / bombard warnings and distinct armor / relay colours.
+  ascEmbers: { a: 'zone', c: 0xff632f, dur: 3, r: 0.75, pt: true },
+  ascBombMark: { a: 'telegraph', c: 0xff3156, dur: 1, r: 0.75, pt: true },
+  ascPhysicalArmor: { a: 'shield', c: 0xffb35c }, ascArtsArmor: { a: 'shield', c: 0xbb91ff },
+  ascSpStorm: { a: 'buff', c: 0x8299c8 }, ascRelay: { a: 'shield', c: 0x53e0b4 },
   // blasts
   aoe: { a: 'blast', c: 0xffb35c }, explode: { a: 'blast', c: 0xff7a33 }, explosion: { a: 'blast', c: 0xff7a33 },
   // `pt`: always at the event's (x, y) (its `id` is the shooter); `heavy`: debris + scorch
@@ -193,6 +198,7 @@ export const FX_KINDS = Object.freeze({
   tornadoPulse: { a: 'wave', c: 0xd8e8ff }, wake: { a: 'wave', c: 0x5fe0ff }, wolfShadow: { a: 'wave', c: 0x8fa0b0 }, wolfShadowLost: { a: 'vanish', c: 0x8fa0b0 },
   redistribute: { a: 'wave', c: 0x62f08a }, dilemma: { a: 'wave', c: 0xc9a2ff },
   // marks
+  mark: { a: 'mark', c: 0xff9c33 },
   taunt: { a: 'mark', c: 0xff9c33 }, palsy: { a: 'mark', c: 0xc77dff }, emergency: { a: 'mark', c: 0xff5a4a },
   lock: { a: 'reticle', c: 0xff5a4a }, droneLock: { a: 'reticle', c: 0x8fe6ff }, wanted: { a: 'reticle', c: 0xffc600 }, expose: { a: 'reticle', c: 0xff7b8a },
   reveal: { a: 'reticle', c: 0x9fd4ff }, anchor: { a: 'reticle', c: 0x9fd4ff },

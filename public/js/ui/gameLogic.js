@@ -24,6 +24,7 @@ import { GEO, PHASE, UF } from '../../../shared/constants.js';
 import { resolveLoadout, loadoutOptions, MODULE_NONE } from '../../../shared/protocol.js';
 import { resolveRecordLoadout, loadoutRecord, attackRangeGrid } from '../../../shared/loadoutRecord.js';
 import { rangeTiles, pieceDir } from './facing.js';
+import { RELIC_CHOICE_SECONDS } from '../../../shared/relics.js';
 import { layoutPen } from '../render/pen.js';
 import { BOSS_ROW_SHIFT, MAX_COL } from '../render/prepfield.js';
 import { bossLevelSeconds } from './matchStatus.js';
@@ -215,6 +216,7 @@ export function phaseTotalSeconds(pub, config, myId = null) {
     // one countdown: the current turn's (m.public.draft.turnSeconds = Match.BAND_TURN_SECONDS; user playtest #4 item 4)
     case PHASE.BAND_DRAFT: return num(pub.draft?.turnSeconds) ?? num(timers.bandTurn) ?? 30;
     case PHASE.BATTLE_CHECK: return num(timers.battleCheck) ?? 3;
+    case PHASE.SETTLE: return pub.relicChoosing ? RELIC_CHOICE_SECONDS : null;
     case PHASE.SP_DRAFT: {
       const sp = normalizeSp(pub.sp, pub.players);
       const first = !sp || sp.pickedCount === 0;

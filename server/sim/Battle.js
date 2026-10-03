@@ -25,7 +25,8 @@
 // battle continues. After MAX_INTERNAL_ERRORS the battle force-ends as a timeout.
 
 import { TICK, ROWS, COLS, BLOCK_RADIUS_SQ, DP_DEFAULTS, DOWN_STATE, FORCED_EXIT, MAX_BATTLE_TIME, MAX_INTERNAL_ERRORS, COLD_FREEZE_DURATION, OBSTACLE_DEVICES, EVENT_BUFFER_CAP, BOSS_ROW_OFFSET, MAX_HOOK_DEPTH, MAX_ALIVE_ENEMIES, LEVITATE_HALF_WEIGHT, RESIST_DEFAULT, RESIST_PALSY_DECAY, PUSH_TILES, PUSH_TILES_EFFECT, PULL_WEAK_SHARE, PULL_CRAWL, PULL_ORIGIN, PULL_STOP_RADIUS, PUSH_DIRECTIONAL_MIN_DIST, AUTO_OP_COOLDOWN } from './constants.js';
-import { GEO, layerGainRoom } from '../../shared/constants.js';
+import { GEO, layerGainRoom, difficultyEffects } from '../../shared/constants.js';
+import { installDifficulty } from './difficulty.js';
 import { createRng } from './rng.js';
 import { Grid } from './grid.js';
 import { Unit } from './units.js';
@@ -81,6 +82,7 @@ export class Battle {
     this.rng = createRng(this.seed);
     this.kind = opts.kind ?? 'normal';
     this.modeId = opts.modeId ?? null;
+    this.difficulty = difficultyEffects(opts.difficultyLevel);
     this.round = opts.round ?? 0;
     this.fieldId = opts.fieldId ?? null;
     this.logger = opts.logger ?? console;
@@ -171,6 +173,7 @@ export class Battle {
     this.contentMode = opts.content ?? 'full';
     this._safe(() => installContent(this, { mode: this.contentMode, extra: opts.extraContent }), 'installContent');
     for (const u of this.allyUnits) if (!u.kit) this._setupUnit(u);
+    installDifficulty(this);
     if (typeof opts.setup === 'function') this._safe(() => opts.setup(this), 'opts.setup');
   }
 
@@ -795,7 +798,7 @@ export class Battle {
       id: ++this._idSeq, side: 'enemy', kind: 'enemy', def, defId: def.key ?? enemyKey, name: def.name,
       x: start[1], y: start[0], motion: def.motion,
       base: {
-        maxHp: def.maxHp * (m.hpMul ?? 1), atk: def.atk * (m.atkMul ?? 1), def: def.def * (m.defMul ?? 1), res: def.res * (m.resMul ?? 1),
+        maxHp: def.maxHp * m.hpMul, atk: def.atk * m.atkMul, def: def.def * (m.defMul ?? 1), res: def.res * (m.resMul ?? 1),
         aspd: def.aspd, bat: def.bat, blockCnt: 0, moveSpeed: def.moveSpeed * (m.speedMul ?? 1), spRecovery: 0,
         tauntLevel: def.tauntLevel, massLevel: def.massLevel, hpRecoveryPerSec: def.hpRecoveryPerSec, rangeRadius: def.rangeRadius,
       },

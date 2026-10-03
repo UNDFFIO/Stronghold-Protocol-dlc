@@ -51,6 +51,7 @@
 import { MIN_DAMAGE_RATIO, ELEMENT, ELEMENT_ORDER, PALSY_MAX } from './constants.js';
 import { BOSS_HIT_LIMIT } from '../../shared/constants.js';
 import { evadesGround } from './targeting.js';
+import { guardDifficultyDamage } from './difficulty.js';
 
 const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
 
@@ -243,7 +244,7 @@ export function dealDamage(battle, source, target, dmgIn) {
   // recognise their own (tagged) damage — never re-create such a loss with a fresh loseHp.
   if (ts.flags.hitCount || ts.flags.hitCountArts) {
     const counts = !(ts.flags.hitCountArts && !ts.flags.hitCount && type === 'phys');
-    return applyHpLoss(battle, source, target, absorbShields(battle, target, counts ? 1 : 0), dmg);
+    return applyHpLoss(battle, source, target, absorbShields(battle, target, guardDifficultyDamage(battle, source, target, counts ? 1 : 0, dmg)), dmg);
   }
   // 无来源 damage (element bursts) takes nothing from its source's stats; the source still gets the credit below
   const ss = source && source.s && !dmg.sourceless ? source.s : null;
@@ -260,6 +261,7 @@ export function dealDamage(battle, source, target, dmgIn) {
   mul *= type === 'phys' ? ts.physTakenMul : type === 'arts' ? ts.artsTakenMul : type === 'elemental' ? ts.elementalTakenMul : ts.trueTakenMul;
   final *= mul;
   if (!(final > 0) || !Number.isFinite(final)) final = 0;
+  final = guardDifficultyDamage(battle, source, target, final, dmg);
   // 限伤: a leader's hit of ≥ BOSS_HIT_LIMIT in a boss / hidden battle is cancelled before it reaches shields / HP — what
   // ran before it (the attack, its SP, `hit` hook effects, separate element 损伤) stays; nothing after it happens
   if (final > 0 && leaderHitCancelled(battle, target, final)) return 0;

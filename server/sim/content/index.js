@@ -34,14 +34,14 @@ async function safeImport(path) {
 }
 
 const TIERS = await Promise.all([1, 2, 3, 4, 5, 6].map((t) => safeImport(`./kits/tier${t}.js`)));
-const DOMAIN_NAMES = ['tokens', 'devices', 'enemies', 'bosses', 'bonds', 'garrisons', 'items', 'bands', 'choices'];
+const DOMAIN_NAMES = ['tokens', 'devices', 'enemies', 'bosses', 'bonds', 'garrisons', 'items', 'bands', 'choices', 'relics'];
 const DOMAINS = await Promise.all(DOMAIN_NAMES.map((n) => safeImport(`./${n}.js`)));
 const tokens = DOMAINS[0];
 
 /** Merged kit registry: baseChessId → (bb, chess, def) => Kit */
 export const KITS = Object.freeze(Object.assign({}, ...TIERS.map((m) => (m && m.default && typeof m.default === 'object' ? m.default : {}))));
 
-/** Domain modules in install order: tokens, devices, enemies, bosses, bonds, garrisons, items, bands, choices. */
+/** Domain modules in install order: tokens, devices, enemies, bosses, bonds, garrisons, items, bands, choices, relics. */
 export const MODULES = Object.freeze(DOMAIN_NAMES.map((n, i) => [n, DOMAINS[i]]));
 
 /** Resolve the Kit of an ally unit. Never throws (falls back to the generic kit). */

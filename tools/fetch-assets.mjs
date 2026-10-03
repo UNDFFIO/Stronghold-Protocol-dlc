@@ -155,6 +155,7 @@ function countStats(m, bytes, files) {
     bonds: Object.keys(m.bonds || {}).length,
     items: Object.keys(m.items || {}).length,
     bands: Object.keys(m.bands || {}).length,
+    relics: Object.keys(m.relics || {}).length,
     skills: Object.keys(m.skills || {}).length,
     ui: Object.keys(m.ui || {}).length,
     sfxUnits: Object.keys(m.audio?.sfx?.units || {}).length,

@@ -156,14 +156,14 @@ export function uniteRemaining(local, server) {
  * @param {{ phase: string, round: any, lp: any, statsLeaks?: any, leaks?: any, cap?: number, alive?: boolean, uniteLeft?: number|null }} s
  * @returns {{ base: { round: any, lp: number, statsLeaks: number|null } | null, pending: number, shown: number|null, unite: boolean, left: number|null }}
  */
-export function liveLp(base, { phase, round, lp, statsLeaks = null, leaks = 0, cap = 10, alive = true, uniteLeft = null }) {
+export function liveLp(base, { phase, round, lp, statsLeaks = null, leaks = 0, cap = 10, alive = true, uniteLeft = null, shield = 0 }) {
   if (!Number.isFinite(lp)) return { base: null, pending: 0, shown: null, unite: false, left: null };
   if (!LEAK_PHASES.has(phase) || alive === false) return { base: null, pending: 0, shown: lp, unite: false, left: null };
   const sl = Number.isFinite(statsLeaks) ? statsLeaks : null;
   const b = base && base.round === round ? base : { round, lp, statsLeaks: sl };
   const landed = lp !== b.lp || (sl != null && b.statsLeaks != null && sl !== b.statsLeaks);
   const left = phase === PHASE.UNITE && Number.isFinite(uniteLeft) && uniteLeft >= 0 && !landed ? Math.trunc(uniteLeft) : null;
-  const pending = landed ? 0 : Math.min(lp, pendingLoss(left != null ? left : leaks, cap));
+  const pending = landed ? 0 : Math.min(lp, Math.max(0, pendingLoss(left != null ? left : leaks, cap) - Math.max(0, Number(shield) || 0)));
   return { base: b, pending, shown: lp - pending, unite: phase === PHASE.UNITE && (pending > 0 || left != null), left };
 }
 
@@ -334,7 +334,7 @@ export function TopBar({ pub, priv, conn, hud, total, drawer, onExit, onDrawer, 
       <${Button} variant="danger" size="lg" square=${true} icon="exit" onClick=${onExit} aria-label="离开" title="离开 / 暂离" class="gtop__exit tapx" />
       <div class="gtop__meta">
         <${PingPill} ms=${conn?.ping} online=${conn?.status === 'online'} />
-        ${pub?.difficulty ? html`<${DifficultyTag} difficulty=${pub.difficulty} size="sm" />` : null}
+        ${pub?.difficulty ? html`<${DifficultyTag} difficulty=${pub.difficulty} difficultyLevel=${pub.difficultyLevel} size="sm" />` : null}
       </div>
     </div>
 

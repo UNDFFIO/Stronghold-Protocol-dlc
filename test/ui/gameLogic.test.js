@@ -94,6 +94,8 @@ describe('countdown', () => {
     assert.equal(countdownState(now + 2_000_000, now).text, '999', 'clamped to 3 digits');
   });
   test('phase totals from config', () => {
+    assert.equal(phaseTotalSeconds({ phase: PHASE.SETTLE, relicChoosing: true }, config), 30);
+    assert.equal(phaseTotalSeconds({ phase: PHASE.SETTLE }, config), null);
     assert.equal(phaseTotalSeconds({ phase: PHASE.INFO_CHECK }, config), config.timers.infoCheck);
     assert.equal(phaseTotalSeconds({ phase: PHASE.PREP, modeId: 'mode_multi_hard', round: 4 }, config), config.modes.mode_multi_hard.rounds['4'].prepTime);
     assert.equal(phaseTotalSeconds({ phase: PHASE.PREP, modeId: 'mode_single_hard', round: 4 }, config), null, 'solo prep untimed');

@@ -395,8 +395,9 @@ export function Modal({ open, title, micro, tone = 'mint', onClose, actions, wid
   closeRef.current = onClose;
   useEffect(() => {
     if (!open) return undefined;
-    const token = {};
+    const token = { box: boxRef.current };
     modalStack.push(token);
+    setTip(null);
     const prevFocus = typeof document !== 'undefined' ? document.activeElement : null;
     const onKey = (e) => {
       if (e.key !== 'Escape' || modalStack[modalStack.length - 1] !== token || !closeRef.current) return;
@@ -530,6 +531,8 @@ export function Tooltip({ text, placement = 'top', delay = 120, block = false, c
       const el = ref.current;
       const content = textRef.current; // the text of the render current when the delay ends (a click may change it)
       if (!el || !el.isConnected || content == null || content === '') return;
+      // An automatic dialog can open while a background hover or long press is still pending.
+      if (modalStack.length && !modalStack[modalStack.length - 1].box?.contains(el)) return;
       setTip({ id: idRef.current, content, rect: el.getBoundingClientRect(), placement });
     }, delay);
   };
@@ -767,7 +770,7 @@ export function DifficultyIcon({ difficulty, class: cls }) {
   useData('assets');
   const [badSrc, setBadSrc] = useState(null);
   const ui = DIFFICULTY_NAMES[difficulty] ? data.get('assets')?.ui : null;
-  const src = ui && typeof ui === 'object' ? ui[`modeIcon/mode_${String(difficulty).toLowerCase()}_icon`] : null;
+  const src = ui && typeof ui === 'object' ? ui[`modeIcon/mode_${String(difficulty === 'ASCENSION' ? 'ABYSS' : difficulty).toLowerCase()}_icon`] : null;
   if (typeof src === 'string' && src && badSrc !== src) {
     return html`<img class=${cx('icon', 'dicon', cls)} src=${src} alt="" draggable=${false} onError=${() => setBadSrc(src)} />`;
   }
@@ -778,8 +781,8 @@ export function DifficultyIcon({ difficulty, class: cls }) {
  * Difficulty tag: coloured glyph + name (标准/险境/绝境/终极模拟).
  * @param {{ difficulty: string, size?: 'sm'|'md'|'lg', class?: string, code?: string }} props
  */
-export function DifficultyTag({ difficulty, size = 'md', class: cls, code }) {
-  const name = DIFFICULTY_NAMES[difficulty] || difficulty || '—';
+export function DifficultyTag({ difficulty, difficultyLevel = 0, size = 'md', class: cls, code }) {
+  const name = (DIFFICULTY_NAMES[difficulty] || difficulty || '—') + (difficulty === 'ASCENSION' ? ` · ${difficultyLevel}` : '');
   const color = DIFFICULTY_COLORS[difficulty] || 'var(--text-lo)';
   return html`<span class=${cx('dtag', `dtag--${size}`, cls)} style=${`--d-color:${color}`}>
     <${DifficultyIcon} difficulty=${difficulty} class="dtag__icon" />

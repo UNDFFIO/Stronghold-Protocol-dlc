@@ -9,7 +9,7 @@
 //                 progress when it is first seen at a prep end. No temp piece may outlive its due prep.
 //   prep end      leftover funds lost (carry bands excepted), temp resolved (only pieces due at a later prep stay),
 //                 reward offers expired
-//   round start   income = config income(r) (= min(3 + r, 12)) + pending funds, upgrade price −1 (floor 0) from R2,
+//   round start   income = config income(r) (= min(3 + r, 12)) + pending funds + relic income, upgrade price −1 from R2,
 //                 temp not wiped (nothing overdue), offers earned after the last prep kept, frozen slots kept in
 //                 place (same id; chess slots keep their index, the item slot(s) follow the chess slots, so a
 //                 level-up moves them right), everything else rerolled with tier ≤ shop level from the unbanned pool,
@@ -27,7 +27,8 @@
 //   联防          decided after the COMBAT_END pause from the players still in: runs iff co-op with ≥ 1 leaker and
 //                 ≥ 1 perfect player; helpers = unite.js helperOrder (PRTS: units > active bond > layers > standing
 //                 units > seat, research 08 §5); leakers = players with counted leaks
-//   settle        no unite ⇒ loss = min(cap, counted leaks); after 联防 a leaker loses ≤ cap (its leaked enemies'
+//   settle        no unite ⇒ loss = max(0, min(cap, counted leaks) − shield); after 联防 a leaker loses ≤ cap − shield
+//                 (its leaked enemies'
 //                 offspring count too), everybody else ≤ min(cap, own counted leaks); LP ≤ 0 ⇔ eliminated
 //   final assault fields pair alive players by seat, team LP = Σ alive LP, boss pool = bossPoolHp(); hidden core only
 //                 after a win when hiddenEligible() holds
@@ -37,7 +38,7 @@
 //                 strategy draft has one countdown: the deadline is the current turn's (Match.BAND_TURN_SECONDS). A match
 //                 with a single human (solo, or a 同盟 room with AI teammates only: Match.soloUntimed) times nothing
 //                 outside its battles — no INFO_CHECK / draft / 机变 / prep deadline, BATTLE_CHECK / ROUND_START / SETTLE
-//                 silent (deadline 0)
+//                 silent (deadline 0); a multiplayer collectible choice waits up to RELIC_CHOICE_SECONDS
 // Checks never throw into the match: an exception inside a check is itself recorded as a violation.
 
 import { PHASE } from '../../shared/constants.js';
@@ -46,6 +47,7 @@ import { mergeTile, pieceDir, canPlace, positionClass } from './board.js';
 import { pairPlayers, bossPoolHp, hiddenEligible } from './finalAssault.js';
 import { helperOrder } from './unite.js';
 import { BAND_TURN_SECONDS } from './Match.js';
+import { relicIncome, RELIC_CHOICE_SECONDS } from '../../shared/relics.js';
 
 /**
  * @param {import('./Match.js').Match} m
@@ -151,7 +153,7 @@ export function attachAudit(m, { invariants = true, limit = 200 } = {}) {
         else {
           if (inc.initial.income !== want || inc.initial.pending !== p0) fail(`${id}: onIncome started with ${inc.initial.income}+${inc.initial.pending}, expected ${want}+${p0}`);
           const nn = (v) => (Number.isFinite(v) && v > 0 ? Math.trunc(v) : 0);
-          const credited = nn(inc.ev.income) + nn(inc.ev.pending);
+          const credited = nn(inc.ev.income) + nn(inc.ev.pending) + relicIncome(ps.relics);
           if (ps.funds - f0 !== credited) fail(`${id}: funds ${f0} → ${ps.funds}, credited ${credited}`);
         }
         const upWant = r > 1 ? Math.max(0, up0 - 1) : up0;
@@ -162,7 +164,7 @@ export function attachAudit(m, { invariants = true, limit = 200 } = {}) {
         // offers of the last prep expired at its end; the ones queued after it (SETTLE merges) wait for this prep
         if (offers0.some((o) => !ps.offers.includes(o))) fail(`${id}: a reward offer earned after the prep was dropped at the round start`);
         if (ps.shop.frozen) fail(`${id}: freeze toggle still on after the round start`);
-        const { chess, item } = gd.shopSlots(ps.shop.level);
+        const { chess, item } = gd.shopSlots(ps.shop.level, r);
         if (ps.shop.slots.length !== chess + item) fail(`${id}: ${ps.shop.slots.length} shop slots at level ${ps.shop.level}, expected ${chess}+${item}`);
         for (const k of kept) {
           if (!k.frozen || k.sold) { fail(`${id}: slot ${k.i} (${k.id}) survived combat unfrozen/sold`); continue; }
@@ -403,17 +405,17 @@ export function attachAudit(m, { invariants = true, limit = 200 } = {}) {
       if (expectUnite && expectUnite.round === m.round && expectUnite.expect !== !!plan) fail(`联防 ${plan ? 'ran' : 'skipped'} but ${expectUnite.expect ? '≥ 1 leaker and ≥ 1 perfect player' : 'not both a leaker and a perfect player'}`);
       expectUnite = null;
     });
-    const before = new Map(m.alivePlayers().map((ps) => [ps, ps.lp]));
+    const before = new Map(m.alivePlayers().map((ps) => [ps, { lp: ps.lp, shield: ps.relicShieldRound === m.round ? ps.relicShield : 0 }]));
     const res = orig(plan, uniteResult);
     check('settle', () => {
       const cap = gd.lpCapPerRound;
       const uniteRan = !!(plan && uniteResult && !uniteResult.synthetic);
-      for (const [ps, lp0] of before) {
+      for (const [ps, { lp: lp0, shield }] of before) {
         const r = m.lastResults.get(ps.playerId) || { leaked: [] };
         const counted = (r.leaked || []).filter((l) => l && l.counted !== false).length;
         // after 联防 a leaker pays for every surviving enemy of its source — enemies spawned by its leaked enemies
         // (splitters, summoners) included — so only the cap bounds it; everybody else never exceeds own leaks
-        const max = uniteRan && plan.leakers.includes(ps) ? cap : Math.min(cap, counted);
+        const max = Math.max(0, (uniteRan && plan.leakers.includes(ps) ? cap : Math.min(cap, counted)) - shield);
         if (ps.alive) {
           const loss = lp0 - ps.lp;
           if (loss < 0) fail(`${ps.playerId}: LP rose in settle ${lp0} → ${ps.lp}`);
@@ -427,7 +429,7 @@ export function attachAudit(m, { invariants = true, limit = 200 } = {}) {
           if (ps.lp !== 0) fail(`${ps.playerId}: eliminated with LP ${ps.lp}`);
         }
       }
-      expectDeadline(3, 'SETTLE', { silentSolo: true });
+      expectDeadline(m._relicContinue ? RELIC_CHOICE_SECONDS : 3, 'SETTLE', { silentSolo: true });
     });
     runInvariants();
     return res;

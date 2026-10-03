@@ -110,7 +110,7 @@ export function StepHeader({ step, of, title, micro, pub, total, onExit }) {
       <${Button} variant="danger" size="lg" square=${true} icon="exit" onClick=${onExit} aria-label="离开" title="离开" />
       <div class="stephead__meta">
         <${PingPill} ms=${conn.ping} online=${conn.status === 'online'} />
-        ${pub?.difficulty ? html`<${DifficultyTag} difficulty=${pub.difficulty} />` : null}
+        ${pub?.difficulty ? html`<${DifficultyTag} difficulty=${pub.difficulty} difficultyLevel=${pub.difficultyLevel} />` : null}
       </div>
     </div>
     <div class="stephead__center">

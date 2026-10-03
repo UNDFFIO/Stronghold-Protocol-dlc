@@ -78,6 +78,8 @@ import { offsetTile } from '../sim/dir.js';
 import { computeBonds, bondList, bondSnapshot, activatedLayers, bondsWithGains } from './bondsMeta.js';
 import { itemKey } from './gamedata.js';
 import { bountyText } from './choices.js';
+import { relicIncome } from '../../shared/relics.js';
+import { relicsView, relicOfferView, activeRelicShield, startRelicRound } from './relics.js';
 
 const HAND_SIZE = GEO.HAND_SIZE;
 const TEMP_SIZE = GEO.TEMP_SIZE;
@@ -138,6 +140,16 @@ export class PlayerState {
     this.bondCountBonus = {};
     /** EffectRef list: { id, key, name, desc, iconKind, iconId, counter?, battle, params, data } */
     this.effects = [];
+    /** Battle collectibles last for this match only; they do not occupy equipment or hand slots. */
+    this.relics = [];
+    this.relicSettledRounds = new Set();
+    this.relicLastRound = 0;
+    this.relicLeakStreak = 0;
+    this.relicOffer = null;
+    this.relicShield = 0;
+    this.relicShieldRound = 0;
+    this.relicNextShieldRound = 0;
+    this.relicReward = null;
     /** active bounties: { id, card, roundsLeft, chooser } */
     this.bounties = [];
     /** free-form counters for content (ctx.counter / setCounter) */
@@ -840,10 +852,10 @@ export class PlayerState {
 
   /**
    * Reroll the shop. keepFrozen → frozen unsold slots survive (round start); otherwise everything is rerolled
-   * (manual refresh). Slot counts follow the current level.
+   * (manual refresh). Slot counts follow the current level and round.
    */
-  rollShop({ keepFrozen = false } = {}) {
-    const { chess: nChess, item: nItem } = this.gd.shopSlots(this.shop.level);
+  rollShop({ keepFrozen = false, round = this.m.round } = {}) {
+    const { chess: nChess, item: nItem } = this.gd.shopSlots(this.shop.level, round);
     const old = this.shop.slots;
     const layout = this.shop.layout || { chess: old.length, item: 0 };
     const oldChess = old.slice(0, layout.chess);
@@ -1452,6 +1464,7 @@ export class PlayerState {
   // round lifecycle helpers (called by Match)
 
   startRound(r) {
+    startRelicRound(this, r);
     this.round = { refreshes: 0, buys: 0, sells: 0, spent: 0, gainedChess: 0, arts: 0 };
     this.pendingLayerGains = null; // settled (or lapsed) at the last SETTLE
     if (r > 1) this.shop.upgradePrice = Math.max(0, this.shop.upgradePrice - 1);
@@ -1460,7 +1473,7 @@ export class PlayerState {
     this.pendingFunds = 0;
     this.m.dispatch(this, 'onIncome', ev);
     const nonNeg = (v) => (Number.isFinite(v) && v > 0 ? Math.trunc(v) : 0);
-    this.addFunds(nonNeg(ev.income) + nonNeg(ev.pending), { reason: 'income' });
+    this.addFunds(nonNeg(ev.income) + nonNeg(ev.pending) + relicIncome(this.relics), { reason: 'income' });
     // temp is NOT wiped here: the last prep's deadline resolved what the player could act on (endPrep); what overflowed
     // after it (battle-result grants, SETTLE merges, returned equipment) is shown and usable in this prep (tempDue).
     // Likewise reward offers of the last prep already expired at its end; what is still queued was earned after it —
@@ -1468,7 +1481,7 @@ export class PlayerState {
     this.ready = false;
     // summon stacks removed from temp at the last prep deadline come back (PRTS 卫戍协议/帮助 §手牌区); full hand ⇒ temp
     for (const p of [...this.board.values()]) if (p.kind === 'chess') this.grantTokensFor(p);
-    this.rollShop({ keepFrozen: true });
+    this.rollShop({ keepFrozen: true, round: r });
     this.shop.frozen = false;
     for (const s of this.shop.slots) if (s) s.frozen = false;
     this.recompute();
@@ -1559,6 +1572,7 @@ export class PlayerState {
         id: e.id, key: e.key ?? null, source: e.iconKind ?? null, params: e.params ?? null, counter: e.counter ?? null, data: e.data ?? null,
       })),
       deviceOverrides: { ...this.deviceOverrides },
+      relics: relicsView(this).map((r) => r.id),
     };
   }
 
@@ -1640,6 +1654,12 @@ export class PlayerState {
       deployCount: this.deployCount,
       bonds: bondList(this.gd, this.bondsView(), { full: true }),
       effects: this.effectsView(),
+      relics: relicsView(this),
+      relicReward: this.relicReward ? { ...this.relicReward } : null,
+      relicOffer: relicOfferView(this),
+      relicLeakStreak: this.relicLeakStreak,
+      lpShield: activeRelicShield(this),
+      nextLpShield: this.relicNextShieldRound > this.m.round ? 2 : 0,
       nextEnemies: this.m.nextEnemiesFor(this),
       // DESIGN §16: the effective operator loadout ({ [baseChessId]: { skill, module } }; chess not listed use defaults)
       loadout: this.loadout,

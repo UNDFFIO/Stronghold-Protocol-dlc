@@ -19,6 +19,7 @@ import { settingsStore } from '/js/ui/settings.js';
 import { awayStore } from '/js/ui/matchChrome.js';
 import { GAME_FILES } from '/js/ui/gameComponents.js';
 import { PHASE, GEO } from '/shared/constants.js';
+import { getRelic } from '/shared/relics.js';
 
 const params = new URLSearchParams(location.search);
 const SHOT = params.get('shot') === '1';
@@ -532,6 +533,17 @@ async function mockRequest(t, f = {}) {
   const pub = S.pub;
   const prepOnly = () => { if (pub.phase !== PHASE.PREP) fail('WRONG_PHASE'); if (p.ready && t !== 'g.ready') fail('ALREADY'); };
   switch (t) {
+    case 'g.relic': {
+      const offer = p.relicOffer;
+      if (pub.phase !== PHASE.SETTLE || !offer || offer.id !== f.offerId || !Number.isInteger(f.idx) || !getRelic(offer.options[f.idx])) fail('BAD_TARGET');
+      const reward = { id: offer.options[f.idx], round: offer.round };
+      p.relics = [...(p.relics || []), reward];
+      p.relicReward = reward;
+      p.relicOffer = null;
+      pub.relicChoosing = false;
+      refreshPrivate();
+      return {};
+    }
     case 'g.infoReady': { const me = pub.players.find((x) => x.playerId === ME); me.ready = true; me.status = 'ready'; pushPublic(); return {}; }
     case 'g.band': {
       p.bandId = f.bandId; const me = pub.players.find((x) => x.playerId === ME); me.bandId = f.bandId;

@@ -110,6 +110,58 @@ test('shop slots per level (+ the item slot), buy prices by tier, SOLD_OUT, NO_F
   m.dispose();
 });
 
+test('two extra operator slots unlock in R9, keep frozen offers, and support purchases and refreshes', () => {
+  for (const modeId of ['mode_single_funny', 'mode_multi_normal', 'mode_multi_abyss']) {
+    const gd = new GameData(DATA, modeId);
+    for (let level = 1; level <= 6; level++) {
+      const base = gd.shopSlots(level, 1);
+      assert.deepEqual(gd.shopSlots(level, 8), base);
+      for (const round of [9, 10, 15]) {
+        assert.deepEqual(gd.shopSlots(level, round), { chess: base.chess + 2, item: base.item });
+      }
+    }
+  }
+  const h = makeMatch({ mode: 'solo', seed: 8 }).start();
+  h.toPrep(1);
+  const m = h.m;
+  const ps = h.ps('p_0');
+  try {
+    m.round = 8;
+    ps.startRound(8);
+    const before = { ...ps.shop.layout };
+    assert.deepEqual(m.handle('p_0', { t: 'g.freeze' }), { ok: true });
+    const kept = ps.shop.slots.map((s) => s.id);
+    ps.clearUnfrozenShop();
+    m.round = 9;
+    ps.startRound(9);
+    assert.deepEqual(ps.shop.layout, { chess: before.chess + 2, item: before.item });
+    assert.deepEqual(ps.shop.slots.slice(0, before.chess).map((s) => s.id), kept.slice(0, before.chess));
+    assert.deepEqual(ps.shop.slots.slice(before.chess + 2).map((s) => s.id), kept.slice(before.chess));
+    assert.ok(ps.shop.slots.every((s) => s && !s.frozen));
+    assert.equal(ps.privateView().shop.slots.length, before.chess + before.item + 2);
+    ps.funds = 100;
+    for (const slot of [before.chess, before.chess + 1]) {
+      const funds = ps.funds;
+      const price = ps.privateView().shop.slots[slot].price;
+      assert.deepEqual(m.handle('p_0', { t: 'g.buy', slot }), { ok: true });
+      assert.equal(ps.funds, funds - price);
+      assert.equal(ps.shop.slots[slot].sold, true);
+    }
+    assert.deepEqual(m.handle('p_0', { t: 'g.refresh' }), { ok: true });
+    assert.equal(ps.shop.slots.length, before.chess + before.item + 2);
+    assert.ok(ps.shop.slots.every((s) => s && !s.sold));
+    assert.deepEqual(m.handle('p_0', { t: 'g.levelUp' }), { ok: true });
+    assert.deepEqual(m.handle('p_0', { t: 'g.refresh' }), { ok: true });
+    assert.deepEqual(ps.shop.layout, m.gd.shopSlots(ps.shop.level, 9));
+    m.round = 10;
+    ps.startRound(10);
+    assert.deepEqual(ps.shop.layout, m.gd.shopSlots(ps.shop.level, 10));
+    checkInvariants(m);
+  } finally {
+    m.dispose();
+  }
+});
+
 test('refresh: 1 fund, free refreshes first, rerolls every slot; freeze: one toggle, kept through the round start', () => {
   const h = makeMatch({ mode: 'solo', difficulty: 'NORMAL', seed: 8 }).start();
   h.toPrep(1);

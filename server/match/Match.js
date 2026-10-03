@@ -119,10 +119,12 @@
 //     human is left at all the match ends ('abandoned'); when nobody alive is left it ends as 'eliminated'.
 
 import { C2S, unitStatsEntry } from '../../shared/protocol.js';
-import { PHASE, ERR, EMOTES, EMOTE_COOLDOWN_MS, GEO, modeIdFor, layerGainRoom } from '../../shared/constants.js';
+import { PHASE, ERR, EMOTES, EMOTE_COOLDOWN_MS, GEO, modeIdFor, layerGainRoom, normalizeDifficultyLevel } from '../../shared/constants.js';
 import { Battle } from '../sim/Battle.js';
 import { DataSource } from '../sim/simdata.js';
 import { createRng, deriveSeed } from '../sim/rng.js';
+import { settleRelics, selectRelic, autoSelectRelic, activeRelicShield, shieldedLpLoss, consumeRelicShield } from './relics.js';
+import { RELIC_CHOICE_SECONDS } from '../../shared/relics.js';
 import { GameData } from './gamedata.js';
 import { RealScheduler } from './scheduler.js';
 import { SharedPool, drawDisabledBonds } from './pool.js';
@@ -227,6 +229,7 @@ export class Match {
     this.roomCode = opts.roomCode ?? '----';
     this.mode = opts.mode === 'solo' ? 'solo' : 'coop';
     this.difficulty = opts.difficulty;
+    this.difficultyLevel = opts.difficulty === 'ASCENSION' ? normalizeDifficultyLevel(opts.difficultyLevel) : 0;
     this.modeId = opts.modeId || modeIdFor(this.mode, opts.difficulty);
     this.seed = (Number(opts.seed) >>> 0) || 1;
     this.log = opts.log || noopLog;
@@ -329,6 +332,7 @@ export class Match {
     this._timers = new Set();
     this._phaseTimer = null;
     this._turnTimer = null;
+    this._relicContinue = null;
     this._pubDirty = false;
     this._pubTimer = null;
     this._lastPubAt = -Infinity;
@@ -432,6 +436,7 @@ export class Match {
     if (!ps || ps.isBot || this.disposed) return;
     this.guard(() => {
       ps.connected = false;
+      if (ps.relicOffer) { autoSelectRelic(ps); this._completeRelicChoices(); }
       // a paused solo battle resumes (the server takes the field over; nobody is left to resume it)
       this._resume();
       if (this.clientCombat) this._authorityLost(ps, 'disconnect');
@@ -528,6 +533,7 @@ export class Match {
     }
     if (phase === PHASE.SP_DRAFT && this.sp && this.spTurn() === ps.playerId) this.startSpTurn();
     else if (phase === PHASE.PREP) this.maybeEndPrep();
+    else if (phase === PHASE.SETTLE) this._completeRelicChoices();
   }
 
   dispose() {
@@ -776,6 +782,7 @@ export class Match {
         return f && f.live ? 'combat' : 'done';
       }
       case PHASE.UNITE: return this.unitePlan && this.unitePlan.helpers.includes(ps) ? 'helping' : 'done';
+      case PHASE.SETTLE: return ps.relicOffer ? 'deciding' : 'done';
       case PHASE.ROUND_START: return 'acting';
       default: return 'done';
     }
@@ -790,12 +797,14 @@ export class Match {
     const v = {
       t: 'm.public',
       phase: this.phase,
+      relicChoosing: this.phase === PHASE.SETTLE && !!this._relicContinue,
       round: this.round,
       lastRound: this.gd.lastRound,
       deadline: this.deadline,
       serverNow: this.sched.now(),
       modeId: this.modeId,
       difficulty: this.difficulty,
+      difficultyLevel: this.difficultyLevel,
       stageId: this.stageId,
       factions: this.factions.slice(),
       disabledBonds: [...new Set([...this.disabledBonds, ...this.staticInactiveBonds])].sort(),
@@ -818,6 +827,7 @@ export class Match {
         connected: ps.isBot || (ps.connected && !ps.left),
         alive: ps.alive,
         lp: Math.max(0, ps.lp),
+        lpShield: activeRelicShield(ps),
         bandId: ps.bandId,
         shopLevel: ps.shop.level,
         boardCount: ps.deployCount,
@@ -949,6 +959,7 @@ export class Match {
       case 'g.art': return ps.useArt(msg.itemUid, msg.row, msg.col, msg.dir);
       case 'g.destroy': return ps.destroy(msg.uid);
       case 'g.reward': return ps.pickReward(msg.idx);
+      case 'g.relic': return this.pickRelicChoice(ps, msg.offerId, msg.idx);
       case 'g.choice': return this.pickCard(ps, msg.idx);
       case 'g.ready': return ps.setReady(!!msg.ready);
       case 'g.emote': return this.emote(ps, msg.id);
@@ -1005,6 +1016,7 @@ export class Match {
     ps.autoplay = on;
     this.markPublic();
     if (on) this.kickBot(ps);
+    if (on && this.phase === PHASE.SETTLE && ps.relicOffer) { autoSelectRelic(ps); this._completeRelicChoices(); }
     return OK;
   }
 
@@ -1710,7 +1722,7 @@ export class Match {
 
   /** Construct a battle; a constructor failure yields a finished stand-in (clean result) and is logged. */
   newBattle(opts) {
-    const full = { data: this.ds, content: this.battleContent, logger: this.log, ...opts };
+    const full = { data: this.ds, content: this.battleContent, logger: this.log, ...opts, difficultyLevel: this.difficultyLevel };
     try {
       return new this.BattleClass(full);
     } catch (e) {
@@ -1820,7 +1832,9 @@ export class Match {
       this._collectSimErrors(f, res);
       for (const pid of f.players) {
         const pp = res.perPlayer && res.perPlayer[pid];
-        this.lastResults.set(pid, pp || { killed: 0, total: 0, leaked: [], perfect: true, layerGains: {}, coins: 0, damageDealt: 0, unitsEnd: [], unitStats: [] });
+        this.lastResults.set(pid, pp ? { ...pp, synthetic: !!res.synthetic,
+          relicCompleted: !res.synthetic && (res.reason === 'cleared' || res.reason === 'timeout') }
+          : { killed: 0, total: 0, leaked: [], perfect: true, synthetic: true, layerGains: {}, coins: 0, damageDealt: 0, unitsEnd: [], unitStats: [] });
         // the views show the layers the battle reached until settle() makes them persistent (DESIGN §20.15)
         const ps = this.players.get(pid);
         const gains = pp && pp.layerGains && typeof pp.layerGains === 'object' ? pp.layerGains : null;
@@ -1922,7 +1936,7 @@ export class Match {
     const seq = `${this.battlePrefix}.${this.round}.${++this._battleSeq}`;
     // protocol ids are ≤ 64 chars (shared/protocol.js isId): the field id is informational, the sequence is unique
     const battleId = seq.length + 1 + String(fieldId).length <= 64 ? `${seq}.${fieldId}` : seq;
-    const spec = buildBattleSpec({ ...opts, battleId, fieldId, kind, content: this.battleContent, boss });
+    const spec = buildBattleSpec({ ...opts, battleId, fieldId, kind, content: this.battleContent, boss, difficultyLevel: this.difficultyLevel });
     let total = 0;
     for (const x of spec.spawns) if (x && x.tag !== 'boss' && x.tag !== 'part') total += Math.max(1, Math.floor(Number(x.count) || 1));
     return {
@@ -1993,7 +2007,7 @@ export class Match {
     // 联防: a leaker's enemies still standing on the 联防 field (uncapped), the loss capped like settle()
     const left = this._uniteLeft(ps);
     if (left != null) {
-      const loss = Math.min(this.gd.lpCapPerRound, left);
+      const loss = shieldedLpLoss(ps, Math.min(this.gd.lpCapPerRound, left));
       return loss > 0 ? { uniteLeft: left, pendingLp: loss } : { uniteLeft: left };
     }
     let n = 0;
@@ -2003,7 +2017,7 @@ export class Match {
       if (f && f.cc) n = f.done && f.result ? counted(f.result.perPlayer && f.result.perPlayer[ps.playerId]) : Number(f.progress && f.progress.leaks) || 0;
       else if (f && f.battle) { try { n = battleProgress(f.battle).leaks; } catch { n = 0; } }
     }
-    const loss = Math.min(this.gd.lpCapPerRound, Math.max(0, Math.trunc(Number(n) || 0)));
+    const loss = shieldedLpLoss(ps, Math.min(this.gd.lpCapPerRound, Math.max(0, Math.trunc(Number(n) || 0))));
     return loss > 0 ? { pendingLp: loss } : {};
   }
 
@@ -2463,8 +2477,8 @@ export class Match {
         f.credit = new CreditPool(pool);
         f.battle = this._specBattle(f.spec, { sharedBoss: f.credit });
         try {
-          f.battle.on('enemyLeak', (ctx) => this._bossLeak(ctx && ctx.enemy), { priority: -1000, owner: 'match' });
-          f.battle.on('lpLoss', (ctx) => this._teamLpLoss(ctx && ctx.amount), { priority: -1000, owner: 'match' });
+          f.battle.on('enemyLeak', (ctx) => this._bossLeak(ctx && ctx.enemy, f.players), { priority: -1000, owner: 'match' });
+          f.battle.on('lpLoss', (ctx) => this._teamLpLoss(ctx && ctx.amount, f.players), { priority: -1000, owner: 'match' });
         } catch (e) { this.reportError('boss leak hook', e); }
       }
       this._watchBossFields(recs);
@@ -2550,13 +2564,13 @@ export class Match {
       if (n <= f.lpAcked) return;
       const d = n - f.lpAcked;
       f.lpAcked = n;
-      this._teamLpLoss(d);
+      this._teamLpLoss(d, f.players);
       return;
     }
     const before = f.lpCum;
     f.lpCum += n;
     const credit = Math.max(0, f.lpCum - Math.max(before, f.lpAcked));
-    if (credit > 0) this._teamLpLoss(credit);
+    if (credit > 0) this._teamLpLoss(credit, f.players);
   }
 
   /** The server runs a boss field in real time (no client left): credits only what exceeds the client's reports. */
@@ -2716,7 +2730,8 @@ export class Match {
     for (const ps of alive) {
       const r = this.lastResults.get(ps.playerId) || { leaked: [], perfect: true, coins: 0, layerGains: {}, killed: 0, damageDealt: 0 };
       const counted = (r.leaked || []).filter((l) => l && l.counted !== false).length;
-      const loss = uniteRan && plan.leakers.includes(ps) ? Math.min(cap, survivors.get(ps.playerId) || 0) : Math.min(cap, counted);
+      const rawLoss = uniteRan && plan.leakers.includes(ps) ? Math.min(cap, survivors.get(ps.playerId) || 0) : Math.min(cap, counted);
+      const loss = consumeRelicShield(ps, rawLoss);
       ps.lp -= loss;
       ps.stats.lpLost += loss;
       ps.stats.leaks += counted;
@@ -2749,6 +2764,8 @@ export class Match {
       }
       this._charDamageTickers(ps, r);
       this.dispatch(ps, 'onBattleResult', { result: r, lpLoss: loss, perfect: counted === 0 && r.perfect !== false, unite: uniteResult || null });
+      ps.relicShield = 0; // unused protection expires with this round
+      if (ps.lp > 0) settleRelics(ps, r, { completed: r.relicCompleted === true });
       ps.recompute();
     }
     for (const ps of alive) {
@@ -2762,7 +2779,7 @@ export class Match {
     this.fields = [];
     this.watchers.clear();
     this.markPublic();
-    this.setDeadline(DELAYS.SETTLE / 1000, () => this.afterSettle(), { silent: this.soloUntimed });
+    this._waitRelicChoices(() => this.afterSettle());
   }
 
   /**
@@ -2791,6 +2808,41 @@ export class Match {
   afterSettle() {
     if (!this.alivePlayers().length) { this.finish({ victory: false, reason: 'eliminated' }); return; }
     this.startRound(this.round + 1);
+  }
+
+  /** Keep the next battle/result behind the authoritative choice, including after a boss win. */
+  _waitRelicChoices(continuation) {
+    for (const ps of this.alivePlayers()) if (ps.isBot || ps.autoplay || !ps.connected) autoSelectRelic(ps);
+    if (!this.alivePlayers().some((ps) => !ps.left && ps.relicOffer)) {
+      this.setDeadline(DELAYS.SETTLE / 1000, continuation, { silent: this.soloUntimed });
+      return;
+    }
+    this.phase = PHASE.SETTLE;
+    this._relicContinue = continuation;
+    if (this.soloUntimed) this.setDeadline(0);
+    else this.setDeadline(RELIC_CHOICE_SECONDS, () => {
+      for (const ps of this.alivePlayers()) autoSelectRelic(ps);
+      this._completeRelicChoices();
+    });
+    this.markPublic();
+  }
+
+  _completeRelicChoices() {
+    if (!this._relicContinue || this.alivePlayers().some((ps) => !ps.left && ps.relicOffer)) return;
+    const next = this._relicContinue;
+    this._relicContinue = null;
+    this.cancel(this._phaseTimer);
+    this._phaseTimer = null;
+    this.deadline = 0;
+    next();
+  }
+
+  pickRelicChoice(ps, offerId, idx) {
+    if (this.phase !== PHASE.SETTLE || !this._relicContinue) return fail(ERR.WRONG_PHASE);
+    if (!selectRelic(ps, offerId, idx)) return fail(ERR.BAD_TARGET);
+    this.markPublic();
+    this._completeRelicChoices();
+    return OK;
   }
 
   // ===================================================================================================
@@ -2868,9 +2920,9 @@ export class Match {
       if (this.clientCombat) return { fieldId, kind: hidden ? 'hidden' : 'boss', players: g.map((p) => p.playerId), opts: bopts, battle: null, live: true };
       const battle = this.newBattle(bopts);
       try {
-        battle.on('enemyLeak', (ctx) => this._bossLeak(ctx && ctx.enemy), { priority: -1000, owner: 'match' });
+        battle.on('enemyLeak', (ctx) => this._bossLeak(ctx && ctx.enemy, g.map((p) => p.playerId)), { priority: -1000, owner: 'match' });
         // leader "扣除目标生命" effects (boss_7 Doom, 斥退 …: server/sim/content/bosses.js lpLoss) hit the team pool
-        battle.on('lpLoss', (ctx) => this._teamLpLoss(ctx && ctx.amount), { priority: -1000, owner: 'match' });
+        battle.on('lpLoss', (ctx) => this._teamLpLoss(ctx && ctx.amount, g.map((p) => p.playerId)), { priority: -1000, owner: 'match' });
       } catch (e) { this.reportError('boss leak hook', e); }
       return { fieldId, kind: hidden ? 'hidden' : 'boss', players: g.map((p) => p.playerId), battle, live: true };
     });
@@ -2904,16 +2956,18 @@ export class Match {
     ps.dirty();
   }
 
-  _bossLeak(enemy) {
+  _bossLeak(enemy, players) {
     if (!enemy || this.teamLp == null) return;
     // lifePointReduce from data: 0 for harmless enemies (e.g. 装置 / unharmful escorts), 1 when absent
     const lpr = Number.isFinite(enemy.lpr) && enemy.lpr >= 0 ? enemy.lpr : 1;
-    this._teamLpLoss(lpr);
+    this._teamLpLoss(lpr, players);
   }
 
-  _teamLpLoss(amount) {
-    const n = Number(amount);
+  _teamLpLoss(amount, players = null) {
+    let n = Number(amount);
     if (this.teamLp == null || !Number.isFinite(n) || !(n > 0)) return;
+    // Boss HP is shared: shields cover losses on their owner's field; global overtime uses the team's shields.
+    for (const ps of this.alivePlayers()) if (!players || players.includes(ps.playerId)) n = consumeRelicShield(ps, n);
     this.teamLp = Math.max(0, this.teamLp - n);
     if (this._bossLazyPublic()) { this._bossPublic(); return; }
     this._syncTeamLp();
@@ -2998,7 +3052,7 @@ export class Match {
       for (const pid of f.players) {
         const pp = res.perPlayer && res.perPlayer[pid];
         const ps = this.players.get(pid);
-        if (pp) this.lastResults.set(pid, pp);
+        if (pp) this.lastResults.set(pid, { ...pp, synthetic: !!res.synthetic });
         if (pp && ps) {
           ps.stats.dmgDealt += Number(pp.damageDealt) || 0;
           ps.stats.kills += Number(pp.killed) || 0;
@@ -3012,6 +3066,8 @@ export class Match {
     // the end condition the server registered first decides (client-side combat: _endFinal — pool 0 → victory, team LP 0
     // → defeat); a boss field's final result may never turn a defeat into a victory (user playtest #6 item 5)
     const victory = this._finalEnding ? this._finalEnding === 'cleared' : this.bossPool.hp <= 0;
+    if (victory) for (const ps of this.alivePlayers()) settleRelics(ps, this.lastResults.get(ps.playerId), { completed: true });
+    for (const ps of this.alivePlayers()) { ps.relicShield = 0; ps.dirty(); }
     this._syncTeamLp();
     this.deadline = 0;
     this.overtimeAt = 0;
@@ -3019,7 +3075,7 @@ export class Match {
     this.runner = null;
     if (!hidden) {
       const eligible = victory && !!this.hiddenBossId && hiddenEligible(this.gd, { layerSum: this.hiddenLayerSum, teamLp: this.teamLp });
-      this.later(this.scaled(DELAYS.SETTLE), () => {
+      this._waitRelicChoices(() => {
         if (eligible) {
           this.hiddenReached = true;
           this.bossPool = null;
@@ -3030,7 +3086,7 @@ export class Match {
         }
       });
     } else {
-      this.later(this.scaled(DELAYS.SETTLE), () => this.finish({ victory: true, hiddenCleared: victory, reason: 'victory' }));
+      this._waitRelicChoices(() => this.finish({ victory: true, hiddenCleared: victory, reason: 'victory' }));
     }
   }
 
@@ -3055,7 +3111,7 @@ export class Match {
       result = buildResult(this, this.outcome);
     } catch (e) {
       this.reportError('buildResult', e);
-      result = { t: 'm.result', victory: !!victory, roundsPassed: 0, reason, modeId: this.modeId, difficulty: this.difficulty, players: [] };
+      result = { t: 'm.result', victory: !!victory, roundsPassed: 0, reason, modeId: this.modeId, difficulty: this.difficulty, difficultyLevel: this.difficultyLevel, players: [] };
     }
     this.lastResultMsg = result;
     this.markPublic();

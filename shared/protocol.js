@@ -1,7 +1,7 @@
 // Normative message catalogue (DESIGN §8). Used by server (validation) and client (building requests).
 // Every client→server message is `{ t, rid?, ...fields }`. Unknown `t` or invalid fields ⇒ ERR.BAD_MSG.
 
-import { DIFFICULTIES, NAME_MAX_LEN, ROOM_CODE_LEN, MAX_SEATS, EMOTES, GEO } from './constants.js';
+import { DIFFICULTIES, MAX_DIFFICULTY_LEVEL, NAME_MAX_LEN, ROOM_CODE_LEN, MAX_SEATS, EMOTES, GEO } from './constants.js';
 
 // ---- tiny validators -------------------------------------------------------
 const isInt = (v, lo = -Infinity, hi = Infinity) => Number.isInteger(v) && v >= lo && v <= hi;
@@ -238,11 +238,11 @@ export const C2S = {
   // session & lobby
   hello: { name: (v) => isStr(v, NAME_MAX_LEN) && v.trim().length > 0, token: (v) => v == null || isStr(v, 64), version: (v) => v == null || isInt(v, 0, 1e6), $optional: ['token', 'version'] },
   ping: { c: (v) => typeof v === 'number' && Number.isFinite(v) },
-  'room.create': { mode: (v) => v === 'solo' || v === 'coop', difficulty: (v) => DIFFICULTIES.includes(v) },
+  'room.create': { mode: (v) => v === 'solo' || v === 'coop', difficulty: (v) => DIFFICULTIES.includes(v), difficultyLevel: (v) => isInt(v, 0, MAX_DIFFICULTY_LEVEL), $optional: ['difficultyLevel'] },
   'room.join': { code: (v) => isStr(v, ROOM_CODE_LEN + 2) && /^[A-Za-z0-9]+$/.test(v) },
   'room.leave': {},
   'room.ready': { ready: isBool },
-  'room.setDifficulty': { difficulty: (v) => DIFFICULTIES.includes(v) },
+  'room.setDifficulty': { difficulty: (v) => DIFFICULTIES.includes(v), difficultyLevel: (v) => isInt(v, 0, MAX_DIFFICULTY_LEVEL), $optional: ['difficultyLevel'] },
   'room.addBot': {},
   'room.removeBot': { seat: (v) => isInt(v, 0, MAX_SEATS - 1) },
   'room.start': {},
@@ -269,6 +269,7 @@ export const C2S = {
   'g.art': { itemUid: isUid, row: (v) => isInt(v, 0, GEO.ROWS - 1), col: (v) => isInt(v, 0, GEO.COLS - 1), dir: isDir, $optional: ['dir'] },
   'g.destroy': { uid: isUid },
   'g.reward': { idx: (v) => isInt(v, 0, 5) },
+  'g.relic': { offerId: isId, idx: (v) => isInt(v, 0, 2) },
   'g.choice': { idx: (v) => isInt(v, 0, 5) },
   'g.ready': { ready: isBool },
   'g.emote': { id: (v) => EMOTES.includes(v) },
