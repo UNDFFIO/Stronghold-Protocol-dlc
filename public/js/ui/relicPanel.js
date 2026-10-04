@@ -59,11 +59,14 @@ export function RelicIcons({ relics, reward, notice = false, onOpen }) {
 }
 
 /** Shared by the live modal and each settlement card. No richness/HTML from remote sources. */
-export function RelicList({ relics, reward = null, history = false }) {
+export function RelicList({ relics, reward = null, history = false, illustrated = history }) {
   const entries = relicEntries(relics);
   if (!entries.length) return html`<p class="relic-empty">${history ? '尚未收录收藏品。领取收藏品后将自动加入图鉴。' : '尚未获得收藏品。每回合本人无漏怪，可从三件藏品中选择一件。'}</p>`;
   return html`<ol class="relic-list" aria-label=${history ? '已获得过的收藏品' : '本局收藏品'}>
-    ${entries.map((r) => html`<li key=${`${r.id}:${r.round}`} class=${`relic-card relic-tier-${r.tier || 1}${reward?.id === r.id && reward?.round === r.round ? ' is-new' : ''}`}>
+    ${entries.map((r) => html`<li key=${`${r.id}:${r.round}`} class=${`relic-card relic-tier-${r.tier || 1}${illustrated ? ' relic-card--illustrated' : ''}${reward?.id === r.id && reward?.round === r.round ? ' is-new' : ''}`}>
+      ${illustrated ? html`<span class="relic-card__art" aria-hidden="true">
+        <${Img} src=${relicIconUrl(data.get('assets'), r.id)} fallback=${html`<${Icon} name="key" />`} />
+      </span>` : null}
       <div class="relic-card__head"><b class="relic-card__name">${r.name || r.id}</b>
         <span class="relic-card__tier">${tierName(r.tier)}</span></div>
       <p class="relic-card__desc">${r.desc || '该收藏品的效果资料暂不可用'}</p>
@@ -101,7 +104,7 @@ export function RelicCollection({ relics, reward, owner = null, round = 1, shiel
     </div>
   </div>
     <${Modal} open=${open} title=${html`<span class="relic-panel__title"><${Icon} name="key" />${owner ? `${owner} 的收藏品` : '你的收藏品'} <span class="num">${count}</span></span>`}
-      micro="RELIC COLLECTION // THIS MATCH" class="relic-panel" width="min(8rem, 94vw)" onClose=${() => setOpen(false)}
+      micro="RELIC COLLECTION // THIS MATCH" class="relic-panel" width="min(9.6rem, 94vw)" onClose=${() => setOpen(false)}
       actions=${html`<${Button} size="sm" onClick=${() => setOpen(false)} icon="close">关闭<//>`}>
       <p class="relic-panel__rule">每回合本人无漏怪，弹出藏品三选一；连续三回合漏怪，获得一次较高稀有度三选一及下回合 2 点护盾。每次只获得所选的一件，同名不重复，效果仅在本局有效。</p>
       <p class="relic-panel__balance">强度分 I–V 五档。普通奖励中 I／II 从 R1 开始出现，III 从 R4 开始，IV／V 从 R7 开始；逆风补给沿用独立概率表，从 III 稀有档起步，史诗与传说在 R6／9 开放。</p>
@@ -112,7 +115,7 @@ export function RelicCollection({ relics, reward, owner = null, round = 1, shiel
       </div>
       <p class="relic-panel__note">第 ${round} 回合基础概率；已获得的藏品移出候选池，实际概率随剩余藏品调整。</p>
       <p class="relic-panel__note">收藏品增益无累计上限。同类属性与伤害增幅相加，同名藏品不重复获得。</p>
-      <${RelicList} relics=${relics} reward=${reward} />
+      <${RelicList} relics=${relics} reward=${reward} illustrated=${true} />
     <//>`;
 }
 

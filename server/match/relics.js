@@ -20,7 +20,7 @@ export function settleRelics(ps, result, { completed = false } = {}) {
   ps.dirty();
   if ((!comeback && (leaked || !result.perfect)) || ps.relicOffer) return null;
   const rng = createRng(deriveSeed(ps.m.seed, `relic-choice:${ps.seat}:${round}`));
-  const options = pickRelicChoices(round, ps.relics, rng, { comeback });
+  const options = pickRelicChoices(round, ps.relics, rng, { comeback, multiplayer: !ps.m.isSolo });
   if (!options.length) return null;
   ps.relicOffer = { id: `relic:${ps.seat}:${round}`, round, reason: comeback ? 'comeback' : 'perfect', options };
   return ps.relicOffer;
@@ -32,7 +32,7 @@ export function selectRelic(ps, offerId, idx) {
   if (!ps.alive || ps.left || !offer || offer.id !== offerId || offer.round !== ps.m.round
     || !Number.isInteger(idx) || idx < 0 || idx >= offer.options.length) return null;
   const r = getRelic(offer.options[idx]);
-  if (!r || ps.relics.some((o) => o.id === r.id)) return null;
+  if (!r || (r.multiplayerOnly && ps.m.isSolo) || ps.relics.some((o) => o.id === r.id)) return null;
   const reward = { id: r.id, round: offer.round };
   ps.relics.push(reward);
   ps.relicReward = reward;

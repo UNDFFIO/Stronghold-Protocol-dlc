@@ -1,5 +1,27 @@
 // Original collectible art linked by https://prts.wiki/w/沉沦者的黑流树海/拟造物质编目.
-// Name-to-image mapping verified on 2026-10-03; generated art stays in ignored public/assets.
+// 原作映射核对于 2026-10-03；运行图片在忽略目录，原创原稿随源码保存。
+import { readFile, mkdir, copyFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { isCompletePng } from './formats.mjs';
+
+export const CUSTOM_RELIC_ICON_FILES = Object.freeze({
+  relic_154: 'relic_154.png',
+  relic_155: 'relic_155.png',
+  relic_156: 'relic_156.png',
+});
+
+/** 原创原稿随源码保存；离线及强制重建都从原稿恢复运行副本。 */
+export async function prepareCustomRelicIcons(assetsRoot) {
+  const source = fileURLToPath(new URL('./custom-relics/', import.meta.url));
+  await mkdir(join(assetsRoot, 'relics'), { recursive: true });
+  for (const [id, file] of Object.entries(CUSTOM_RELIC_ICON_FILES)) {
+    const path = join(source, file);
+    if (!isCompletePng(await readFile(path))) throw new Error(`原创收藏品 PNG 损坏：${file}`);
+    await copyFile(path, join(assetsRoot, 'relics', `${id}.png`));
+  }
+}
+
 export const RELIC_ICON_FILES = Object.freeze({
   "relic_003": "rogue_6_relic_legacy_24.png", // 橙味风暴
   "relic_002": "rogue_6_relic_legacy_23.png", // 凉拌海草
@@ -43,8 +65,10 @@ export const RELIC_ICON_FILES = Object.freeze({
 });
 
 export function relicIconTemplate() {
-  return Object.fromEntries(Object.entries(RELIC_ICON_FILES).map(([id, file]) => [id, { alts: [{
+  return Object.fromEntries([...Object.entries(RELIC_ICON_FILES).map(([id, file]) => [id, { alts: [{
     rel: `relics/${id}.png`, kind: 'png',
     urls: [`https://torappu.prts.wiki/assets/roguelike_topic_itempic/${file}`],
-  }] }]));
+  }] }]), ...Object.keys(CUSTOM_RELIC_ICON_FILES).map((id) => [id, { alts: [{
+    rel: `relics/${id}.png`, kind: 'png', urls: [],
+  }] }])]);
 }

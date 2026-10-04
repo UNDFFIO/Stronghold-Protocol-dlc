@@ -7,9 +7,37 @@ import { createRng } from '../../server/sim/rng.js';
 import { settleRelics, selectRelic } from '../../server/match/relics.js';
 import { makeMatch } from './harness.js';
 import { attachAudit } from '../../server/match/audit.js';
+import { makeBattle, chessRec } from '../helpers/battleHarness.js';
+
+test('原创收藏品：实际奖励池抽取与领取后下一场战斗生效', () => {
+  for (const id of ['relic_154', 'relic_155']) {
+    const h = makeMatch({ mode: 'solo', fake: true }).start();
+    try {
+      h.toPrep(7);
+      const ps = h.ps('p_0');
+      // 耗尽其他藏品，让真实服务端奖励池只剩待验证新品。
+      ps.relics = RELICS.filter((r) => r.id !== id).map((r) => ({ id: r.id, round: 1 }));
+      const offer = settleRelics(ps, { perfect: true, leaked: [] }, { completed: true });
+      assert.deepEqual(offer.options, [id]);
+      const before = relicModifiers(ps.battleInput().relics, 'WARRIOR', 'MELEE');
+      assert.ok(before[id === 'relic_154' ? 'resToDef' : 'defToRes']);
+      assert.equal(selectRelic(ps, offer.id, 0).id, id);
+      const input = ps.battleInput();
+      const battle = makeBattle({ players: [{ ...input, units: [{ uid: 1, kind: 'chess', chessId: 'r_custom', row: 10, col: 4 }] }],
+        defs: { chess: { r_custom: chessRec({ id: 'r_custom', skill: null, stats: { maxHp: 2000, atk: 500, def: 200, res: 10 } }) } }, autoFinish: false });
+      battle.step();
+      const unit = battle.unit(1);
+      assert.equal(unit.s.def, 0, '领取第二件后移除全部防御');
+      assert.equal(unit.s.res, 0, '领取第二件后移除全部法抗');
+      assert.ok(Math.abs(unit.s.physTakenMul - 0.1) < 1e-9);
+      assert.ok(Math.abs(unit.s.artsTakenMul - 0.1) < 1e-9);
+      assert.equal(selectRelic(ps, offer.id, 0), null);
+    } finally { h.m.dispose(); }
+  }
+});
 
 test('collection: every tier is populated, early pools cannot run out during ordinary play, definitions are immutable', () => {
-  assert.equal(RELICS.length, 39);
+  assert.equal(RELICS.length, 42);
   assert.equal(new Set(RELICS.map((r) => r.id)).size, RELICS.length);
   assert.ok(RELICS.filter((r) => r.tier === 1).length >= 9);
   for (const { tier } of RELIC_TIERS) assert.ok(RELICS.some((r) => r.tier === tier));
@@ -60,7 +88,7 @@ test('drops: one uninterrupted perfect match earns distinct, progress-gated coll
 test('balance: duplicate IDs, forged payloads, profession and position add without cumulative caps', () => {
   const all = RELICS.map((r) => r.id);
   const mods = relicModifiers(all, 'WARRIOR', 'MELEE');
-  const expected = { atkPct: 1.23, hpPct: 1.4, defPct: 1.22, aspd: 35, spRecoveryFlat: 0.75, hpRegen: 100, hpRegenRatio: 0.02, dodgePhys: 0.22, dodgeArts: 0.27, physDealtMul: 1.6, artsDealtMul: 1.6, healingTakenMul: 1.1 };
+  const expected = { atkPct: 1.23, hpPct: 1.4, defPct: 1.22, aspd: 35, spRecoveryFlat: 0.75, hpRegen: 100, hpRegenRatio: 0.02, dodgePhys: 0.22, dodgeArts: 0.27, physDealtMul: 1.6, artsDealtMul: 1.6, healingTakenMul: 1.1, artsTakenMul: 0.1, physTakenMul: 0.1, defResClear: 1 };
   assert.deepEqual(Object.keys(mods).sort(), Object.keys(expected).sort());
   for (const [key, value] of Object.entries(expected)) assert.ok(Math.abs(mods[key] - value) < 1e-9, key);
   assert.deepEqual(relicModifiers(['relic_003', 'relic_003', 'unknown', { id: 'unknown', mods: { atkPct: 999 } }]), { atkPct: 0.08 });

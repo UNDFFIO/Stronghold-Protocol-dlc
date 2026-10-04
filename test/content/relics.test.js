@@ -12,6 +12,8 @@ const GUARD_ATK = 'relic_145';
 const SP = 'relic_038';
 const PHYS = 'relic_043';
 const REGEN = 'relic_080';
+const BELL = 'relic_154';
+const SHIRT = 'relic_155';
 
 const close = (actual, expected, message) => assert.ok(Math.abs(actual - expected) < 1e-7, `${message}: ${actual} != ${expected}`);
 const op = (id, profession = 'WARRIOR', extra = {}) => chessRec({
@@ -32,6 +34,88 @@ function healthy(h) {
   assert.deepEqual(h.b.errors, []);
   checkInvariants(h.b);
 }
+
+test('原创收藏品：整组兑换聚合属性，动态增益移除与重复安装不会累加', () => {
+  for (const [id, expectedDef, expectedRes] of [[BELL, 0, 18.5], [SHIRT, 875, 0]]) {
+    const h = fight([id, id, DEF], { defs: { chess: { r_guard: op('r_guard', 'WARRIOR', {
+      stats: { maxHp: 2000, atk: 500, def: 275, res: 12.5, respawnTime: 0.5 },
+    }) } } });
+    h.step();
+    const u = h.unit(1);
+    close(u.s.def, id === BELL ? expectedDef : expectedDef + 41.25, '兑换前包含其他收藏品防御增益');
+    close(u.s.res, expectedRes, '整组兑换，零头不保留');
+    const buff = h.b.addBuff(u, { key: 'test:conversion', mods: { defFlat: 100, resFlat: 2 } });
+    close(u.s.def, id === BELL ? 0 : 431.25 + 700, '属性变化后重新兑换');
+    close(u.s.res, id === BELL ? 22.5 : 0, '属性变化后的法抗');
+    h.b.removeBuff(u, buff);
+    installRelics(h.b);
+    close(u.s.def, id === BELL ? 0 : 916.25, '移除临时增益并重复安装不叠加');
+    close(u.s.res, expectedRes, '重复安装法抗稳定');
+    h.b.dealDamage(null, u, { amount: 10000, type: 'true' });
+    assert.ok(h.runUntil(() => u.alive, 2));
+    close(u.s.def, id === BELL ? 0 : 916.25, '再部署防御稳定');
+    close(u.s.res, expectedRes, '再部署法抗稳定');
+    healthy(h);
+  }
+});
+
+test('原创收藏品：同时持有清空防御法抗并在真实伤害管线减少物理及法术伤害90%', () => {
+  for (const relics of [[BELL, SHIRT], [SHIRT, BELL, BELL]]) {
+    const h = fight(relics, { defs: { chess: { r_guard: op('r_guard', 'WARRIOR', {
+      stats: { maxHp: 10000, atk: 500, def: 275, res: 12.5, respawnTime: 0.5 },
+    }) } } });
+    h.step();
+    const u = h.unit(1);
+    close(u.s.def, 0, '组合移除全部防御');
+    close(u.s.res, 0, '组合移除全部法抗');
+    h.b.addBuff(u, { key: 'test:extra-defense', mods: { defFlat: 1000, defPct: 1, resFlat: 80 } });
+    close(u.s.def, 0, '其他来源防御也全部移除');
+    close(u.s.res, 0, '其他来源法抗也全部移除');
+    for (const [type, expected] of [['phys', 100], ['arts', 100], ['true', 1000], ['elemental', 1000]]) {
+      const hp = u.hp;
+      h.b.dealDamage(null, u, { amount: 1000, type });
+      close(hp - u.hp, expected, type);
+    }
+    h.b.dealDamage(null, u, { amount: 100000, type: 'true' });
+    assert.ok(h.runUntil(() => u.alive, 2));
+    close(u.s.def, 0, '再部署继续清空防御');
+    close(u.s.res, 0, '再部署继续清空法抗');
+    close(u.s.physTakenMul, 0.1, '再部署保持物理减伤');
+    close(u.s.artsTakenMul, 0.1, '再部署保持法术减伤');
+    healthy(h);
+  }
+});
+
+test('原创收藏品：组合只按同一持有者计算，队友与召唤物不参与兑换', () => {
+  const h = makeBattle({ kind: 'unite', defs: {
+    chess: { r_guard: op('r_guard', 'WARRIOR', { stats: { maxHp: 2000, def: 275, res: 12 } }) },
+    tokens: { r_token: { name: 'test', stats: { maxHp: 2000, def: 275, res: 12 }, rangeGrid: [[0, 0]], skill: null } },
+  }, players: [
+    player([BELL], [piece(), { uid: 3, kind: 'token', tokenId: 'r_token', ownerUid: 1, row: 10, col: 5 }]),
+    player([SHIRT], [piece('r_guard', 2)], { playerId: 'p2', seat: 1, colOffset: 8 }),
+  ], autoFinish: false });
+  h.step();
+  close(h.unit(1).s.def, 0, '本人金钟罩');
+  close(h.unit(1).s.res, 17, '本人兑换');
+  close(h.unit(2).s.def, 875, '队友铁布衫独立兑换');
+  close(h.unit(2).s.res, 0, '队友法抗扣除');
+  close(h.unit(3).s.def, 275, '召唤物不兑换');
+  close(h.unit(3).s.res, 12, '召唤物不加法抗');
+  healthy(h);
+});
+
+test('原创收藏品：零属性、不足整组、法抗边界均保持有效', () => {
+  for (const [id, def, res, wantDef, wantRes] of [
+    [BELL, 49, 0, 0, 0], [BELL, 0, 10, 0, 10], [BELL, 10000, 80, 0, 100],
+    [SHIRT, 10, 0.5, 10, 0], [SHIRT, 0, 0, 0, 0], [SHIRT, 200, 150, 5200, 0],
+  ]) {
+    const h = fight([id], { defs: { chess: { r_guard: op('r_guard', 'WARRIOR', { stats: { maxHp: 2000, def, res } }) } } });
+    h.step();
+    close(h.unit(1).s.def, wantDef, '边界防御');
+    close(h.unit(1).s.res, wantRes, '边界法抗');
+    healthy(h);
+  }
+});
 
 test('relics: trusted IDs give real operator attributes and damage; duplicate, unknown and client modifiers are ignored', () => {
   const h = fight([ATK, HP, DEF, PHYS, ATK, '__unknown__', { id: ATK, mods: { atkPct: 999 } }], {
@@ -195,7 +279,7 @@ test('relics: a JSON battle spec reconstructs the same bonuses and result on ser
   };
   const spec = buildBattleSpec({
     battleId: 'relic-test', fieldId: 'n:p1', kind: 'normal', seed: 77, stageId: 'relic_stage', round: 6,
-    timeLimit: 20, players: [player([ATK, HP, PHYS])], routes: flatRoutes(),
+    timeLimit: 20, players: [player([ATK, HP, PHYS, BELL, SHIRT])], routes: flatRoutes(),
     spawns: [{ time: 0, enemyKey: 'r_target', routeIndex: 0, pos: [10, 5] }],
   });
   const server = createBattleFromSpec(spec, new DataSource(raw, null), { quiet: true });

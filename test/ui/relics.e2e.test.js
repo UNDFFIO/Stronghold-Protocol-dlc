@@ -28,6 +28,48 @@ async function closed(page) {
   await page.waitForFunction(() => !document.querySelector('.relic-panel'), { timeout: 2000 });
 }
 
+test('解压玩具：三选一名称、稀有度、说明及透明图片可用，领取后收藏栏展示', {
+  skip: !ENABLED && 'set SP_E2E=1 and provide system Chrome', timeout: 60000,
+}, async () => {
+  const page = await browser.newPage();
+  try {
+    await page.setViewport({ width: 1920, height: 1080 });
+    await page.goto(`${base}/dev/game-mock.html?shot=1&phase=PREP`, { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('.relic-icons__heading');
+    await page.evaluate(() => {
+      globalThis.__MOCK__.setPhase('SETTLE');
+      globalThis.__MOCK__.mutate((s) => {
+        s.priv.relics = [];
+        s.priv.relicOffer = { id: 'ui:toy', round: 4, reason: 'perfect', options: ['relic_156', 'relic_154', 'relic_155'] };
+        s.pub.relicChoosing = true; s.pub.deadline = 0;
+      });
+    });
+    await page.waitForSelector('.relic-choice__card');
+    const text = await page.$eval('.relic-choice__card', (e) => e.textContent);
+    assert.ok(text.includes('解压玩具') && text.includes('稀有') && text.includes('向下取整') && text.includes('首领波次不生效'));
+    assert.ok(text.includes('10%') && text.includes('未持有者各保留 1 个') && text.includes('触发时替代减半效果'));
+    await page.waitForFunction(() => {
+      const img = document.querySelector('.relic-choice__card img');
+      return img?.complete && img.naturalWidth > 0;
+    });
+    const alpha = await page.$eval('.relic-choice__card img', (img) => {
+      const canvas = document.createElement('canvas'); canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0);
+      const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+      let transparent = false, opaque = false;
+      for (let i = 3; i < data.length; i += 4) { if (!data[i]) transparent = true; if (data[i] === 255) opaque = true; }
+      return { transparent, opaque };
+    });
+    assert.deepEqual(alpha, { transparent: true, opaque: true });
+    await page.screenshot({ path: `${OUT}/relic-toy-choice.png` });
+    await page.click('.relic-choice__card');
+    await page.waitForFunction(() => !document.querySelector('.relic-choice'));
+    assert.equal(await page.evaluate(() => globalThis.__MOCK__.S().priv.relics.at(-1).id), 'relic_156');
+    await page.waitForSelector('.effect--relic img');
+    await page.waitForFunction(() => document.querySelector('.effect--relic img')?.naturalWidth > 0);
+  } finally { await page.close(); }
+});
+
 async function closeWithEscape(page) {
   // The declarative Modal renders before its useEffect installs the keyboard listener. Its documented
   // autofocus runs 30 ms AFTER installation: wait for that observable lifecycle signal, not a sleep or
@@ -208,7 +250,9 @@ test('phone/desktop: icons wrap, tooltips stay clear of three-choice dialogs, an
           const { RELICS } = await import('/shared/relics.js');
           const own = globalThis.__MOCK__.S().priv.relics;
           globalThis.__MOCK__.setPhase('SETTLE');
-          const cards = RELICS.slice(reason === 'perfect' ? 20 : 27, reason === 'perfect' ? 23 : 30);
+          const cards = reason === 'perfect'
+            ? [RELICS.find((r) => r.id === 'relic_154'), RELICS.find((r) => r.id === 'relic_155'), RELICS[20]]
+            : RELICS.slice(27, 30);
           globalThis.__MOCK__.mutate((s) => {
             s.priv.relics = own;
             s.priv.relicOffer = { id: `ui:${reason}`, round: 13, reason, options: cards.map((r) => r.id) };
@@ -225,8 +269,28 @@ test('phone/desktop: icons wrap, tooltips stay clear of three-choice dialogs, an
         assert.equal(await page.$$eval('.relic-choice__card', (els) => els.length), 3);
         assert.match(await page.$eval('.relic-choice', (e) => e.textContent), reason === 'perfect' ? /无漏怪奖励/ : /下回合获得 2 点护盾/);
         assert.ok((await page.$eval('.relic-choice', (e) => e.textContent)).includes(expected.desc));
+        if (reason === 'perfect') {
+          const text = await page.$eval('.relic-choice', (e) => e.textContent);
+          assert.ok(text.includes('金钟罩') && text.includes('铁布衫') && text.includes('史诗'));
+          assert.match(text, /90%/);
+        }
         assert.match(await page.$eval('.relic-choice__note', (e) => e.textContent), reason === 'perfect' ? /选好后进入下一阶段/ : /超时自动选择第一件/);
         await page.waitForFunction(() => [...document.querySelectorAll('.relic-choice__art img')].every((i) => i.complete && i.naturalWidth > 0));
+        if (reason === 'perfect') {
+          const alpha = await page.$$eval('.relic-choice__art img', (imgs) => imgs.slice(0, 2).map((img) => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
+            const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0);
+            const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+            let transparent = false, opaque = false;
+            for (let i = 3; i < data.length; i += 4) {
+              if (data[i] === 0) transparent = true;
+              if (data[i] === 255) opaque = true;
+            }
+            return { transparent, opaque };
+          }));
+          assert.ok(alpha.every((a) => a.transparent && a.opaque), '原创图片可解码且含真实透明背景和实体物件');
+        }
         const layout = await page.$$eval('.relic-choice__card', (els) => els.map((e) => { const r = e.getBoundingClientRect(); return { top: r.top, bottom: r.bottom, left: r.left, right: r.right }; }));
         assert.ok(layout.every((r) => r.top === layout[0].top && r.bottom <= height && r.left >= 0 && r.right <= width));
         await page.screenshot({ path: `${OUT}/relic-choice-${reason}-${width === 640 ? 'phone' : 'desktop'}.png` });

@@ -708,6 +708,24 @@ button.bpop__harmony:hover { border-style: solid; color: #fff; }
 .relic-card__tier { flex: none; color: var(--relic-tone); font-size: max(.12rem, 8px); line-height: 1.7; white-space: nowrap; }
 .relic-card__desc { color: var(--text-md); font-size: max(.14rem, 9px); line-height: 1.65; margin: .06rem 0; overflow-wrap: anywhere; }
 .relic-card__round { color: var(--text-lo); font-size: max(.12rem, 8px); }
+/* 图鉴与局内收藏列表复用左图右文布局。 */
+.relic-card--illustrated {
+  display: grid; grid-template-columns: max(.64rem, 48px) minmax(0, 1fr);
+  grid-template-rows: auto auto auto; column-gap: .14rem; align-content: center;
+}
+.relic-card__art {
+  position: relative;
+  grid-column: 1; grid-row: 1 / 4; align-self: center;
+  display: grid; place-items: center; width: max(.64rem, 48px); height: max(.64rem, 48px); box-sizing: border-box;
+  background: rgba(0, 0, 0, .2); border: 1px solid var(--line);
+}
+.relic-card__art img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.relic-card__art .icon { width: .3rem; height: .3rem; color: var(--relic-tone); }
+.relic-card--illustrated > :not(.relic-card__art) { grid-column: 2; }
+.relic-panel .relic-card { padding: .14rem .16rem; }
+.relic-panel .relic-card__name { font-size: max(.18rem, 12px); }
+.relic-panel .relic-card__desc { font-size: max(.16rem, 11px); }
+.relic-panel .relic-card__round { font-size: max(.13rem, 9px); }
 .relic-empty { padding: .14rem 0; color: var(--text-lo); font-size: max(.15rem, 10px); line-height: 1.65; }
 @media (max-width: 767px) { .relic-list { grid-template-columns: minmax(0, 1fr); } }
 

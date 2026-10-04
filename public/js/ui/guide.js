@@ -90,7 +90,7 @@ export function GuideHost() {
   const ids = useStore((s) => s.ids, Object.is, relicJournalStore);
   useEffect(() => installRelicJournal(), []);
   const journal = section === 'relics';
-  const ready = useData('local', 'config');
+  const ready = useData('local', 'config', 'assets');
   const pages = useMemo(() => (ready ? guidePages() : []), [ready]);
   const [loaded, setLoaded] = useState(() => new Set());
   const [failed, setFailed] = useState(() => new Set());

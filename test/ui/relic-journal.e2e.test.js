@@ -30,10 +30,11 @@ test('收藏品图鉴：局内入口、完整效果、跨局与刷新持久化�
       await page.setViewport({ width, height });
       await page.setRequestInterception(true);
       page.on('request', async (req) => {
-        if (width !== 390 && req.url().endsWith('/data/local-assets.json')) {
+        if (req.url().endsWith('/data/local-assets.json')) {
           const guide = Object.fromEntries([['home', 9], ['shop', 6], ['handbook', 4]].flatMap(([chapter, count]) =>
             Array.from({ length: count }, (_, i) => [`autochess_${chapter}_${i + 1}`, { path: '/test-guide.svg' }])));
-          await req.respond({ status: 200, contentType: 'application/json', body: JSON.stringify({ groups: { guide } }) });
+          // 手机降级场景明确提供空资源，避免本机已有说明图改变预期分支。
+          await req.respond({ status: 200, contentType: 'application/json', body: JSON.stringify({ groups: { guide: width === 390 ? {} : guide } }) });
         } else if (req.url().endsWith('/test-guide.svg')) {
           await req.respond({ status: 200, contentType: 'image/svg+xml', body: '<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024"><rect width="1024" height="1024" fill="#102c23"/></svg>' });
         } else if (req.url().startsWith(base) || req.url().startsWith('data:')) await req.continue();

@@ -135,6 +135,7 @@ import { EffectDispatcher, getDefaultRegistry } from './effectsMeta.js';
 import { generateDraft, applyCard, cardView, bountyBattles, isMultiRoundBounty } from './choices.js';
 import { setupMatchWaves, buildNormalWave, buildBossWave, bountySpawns, withBounties, previewOf, weightedPick } from './waves.js';
 import { planUnite, uniteBattleOpts, uniteSurvivors } from './unite.js';
+import { redistributeRelicWaves } from './relicWaves.js';
 import { pairPlayers, bossPoolHp, SharedBossPool, hiddenEligible, BOSS_HIT_STEPS } from './finalAssault.js';
 import {
   FieldRunner, DeadBattle, GAME_SPEED, snapFrame, runHeadless, timelineAt, HeadlessPacer, syntheticResult,
@@ -885,8 +886,7 @@ export class Match {
       return previewOf([...g.wave.spawns, ...bountySpawns(this.gd, this.round, g.wave, ps.bounties, ps.playerId, { solo: this.isSolo, side: g.side })]);
     }
     if (!this.wave) return [];
-    const bounty = bountySpawns(this.gd, this.round, this.wave, ps.bounties, ps.playerId, { solo: this.isSolo });
-    return previewOf([...this.wave.spawns, ...bounty]);
+    return previewOf(this._normalRelicSpawns().get(ps.playerId) || []);
   }
 
   /** UnitInfo list of a player's board (prep scouting). */
@@ -1752,12 +1752,21 @@ export class Match {
 
   _normalBattle(ps) { return this.newBattle(this._normalOpts(ps)); }
 
+  /** 整备预览及双方模拟器共用同一确定性分配；仅处理普通波次。 */
+  _normalRelicSpawns() {
+    const plans = this.alivePlayers().filter((ps) => !ps.left).map((ps) => ({
+      ps, routes: this.wave.routes,
+      spawns: withBounties(this.gd, this.round, this.wave, ps.bounties, ps.playerId).map((s) => ({ ...s, ownerPlayerId: ps.playerId })),
+    }));
+    return redistributeRelicWaves(plans, { solo: this.isSolo, round: this.round, seed: this.seed });
+  }
+
   /** Battle options of a player's normal field (after the onBattleStart handlers). */
   _normalOpts(ps) {
     const wave = this.wave;
     const input = ps.battleInput({ side: 'L', colOffset: 0 });
     // the client's list: bounty units inserted among their host action's own units, which are re-timed around them
-    const spawns = withBounties(this.gd, this.round, wave, ps.bounties, ps.playerId).map((s) => ({ ...s, ownerPlayerId: ps.playerId }));
+    const spawns = this._normalRelicSpawns().get(ps.playerId) || [];
     const ev = { input, kind: 'normal', round: this.round, spawns };
     this.dispatch(ps, 'onBattleStart', ev);
     return {

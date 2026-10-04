@@ -119,8 +119,19 @@ export class Unit {
     const bHp = fin(b.maxHp, 1) > 0 ? fin(b.maxHp, 1) : 1;
     const maxHp = Math.max(1, fin((bHp + a('hpFlat')) * Math.max(0, 1 + a('hpPct')) * m('hpMul'), bHp));
     const atk = Math.max(0, fin((b.atk + a('atkFlat')) * Math.max(0, 1 + a('atkPct')) * m('atkMul'), fin(b.atk, 0)));
-    const def = Math.max(0, fin((b.def + a('defFlat')) * Math.max(0, 1 + a('defPct')) * m('defMul'), fin(b.def, 0)));
-    const res = clamp(fin((b.res + a('resFlat')) * m('resMul'), fin(b.res, 0)), 0, 100);
+    let def = Math.max(0, fin((b.def + a('defFlat')) * Math.max(0, 1 + a('defPct')) * m('defMul'), fin(b.def, 0)));
+    let res = clamp(fin((b.res + a('resFlat')) * m('resMul'), fin(b.res, 0)), 0, 100);
+    // 收藏品在普通属性聚合后兑换，每次从未兑换属性重算，技能变化和再部署均不累加。
+    if (this.kind === 'op' && a('defResClear') > 0) {
+      def = 0;
+      res = 0;
+    } else if (this.kind === 'op' && a('defToRes') > 0) {
+      res = clamp(res + Math.floor(def / 50), 0, 100);
+      def = 0;
+    } else if (this.kind === 'op' && a('resToDef') > 0) {
+      def += Math.floor(res) * 50;
+      res = 0;
+    }
     const aspd = clamp(fin(b.aspd + a('aspd'), 100), ASPD_MIN, ASPD_MAX);
     const bBat = fin(b.bat, 1) > 0 ? fin(b.bat, 1) : 1;
     const bat = fin(bBat * Math.max(0.1, 1 + a('batPct')), bBat);

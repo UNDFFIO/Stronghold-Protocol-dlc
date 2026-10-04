@@ -33,6 +33,7 @@ import { existsSync, realpathSync } from 'node:fs';
 import { dirname, join, relative, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { Downloader } from './assets/downloader.mjs';
+import { prepareCustomRelicIcons } from './assets/relics.mjs';
 import { loadIndexes } from './assets/cache.mjs';
 import { indexAudio } from './assets/audio.mjs';
 import { buildPlan } from './assets/plan.mjs';
@@ -245,12 +246,13 @@ async function main() {
     return 0;
   }
 
+  await prepareCustomRelicIcons(ASSETS);
   const dl = new Downloader({
     root: ASSETS, ledgerPath: join(CACHE, 'assets-ledger.json'),
     concurrency: opts.concurrency, force: opts.force, log,
   });
   await dl.loadLedger();
-  const downloadErrors = opts.offline ? [] : await downloadLeaves(leaves, dl, ASSETS, 'files');
+  const downloadErrors = opts.offline ? [] : await downloadLeaves(leaves.filter(({ leaf }) => leaf.alts.some((alt) => alt.urls.length)), dl, ASSETS, 'files');
 
   // Fonts
   let fontErrors = [];

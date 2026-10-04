@@ -45,6 +45,8 @@ export const RELICS = Object.freeze([
   relic('150', '残弩-神速', 3, '狙击干员攻击速度提高 45 点。', '狙击攻速增加 70。', { aspd: 45 }, { profession: 'SNIPER' }),
   relic('153', '医者-自医', 3, '医疗干员技力自然回复速度提高 0.35 点/秒。', '医疗自然技力回复每秒增加 0.3。', { spRecoveryFlat: 0.35 }, { profession: 'MEDIC' }),
   relic('025', '至宝指环', 3, '从下回合整备阶段起，你每回合额外获得 1 点固定资金。', '战斗源石锭收益提高 50%。', {}, { economy: Object.freeze({ income: 1 }) }),
+  relic('156', '解压玩具', 3, '仅多人模式：普通作战中，持有者原本刷新的敌人数量减半（向下取整），减少的敌人均分给其他存活且未离场的玩家。每名持有者各有 10% 概率触发：随机选一名触发者承受所有敌人，未持有者各保留 1 个，其他持有者不刷敌人；触发时替代减半效果。首领波次不生效。',
+    '原创：普通作战敌人减半转移，10% 概率集中敌人。', {}, { multiplayerOnly: true, redistributeEnemies: true }),
 
   relic('042', '赶车夫的长鞭', 4, '干员造成的物理伤害提高 20%。', '敌人受到的物理伤害提高 25%。', { physDealtMul: 1.2 }),
   relic('045', '皇帝的收藏', 4, '干员造成的法术伤害提高 20%。', '敌人受到的法术伤害提高 30%。', { artsDealtMul: 1.2 }),
@@ -52,6 +54,8 @@ export const RELICS = Object.freeze([
   relic('079', '未知仪器', 4, '干员最大生命值提高 50%。', '生命提高 50%。', { hpPct: 0.5 }),
   relic('040', '迷梦香精', 4, '干员技力自然回复速度提高 0.4 点/秒。', '自然技力回复每秒增加 0.5。', { spRecoveryFlat: 0.4 }),
   relic('148', '铁卫-整固', 4, '重装干员最大生命值提高 40%、防御力提高 35%，法术抗性提高 8 点。', '重装生命、防御各提高 40%，法抗增加 20。', { hpPct: 0.4, defPct: 0.35, resFlat: 8 }, { profession: 'TANK' }),
+  relic('154', '金钟罩', 4, '扣除干员所有防御力，每扣除完整的 50 点防御力增加 1 点法抗；同时持有铁布衫时，改为移除全部防御力和法抗，受到的法术伤害减少 90%。', '原创：防御转法抗，与铁布衫组合改为法术减伤。', { defToRes: 1 }),
+  relic('155', '铁布衫', 4, '扣除干员所有法抗，每扣除完整的 1 点法抗增加 50 点防御力；同时持有金钟罩时，改为移除全部防御力和法抗，受到的物理伤害减少 90%。', '原创：法抗转防御，与金钟罩组合改为物理减伤。', { resToDef: 1 }),
 
   relic('006', '皮特水果什锦', 5, '干员攻击力、防御力和最大生命值各提高 20%。', '携带名额 +3；四种形态攻击、防御、生命各提高 3/4/5/7%。', { atkPct: 0.2, defPct: 0.2, hpPct: 0.2 }),
   relic('080', '演出用香水', 5, '干员每秒额外恢复 50 点生命值，并恢复相当于自身最大生命值 2% 的生命。', '每秒回血为最大生命的 1%。', { hpRegen: 50, hpRegenRatio: 0.02 }),
@@ -68,10 +72,14 @@ const idsOf = (owned) => new Set((Array.isArray(owned) ? owned : []).map((r) => 
 /** 仅累计持有者适用的藏品，不设上限；百分比相加，伤害倍率相加增幅。 */
 export function relicModifiers(owned, profession, position) {
   const sums = {};
-  for (const id of idsOf(owned)) {
+  const ids = idsOf(owned);
+  const paired = ids.has('relic_154') && ids.has('relic_155');
+  for (const id of ids) {
     const r = getRelic(id);
     if (!r || (r.profession && r.profession !== profession) || (r.position && r.position !== position)) continue;
-    for (const [key, value] of Object.entries(r.mods)) sums[key] = (sums[key] || 0) + (key.endsWith('Mul') ? value - 1 : value);
+    const mods = paired && id === 'relic_154' ? { artsTakenMul: 0.1, defResClear: 1 }
+      : paired && id === 'relic_155' ? { physTakenMul: 0.1 } : r.mods;
+    for (const [key, value] of Object.entries(mods)) sums[key] = (sums[key] || 0) + (key.endsWith('Mul') ? value - 1 : value);
   }
   const out = {};
   for (const [key, value] of Object.entries(sums)) out[key] = key.endsWith('Mul') ? 1 + value : value;
@@ -103,10 +111,10 @@ export function comebackWeights(round) {
   return [0, 0, 55, 30, 15];
 }
 
-export function pickRelic(round, owned, rng, { comeback = false } = {}) {
+export function pickRelic(round, owned, rng, { comeback = false, multiplayer = false } = {}) {
   const ids = idsOf(owned);
   const weights = comeback ? comebackWeights(round) : dropWeights(round);
-  const pools = RELIC_TIERS.map(({ tier }) => RELICS.filter((r) => r.tier === tier && !ids.has(r.id)));
+  const pools = RELIC_TIERS.map(({ tier }) => RELICS.filter((r) => r.tier === tier && !ids.has(r.id) && (!r.multiplayerOnly || multiplayer)));
   const total = weights.reduce((sum, w, i) => sum + (pools[i].length ? w : 0), 0);
   if (!total) return null;
   let roll = rng() * total;
@@ -119,11 +127,11 @@ export function pickRelic(round, owned, rng, { comeback = false } = {}) {
 }
 
 /** Three distinct, unowned candidates. A nearly exhausted eligible pool may offer fewer. */
-export function pickRelicChoices(round, owned, rng, { comeback = false } = {}) {
+export function pickRelicChoices(round, owned, rng, { comeback = false, multiplayer = false } = {}) {
   const excluded = [...idsOf(owned)];
   const choices = [];
   for (let i = 0; i < 3; i++) {
-    const r = pickRelic(round, excluded, rng, { comeback }) || (comeback ? pickRelic(round, excluded, rng) : null);
+    const r = pickRelic(round, excluded, rng, { comeback, multiplayer }) || (comeback ? pickRelic(round, excluded, rng, { multiplayer }) : null);
     if (!r) break;
     choices.push(r.id);
     excluded.push(r.id);
