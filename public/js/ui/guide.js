@@ -11,6 +11,9 @@ import { useEffect, useMemo, useRef, useState } from '../../vendor/hooks.module.
 import { html, Icon, MicroLabel, Button, Spinner } from './components.js';
 import { createStore, useStore } from '../store.js';
 import { data, useData, localAsset } from '../data.js';
+import { RELICS } from '../../../shared/relics.js';
+import { RelicList } from './relicPanel.js';
+import { installRelicJournal, relicJournalStore } from './relicJournal.js';
 
 const cx = (...p) => p.flat().filter(Boolean).join(' ');
 
@@ -47,13 +50,13 @@ export function guidePages() {
 }
 
 /** Open/closed + current page. */
-export const guideStore = createStore({ open: false, page: 0 });
+export const guideStore = createStore({ open: false, page: 0, section: 'pages' });
 
 /** Open the viewer (optionally at a page index). */
 export function openGuide(page = 0) {
   data.load('local');
   data.load('config');
-  guideStore.set({ open: true, page: Math.max(0, page | 0) });
+  guideStore.set({ open: true, page: Math.max(0, page | 0), section: 'pages' });
 }
 export const closeGuide = () => guideStore.set({ open: false });
 
@@ -83,7 +86,10 @@ function TipsFallback() {
 
 /** The viewer (mounted once near the root). */
 export function GuideHost() {
-  const { open, page } = useStore((s) => s, Object.is, guideStore);
+  const { open, page, section } = useStore((s) => s, Object.is, guideStore);
+  const ids = useStore((s) => s.ids, Object.is, relicJournalStore);
+  useEffect(() => installRelicJournal(), []);
+  const journal = section === 'relics';
   const ready = useData('local', 'config');
   const pages = useMemo(() => (ready ? guidePages() : []), [ready]);
   const [loaded, setLoaded] = useState(() => new Set());
@@ -92,7 +98,7 @@ export function GuideHost() {
   const n = pages.length;
   const i = n ? Math.min(Math.max(0, page), n - 1) : 0;
   const cur = pages[i] || null;
-  const go = (k) => { if (n) guideStore.set({ open: true, page: ((k % n) + n) % n }); };
+  const go = (k) => { if (n) guideStore.set({ open: true, page: ((k % n) + n) % n, section: 'pages' }); };
 
   useEffect(() => {
     if (!open) return undefined;
@@ -101,23 +107,23 @@ export function GuideHost() {
       const k = e.key;
       let handled = true;
       if (k === 'Escape') closeGuide();
-      else if (k === 'ArrowRight' || k === 'd' || k === 'D' || k === 'PageDown') go(guideStore.get().page + 1);
-      else if (k === 'ArrowLeft' || k === 'a' || k === 'A' || k === 'PageUp') go(guideStore.get().page - 1);
-      else if (k === 'Home') go(0);
-      else if (k === 'End') go(n - 1);
+      else if (!journal && (k === 'ArrowRight' || k === 'd' || k === 'D' || k === 'PageDown')) go(guideStore.get().page + 1);
+      else if (!journal && (k === 'ArrowLeft' || k === 'a' || k === 'A' || k === 'PageUp')) go(guideStore.get().page - 1);
+      else if (!journal && k === 'Home') go(0);
+      else if (!journal && k === 'End') go(n - 1);
       else handled = (!!k && k.length === 1) || k === ' '; // swallow game shortcuts (R/F/D/Space) while open
       if (handled) { e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); }
     };
     window.addEventListener('keydown', onKey, true);
     const t = setTimeout(() => boxRef.current?.focus?.(), 30);
     return () => { window.removeEventListener('keydown', onKey, true); clearTimeout(t); };
-  }, [open, n]);
+  }, [open, n, journal]);
 
   useEffect(() => {
-    if (!open || !n) return;
+    if (!open || !n || journal) return;
     preload(pages[(i + 1) % n]?.url);
     preload(pages[(i + n - 1) % n]?.url);
-  }, [open, i, n]);
+  }, [open, i, n, journal]);
 
   if (!open) return null;
   const chapter = cur ? GUIDE_CHAPTERS[cur.chapter] : null;
@@ -130,19 +136,30 @@ export function GuideHost() {
           <${MicroLabel} tone="mint">HOW TO PLAY // STRONGHOLD PROTOCOL</${MicroLabel}>
           <h2 class="guide__title">玩法说明</h2>
         </div>
-        ${n ? html`<nav class="guide__chapters" aria-label="章节">
+        <nav class="guide__chapters" aria-label="章节">
+          ${!n ? html`<button type="button" class=${cx('guide__chapter', !journal && 'is-on')} aria-pressed=${!journal} onClick=${() => guideStore.set({ section: 'pages' })}>
+            <span class="guide__chname">基础规则</span><span class="guide__chmicro">BASICS</span>
+          </button>` : null}
           ${GUIDE_CHAPTERS.map((ch, ci) => {
             const at = firstOf(ci);
             if (at < 0) return null;
-            return html`<button key=${ch.id} type="button" class=${cx('guide__chapter', cur?.chapter === ci && 'is-on')} onClick=${() => go(at)}>
+            return html`<button key=${ch.id} type="button" class=${cx('guide__chapter', !journal && cur?.chapter === ci && 'is-on')} aria-pressed=${!journal && cur?.chapter === ci} onClick=${() => go(at)}>
               <span class="guide__chname">${ch.name}</span><span class="guide__chmicro">${ch.micro}</span>
             </button>`;
           })}
-        </nav>` : null}
+          <button type="button" class=${cx('guide__chapter', journal && 'is-on')} aria-pressed=${journal} onClick=${() => guideStore.set({ section: 'relics' })}>
+            <span class="guide__chname">收藏品图鉴</span><span class="guide__chmicro">COLLECTION</span>
+          </button>
+        </nav>
         <button type="button" class="guide__close" aria-label="关闭" title="关闭 (Esc)" onClick=${closeGuide}><${Icon} name="close" /></button>
       </header>
 
-      ${n ? html`<div class="guide__stage">
+      ${journal ? html`<section class="guide__journal" aria-label="收藏品图鉴" tabindex="0">
+        <div class="guide__journal-head"><div><${MicroLabel} tone="mint">COLLECTION // 已获得过</${MicroLabel}>
+          <h3>收藏品图鉴</h3></div><span class="guide__count num">${ids.length} / ${RELICS.length}</span></div>
+        <p class="guide__journal-note">领取后自动收录，跨局保留。以下为收藏品在本游戏中的效果；获得记录保存在当前浏览器。</p>
+        <${RelicList} relics=${ids.map((id) => ({ id }))} history=${true} />
+      </section>` : n ? html`<div class="guide__stage">
         <button type="button" class="guide__nav guide__prev" aria-label="上一页" onClick=${() => go(i - 1)}><${Icon} name="chevronLeft" /></button>
         <div class=${cx('guide__page', isLoaded && 'is-loaded')}>
           ${cur && !failed.has(cur.url) ? html`<img key=${cur.url} src=${cur.url} alt=${cur.title} draggable=${false}
@@ -153,7 +170,7 @@ export function GuideHost() {
         <button type="button" class="guide__nav guide__next" aria-label="下一页" onClick=${() => go(i + 1)}><${Icon} name="chevronRight" /></button>
       </div>` : html`<div class="guide__stage guide__stage--text"><${TipsFallback} /></div>`}
 
-      ${n ? html`<footer class="guide__foot">
+      ${n && !journal ? html`<footer class="guide__foot">
         <div class="guide__label">
           <span class="guide__chtag">${chapter?.name || ''}</span>
           <b class="guide__ptitle">${cur?.title || ''}</b>

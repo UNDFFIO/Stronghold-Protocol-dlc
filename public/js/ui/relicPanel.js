@@ -47,15 +47,15 @@ export function RelicIcons({ relics, reward, notice = false, onOpen }) {
 }
 
 /** Shared by the live modal and each settlement card. No richness/HTML from remote sources. */
-export function RelicList({ relics, reward = null }) {
+export function RelicList({ relics, reward = null, history = false }) {
   const entries = relicEntries(relics);
-  if (!entries.length) return html`<p class="relic-empty">尚未获得收藏品。每回合本人无漏怪，可从三件藏品中选择一件。</p>`;
-  return html`<ol class="relic-list" aria-label="本局收藏品">
+  if (!entries.length) return html`<p class="relic-empty">${history ? '尚未收录收藏品。领取收藏品后将自动加入图鉴。' : '尚未获得收藏品。每回合本人无漏怪，可从三件藏品中选择一件。'}</p>`;
+  return html`<ol class="relic-list" aria-label=${history ? '已获得过的收藏品' : '本局收藏品'}>
     ${entries.map((r) => html`<li key=${`${r.id}:${r.round}`} class=${`relic-card relic-tier-${r.tier || 1}${reward?.id === r.id && reward?.round === r.round ? ' is-new' : ''}`}>
       <div class="relic-card__head"><b class="relic-card__name">${r.name || r.id}</b>
         <span class="relic-card__tier">${tierName(r.tier)}</span></div>
       <p class="relic-card__desc">${r.desc || '该收藏品的效果资料暂不可用'}</p>
-      <span class="relic-card__round">${r.round == null ? '本局获得' : `第 ${r.round} 回合获得`}</span>
+      ${history ? null : html`<span class="relic-card__round">${r.round == null ? '本局获得' : `第 ${r.round} 回合获得`}</span>`}
     </li>`)}
   </ol>`;
 }
