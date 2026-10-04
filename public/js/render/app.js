@@ -1,3 +1,4 @@
+import { installPixiNumberMask } from '../ui/numberMask.js';
 // render/app.js — battlefield view (DESIGN §9). PixiJS 7 (global PIXI) + pixi-spine (PIXI.spine), loaded on demand
 // from /vendor when the page did not include them as classic <script> tags.
 //
@@ -386,6 +387,7 @@ export async function createFieldView(host, options = {}) {
   if (!host || typeof host.appendChild !== 'function') throw new TypeError('createFieldView: host element required');
   const opts = options && typeof options === 'object' ? options : {};
   const P = await ensurePixi();
+  installPixiNumberMask(P);
   const assets = resolveAssets(opts.assets);
   const data = makeData(opts.data);
   const settings = { damageNumbers: true, quality: 'high', ...(opts.settings || {}) };

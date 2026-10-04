@@ -1,4 +1,5 @@
 import { getRelic, pickRelicChoices, RELIC_TIERS } from '../../shared/relics.js';
+import { normalizeDifficultyLevel } from '../../shared/difficulty.js';
 import { createRng, deriveSeed } from '../sim/rng.js';
 
 /** Process the owner's completed battle once; rescue and shields do not erase personal leaks. */
@@ -35,6 +36,12 @@ export function selectRelic(ps, offerId, idx) {
   if (!r || (r.multiplayerOnly && ps.m.isSolo) || ps.relics.some((o) => o.id === r.id)) return null;
   const reward = { id: r.id, round: offer.round };
   ps.relics.push(reward);
+  // 合法领取时一次性降低全队等级；既有战斗保留原规则，后续所有阵地共用新等级。
+  if (r.difficultyReduction) {
+    ps.m.difficultyLevel = normalizeDifficultyLevel(ps.m.difficultyLevel - r.difficultyReduction);
+    ps.m.markPublic();
+  }
+  if (r.reverseLpOnce) ps.relicReverseLpRound = offer.round + 1;
   ps.relicReward = reward;
   ps.relicOffer = null;
   ps.dirty();
@@ -51,6 +58,11 @@ export function autoSelectRelic(ps) {
   });
   selectRelic(ps, ps.relicOffer.id, idx);
 }
+
+export const activeReverseLp = (ps) => ps.relicReverseLpRound > 0 && ps.relicReverseLpRound === ps.m.round;
+/** 时间机器先反转应扣血量，护盾保留；负数表示回血。 */
+export const previewRelicLpLoss = (ps, amount) => activeReverseLp(ps) ? -Math.max(0, amount) : shieldedLpLoss(ps, amount);
+export const consumeRelicLpLoss = (ps, amount) => activeReverseLp(ps) ? -Math.max(0, amount) : consumeRelicShield(ps, amount);
 
 export const activeRelicShield = (ps) => ps.relicShieldRound === ps.m.round ? Math.max(0, ps.relicShield) : 0;
 export const shieldedLpLoss = (ps, amount) => Math.max(0, amount - activeRelicShield(ps));

@@ -20,6 +20,7 @@
 // shallow-merges into one nested object. Subscribers are notified synchronously.
 
 import { useLayoutEffect, useReducer, useRef } from '../vendor/hooks.module.js';
+import { installNumberMask } from './ui/numberMask.js';
 import { PHASE } from '../../shared/constants.js';
 
 /**
@@ -87,6 +88,7 @@ export const initialState = Object.freeze({
 
 /** The app-wide store singleton. */
 export const store = createStore(initialState);
+installNumberMask(store);
 
 /**
  * Which screen the router shows for a given app state:

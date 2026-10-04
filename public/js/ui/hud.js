@@ -123,7 +123,7 @@ export function pendingLoss(leaks, cap = 10) {
  */
 export function ownLeaks(local, server) {
   const n = (v) => (Number.isFinite(v) && v > 0 ? Math.trunc(v) : 0);
-  return Math.max(n(local), n(server));
+  return Math.max(n(local), n(Number.isFinite(server) ? Math.abs(server) : server));
 }
 
 /**
@@ -156,14 +156,15 @@ export function uniteRemaining(local, server) {
  * @param {{ phase: string, round: any, lp: any, statsLeaks?: any, leaks?: any, cap?: number, alive?: boolean, uniteLeft?: number|null }} s
  * @returns {{ base: { round: any, lp: number, statsLeaks: number|null } | null, pending: number, shown: number|null, unite: boolean, left: number|null }}
  */
-export function liveLp(base, { phase, round, lp, statsLeaks = null, leaks = 0, cap = 10, alive = true, uniteLeft = null, shield = 0 }) {
+export function liveLp(base, { phase, round, lp, statsLeaks = null, leaks = 0, cap = 10, alive = true, uniteLeft = null, shield = 0, reverseLp = false }) {
   if (!Number.isFinite(lp)) return { base: null, pending: 0, shown: null, unite: false, left: null };
   if (!LEAK_PHASES.has(phase) || alive === false) return { base: null, pending: 0, shown: lp, unite: false, left: null };
   const sl = Number.isFinite(statsLeaks) ? statsLeaks : null;
   const b = base && base.round === round ? base : { round, lp, statsLeaks: sl };
   const landed = lp !== b.lp || (sl != null && b.statsLeaks != null && sl !== b.statsLeaks);
   const left = phase === PHASE.UNITE && Number.isFinite(uniteLeft) && uniteLeft >= 0 && !landed ? Math.trunc(uniteLeft) : null;
-  const pending = landed ? 0 : Math.min(lp, Math.max(0, pendingLoss(left != null ? left : leaks, cap) - Math.max(0, Number(shield) || 0)));
+  const raw = pendingLoss(left != null ? left : leaks, cap);
+  const pending = landed ? 0 : reverseLp ? -raw : Math.min(lp, Math.max(0, raw - Math.max(0, Number(shield) || 0)));
   return { base: b, pending, shown: lp - pending, unite: phase === PHASE.UNITE && (pending > 0 || left != null), left };
 }
 
@@ -172,6 +173,7 @@ export function liveLp(base, { phase, round, lp, statsLeaks = null, leaks = 0, c
  * @param {number} lp settled LP @param {number} pending @param {{ unite?: boolean, cap?: number }} [opts]
  */
 export function pendingTip(lp, pending, { unite = false, cap = 10, left = null } = {}) {
+  if (pending < 0) return `时间机器：本场战斗结算时目标生命值增加 ${-pending} 点`;
   if (!(pending > 0)) return null;
   if (unite && Number.isFinite(left)) {
     const each = left > cap ? `剩余不足 ${cap} 个后，队友每击倒一个少扣 1 点` : '队友每击倒一个就少扣 1 点';
@@ -313,7 +315,7 @@ export function TopBar({ pub, priv, conn, hud, total, drawer, onExit, onDrawer, 
   const boss = isBossPhase(phase);
   const lp = boss && Number.isFinite(pub?.teamLp) ? pub.teamLp : Number.isFinite(priv?.lp) ? priv.lp : null;
   // normal rounds: the leaks of the own battle so far (boss rounds: the team LP above already moves live)
-  const pending = !boss && Number.isFinite(lp) && live && live.pending > 0 ? Math.min(lp, live.pending) : 0;
+  const pending = !boss && Number.isFinite(lp) && live && live.pending !== 0 ? Math.min(lp, live.pending) : 0;
   const hidden = phase === PHASE.HIDDEN_CORE || (Number.isFinite(pub?.lastRound) && pub.round > pub.lastRound);
   const roundText = hidden ? '??' : pub?.round > 0 ? String(pub.round) : '--';
   const showReady = phase === PHASE.PREP && priv?.alive !== false;

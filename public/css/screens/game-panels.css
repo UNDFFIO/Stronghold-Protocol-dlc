@@ -745,3 +745,10 @@ button.bpop__harmony:hover { border-style: solid; color: #fff; }
 .relic-choice__error { color: var(--red-premium); font-size: max(.15rem, 10px); }
 .gm__relic-wait { position: absolute; left: 50%; bottom: .55rem; transform: translateX(-50%); display: flex; align-items: center; gap: .08rem; padding: .12rem .2rem; border: 1px solid var(--mint-700); background: var(--bg-glass); color: var(--mint-400); font-size: max(.17rem, 10px); white-space: nowrap; }
 .gm__relic-wait .icon { width: .2rem; height: .2rem; }
+
+/* 横屏手机中保留图片和领取按钮，长效果说明在卡片内滚动。 */
+@media (max-height: 500px) {
+  .relic-choice__card { max-height: max(1.8rem, calc(100dvh - 2.4rem)); }
+  .relic-choice__art { flex-shrink: 0; }
+  .relic-choice__card p { min-height: 0; overflow-y: auto; }
+}

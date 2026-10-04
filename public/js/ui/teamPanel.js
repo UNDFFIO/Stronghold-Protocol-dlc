@@ -48,8 +48,8 @@ export function rowLp(p, pub, self = null, { uniteLocal = null, cap = 10 } = {})
   const rawLeft = pub.phase !== PHASE.UNITE ? null : self ? self.left : local != null ? local : p.uniteLeft;
   const left = Number.isFinite(rawLeft) && rawLeft >= 0 ? Math.trunc(rawLeft) : null;
   if (lp == null) return { lp, pending: 0, unite: false, left };
-  const raw = self ? self.pending : local != null ? Math.max(0, Math.min(cap, local) - (Number(p.lpShield) || 0)) : p.pendingLp;
-  const pending = Math.min(lp, Math.max(0, Math.trunc(Number(raw) || 0)));
+  const raw = self ? self.pending : local != null ? p.reverseLp ? -Math.min(cap, local) : Math.max(0, Math.min(cap, local) - (Number(p.lpShield) || 0)) : p.pendingLp;
+  const pending = raw < 0 ? raw : Math.min(lp, Math.max(0, Math.trunc(Number(raw) || 0)));
   return { lp, pending, unite: (pending > 0 || left != null) && (self ? !!self.unite : pub.phase === PHASE.UNITE), left };
 }
 
@@ -59,6 +59,7 @@ export function rowLp(p, pub, self = null, { uniteLocal = null, cap = 10 } = {})
  * @param {number} [cap] lpCapPerRound
  */
 export function rowLpTip(lp, cap = 10) {
+  if (lp?.pending < 0) return `时间机器：本场战斗结算时目标生命值增加 ${-lp.pending} 点`;
   if (!lp || !(lp.pending > 0)) return null;
   if (lp.unite && lp.left != null) return `目标生命值 ${lp.lp}，联防中：漏过的敌人还剩 ${lp.left} 个，按现在结算扣除 ${lp.pending} 点（每回合至多 ${cap} 点）`;
   return `目标生命值 ${lp.lp}，${lp.unite ? '联防中，' : ''}结算时扣除${lp.unite ? '至多' : ''} ${lp.pending} 点`;

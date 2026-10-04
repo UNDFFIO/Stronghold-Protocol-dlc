@@ -79,3 +79,13 @@ test('live LP previews include shields, keep uncapped survivor counts and avoid 
   assert.equal(rowLp(b, pub, null, { uniteLocal: { b: 3 } }).pending, 1);
   assert.equal(rowLp(b, pub, null, { uniteLocal: { b: 1 } }).pending, 0);
 });
+
+
+test('时间机器：普通与联防血量预览加血、不截断低血回血、结算后不重复预览', () => {
+  const first = liveLp(null, { phase: 'COMBAT', round: 2, lp: 1, leaks: 3, shield: 2, reverseLp: true });
+  assert.equal(first.shown, 4); assert.equal(first.pending, -3);
+  const settled = liveLp(first.base, { phase: 'COMBAT', round: 2, lp: 4, leaks: 3, reverseLp: true });
+  assert.equal(settled.shown, 4); assert.equal(settled.pending, 0);
+  const unite = liveLp(null, { phase: 'UNITE', round: 2, lp: 1, leaks: 5, uniteLeft: 2, reverseLp: true });
+  assert.equal(unite.shown, 3);
+});

@@ -558,6 +558,43 @@ describe('DESIGN §20.15 — the bond strip shows the watched teammate\'s bonds 
     }
   });
 
+  test('eliminated spectator keeps the selected teammate after combat, through prep and the next combat', { timeout: 4 * 60 * 1000 }, async () => {
+    const srv = await startRealServer({ fast: { timerScale: 0.5, combatSpeed: 8, startRound: 2, idleBots: true,
+      autoPlace: true, kits: [UNITE_HOST_KIT, []], botChess: BOT_KIT, eliminate: [1] } });
+    const P = (await import('puppeteer-core')).default;
+    let host = null;
+    let guest = null;
+    try {
+      ({ host, guest } = await coopMatch(P, srv.base, { bots: 1, prefix: 'spectator-continuity' }));
+      await host.waitFor((s) => s.phase === 'PREP' && !s.ready, 'initial prep', 60000);
+      assert.equal((await guest.st()).alive, false);
+      await host.click('.readybtn');
+      await guest.waitFor((s) => s.phase === 'COMBAT', 'first combat', 60000);
+      const mv = await matchView(guest);
+      const botId = mv.fields.flatMap((f) => f.players).find((pid) => pid.startsWith('ai_'));
+      assert.ok(botId, 'a surviving AI teammate');
+      const name = mv.names[botId];
+      await watchMate(guest, name);
+      await ownerIs(guest, name);
+      await host.waitFor((s) => s.phase === 'PREP' && !s.ready && s.round === 3, 'next-round prep', 90000);
+      await guest.waitFor((s) => s.phase === 'PREP' && s.round === 3, 'spectator next-round prep');
+      await ownerIs(guest, name);
+      await guest.page.waitForFunction((fid) => {
+        const field = globalThis.__SP__.store.get().match.field;
+        return field?.prep && field.fieldId === fid;
+      }, { timeout: 10000 }, `n:${botId}`);
+      assert.equal(await guest.page.$('.gm__watching button'), null, 'no return to eliminated own board');
+      await host.click('.readybtn');
+      await guest.waitFor((s) => s.phase === 'COMBAT' && s.round === 3, 'next combat', 60000);
+      await ownerIs(guest, name);
+      assert.deepEqual(problemsOf([host, guest]), []);
+    } finally {
+      await host?.close();
+      await guest?.close();
+      await srv.stop();
+    }
+  });
+
   test('Final Assault spectator (eliminated): the pair\'s first player, each picked player\'s half + bonds, the lone field', { timeout: 8 * 60 * 1000 }, async () => {
     const srv = await startRealServer({ fast: { timerScale: 1, combatSpeed: 2, startRound: 'boss', idleBots: true, autoPlace: true,
       kits: [UNITE_HOST_KIT, []], botChess: BOT_KIT, eliminate: [1] } });

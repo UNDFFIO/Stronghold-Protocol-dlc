@@ -79,7 +79,7 @@ import { computeBonds, bondList, bondSnapshot, activatedLayers, bondsWithGains }
 import { itemKey } from './gamedata.js';
 import { bountyText } from './choices.js';
 import { relicIncome } from '../../shared/relics.js';
-import { relicsView, relicOfferView, activeRelicShield, startRelicRound } from './relics.js';
+import { relicsView, relicOfferView, activeRelicShield, activeReverseLp, startRelicRound } from './relics.js';
 
 const HAND_SIZE = GEO.HAND_SIZE;
 const TEMP_SIZE = GEO.TEMP_SIZE;
@@ -150,6 +150,7 @@ export class PlayerState {
     this.relicShieldRound = 0;
     this.relicNextShieldRound = 0;
     this.relicReward = null;
+    this.relicReverseLpRound = 0;
     /** active bounties: { id, card, roundsLeft, chooser } */
     this.bounties = [];
     /** free-form counters for content (ctx.counter / setCounter) */
@@ -1659,6 +1660,7 @@ export class PlayerState {
       relicOffer: relicOfferView(this),
       relicLeakStreak: this.relicLeakStreak,
       lpShield: activeRelicShield(this),
+      reverseLp: activeReverseLp(this),
       nextLpShield: this.relicNextShieldRound > this.m.round ? 2 : 0,
       nextEnemies: this.m.nextEnemiesFor(this),
       // DESIGN §16: the effective operator loadout ({ [baseChessId]: { skill, module } }; chess not listed use defaults)

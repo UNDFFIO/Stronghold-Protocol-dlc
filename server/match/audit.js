@@ -405,21 +405,22 @@ export function attachAudit(m, { invariants = true, limit = 200 } = {}) {
       if (expectUnite && expectUnite.round === m.round && expectUnite.expect !== !!plan) fail(`联防 ${plan ? 'ran' : 'skipped'} but ${expectUnite.expect ? '≥ 1 leaker and ≥ 1 perfect player' : 'not both a leaker and a perfect player'}`);
       expectUnite = null;
     });
-    const before = new Map(m.alivePlayers().map((ps) => [ps, { lp: ps.lp, shield: ps.relicShieldRound === m.round ? ps.relicShield : 0 }]));
+    const before = new Map(m.alivePlayers().map((ps) => [ps, { lp: ps.lp, shield: ps.relicShieldRound === m.round ? ps.relicShield : 0, reverse: ps.relicReverseLpRound === m.round }]));
     const res = orig(plan, uniteResult);
     check('settle', () => {
       const cap = gd.lpCapPerRound;
       const uniteRan = !!(plan && uniteResult && !uniteResult.synthetic);
-      for (const [ps, { lp: lp0, shield }] of before) {
+      for (const [ps, { lp: lp0, shield, reverse }] of before) {
         const r = m.lastResults.get(ps.playerId) || { leaked: [] };
         const counted = (r.leaked || []).filter((l) => l && l.counted !== false).length;
         // after 联防 a leaker pays for every surviving enemy of its source — enemies spawned by its leaked enemies
         // (splitters, summoners) included — so only the cap bounds it; everybody else never exceeds own leaks
-        const max = Math.max(0, (uniteRan && plan.leakers.includes(ps) ? cap : Math.min(cap, counted)) - shield);
+        const raw = uniteRan && plan.leakers.includes(ps) ? cap : Math.min(cap, counted);
+        const max = reverse ? -raw : Math.max(0, raw - shield);
         if (ps.alive) {
           const loss = lp0 - ps.lp;
-          if (loss < 0) fail(`${ps.playerId}: LP rose in settle ${lp0} → ${ps.lp}`);
-          if (loss > max) fail(`${ps.playerId}: lost ${loss} LP with ${counted} counted leaks (cap ${cap})`);
+          if (!reverse && loss < 0) fail(`${ps.playerId}: LP rose in settle ${lp0} → ${ps.lp}`);
+          if ((!reverse && loss > max) || (reverse && (loss > 0 || loss < max))) fail(`${ps.playerId}: lost ${loss} LP with ${counted} counted leaks (cap ${cap})`);
           if (!uniteRan && loss !== max) fail(`${ps.playerId}: lost ${loss} LP, expected min(${cap}, ${counted})`);
           if (ps.lp <= 0) fail(`${ps.playerId}: alive with LP ${ps.lp}`);
         } else {

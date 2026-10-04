@@ -37,7 +37,7 @@ test('原创收藏品：实际奖励池抽取与领取后下一场战斗生效',
 });
 
 test('collection: every tier is populated, early pools cannot run out during ordinary play, definitions are immutable', () => {
-  assert.equal(RELICS.length, 42);
+  assert.equal(RELICS.length, 45);
   assert.equal(new Set(RELICS.map((r) => r.id)).size, RELICS.length);
   assert.ok(RELICS.filter((r) => r.tier === 1).length >= 9);
   for (const { tier } of RELIC_TIERS) assert.ok(RELICS.some((r) => r.tier === tier));

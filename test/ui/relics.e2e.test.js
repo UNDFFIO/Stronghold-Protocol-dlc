@@ -28,7 +28,12 @@ async function closed(page) {
   await page.waitForFunction(() => !document.querySelector('.relic-panel'), { timeout: 2000 });
 }
 
-test('解压玩具：三选一名称、稀有度、说明及透明图片可用，领取后收藏栏展示', {
+for (const item of [
+  { id: 'relic_158', name: '时间机器', tier: '普通', phrases: ['目标生命值', '等量增加', '仅生效一场'], shot: 'time-machine' },
+  { id: 'relic_159', name: '木棍', tier: '传说', phrases: ['4 金币', '■', '仅影响显示'], shot: 'stick' },
+  { id: 'relic_156', name: '解压玩具', phrases: ['向下取整', '首领波次不生效', '10%', '未持有者各保留 1 个', '触发时替代减半效果'], shot: 'toy' },
+  { id: 'relic_157', name: '鸭梨手机', phrases: ['全队累计难度降低 2 级', '最低为 0', '下一场战斗', '多名玩家领取可叠加'], shot: 'phone' },
+]) test(`${item.name}：三选一名称、稀有度、说明及透明图片可用，领取后收藏栏展示`, {
   skip: !ENABLED && 'set SP_E2E=1 and provide system Chrome', timeout: 60000,
 }, async () => {
   const page = await browser.newPage();
@@ -36,18 +41,17 @@ test('解压玩具：三选一名称、稀有度、说明及透明图片可用�
     await page.setViewport({ width: 1920, height: 1080 });
     await page.goto(`${base}/dev/game-mock.html?shot=1&phase=PREP`, { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('.relic-icons__heading');
-    await page.evaluate(() => {
+    await page.evaluate((id) => {
       globalThis.__MOCK__.setPhase('SETTLE');
       globalThis.__MOCK__.mutate((s) => {
         s.priv.relics = [];
-        s.priv.relicOffer = { id: 'ui:toy', round: 4, reason: 'perfect', options: ['relic_156', 'relic_154', 'relic_155'] };
+        s.priv.relicOffer = { id: 'ui:custom', round: 4, reason: 'perfect', options: [id, 'relic_154', 'relic_155'] };
         s.pub.relicChoosing = true; s.pub.deadline = 0;
       });
-    });
+    }, item.id);
     await page.waitForSelector('.relic-choice__card');
     const text = await page.$eval('.relic-choice__card', (e) => e.textContent);
-    assert.ok(text.includes('解压玩具') && text.includes('稀有') && text.includes('向下取整') && text.includes('首领波次不生效'));
-    assert.ok(text.includes('10%') && text.includes('未持有者各保留 1 个') && text.includes('触发时替代减半效果'));
+    for (const phrase of [item.name, item.tier || '稀有', ...item.phrases]) assert.ok(text.includes(phrase), phrase);
     await page.waitForFunction(() => {
       const img = document.querySelector('.relic-choice__card img');
       return img?.complete && img.naturalWidth > 0;
@@ -61,10 +65,10 @@ test('解压玩具：三选一名称、稀有度、说明及透明图片可用�
       return { transparent, opaque };
     });
     assert.deepEqual(alpha, { transparent: true, opaque: true });
-    await page.screenshot({ path: `${OUT}/relic-toy-choice.png` });
+    await page.screenshot({ path: `${OUT}/relic-${item.shot}-choice.png` });
     await page.click('.relic-choice__card');
     await page.waitForFunction(() => !document.querySelector('.relic-choice'));
-    assert.equal(await page.evaluate(() => globalThis.__MOCK__.S().priv.relics.at(-1).id), 'relic_156');
+    assert.equal(await page.evaluate(() => globalThis.__MOCK__.S().priv.relics.at(-1).id), item.id);
     await page.waitForSelector('.effect--relic img');
     await page.waitForFunction(() => document.querySelector('.effect--relic img')?.naturalWidth > 0);
   } finally { await page.close(); }
@@ -252,7 +256,7 @@ test('phone/desktop: icons wrap, tooltips stay clear of three-choice dialogs, an
           globalThis.__MOCK__.setPhase('SETTLE');
           const cards = reason === 'perfect'
             ? [RELICS.find((r) => r.id === 'relic_154'), RELICS.find((r) => r.id === 'relic_155'), RELICS[20]]
-            : RELICS.slice(27, 30);
+            : ['relic_025', 'relic_156', 'relic_042'].map((id) => RELICS.find((r) => r.id === id));
           globalThis.__MOCK__.mutate((s) => {
             s.priv.relics = own;
             s.priv.relicOffer = { id: `ui:${reason}`, round: 13, reason, options: cards.map((r) => r.id) };
@@ -292,7 +296,8 @@ test('phone/desktop: icons wrap, tooltips stay clear of three-choice dialogs, an
           assert.ok(alpha.every((a) => a.transparent && a.opaque), '原创图片可解码且含真实透明背景和实体物件');
         }
         const layout = await page.$$eval('.relic-choice__card', (els) => els.map((e) => { const r = e.getBoundingClientRect(); return { top: r.top, bottom: r.bottom, left: r.left, right: r.right }; }));
-        assert.ok(layout.every((r) => r.top === layout[0].top && r.bottom <= height && r.left >= 0 && r.right <= width));
+        await page.screenshot({ path: `${OUT}/relic-choice-layout-${width}-${reason}.png` });
+        assert.ok(layout.every((r) => r.top === layout[0].top && r.bottom <= height && r.left >= 0 && r.right <= width), JSON.stringify({ width, height, reason, layout }));
         await page.screenshot({ path: `${OUT}/relic-choice-${reason}-${width === 640 ? 'phone' : 'desktop'}.png` });
         await page.click('.relic-choice__card:nth-child(2)');
         await page.waitForFunction(() => !document.querySelector('.relic-choice'));
@@ -321,4 +326,49 @@ test('phone/desktop: icons wrap, tooltips stay clear of three-choice dialogs, an
       throw err;
     } finally { await page.close(); }
   }
+});
+
+test('木棍：整个界面逐位方块、输入值保留、更新与观战持续、Pixi文本及退出恢复', {
+  skip: !ENABLED && 'set SP_E2E=1 and provide system Chrome', timeout: 60000,
+}, async () => {
+  const page = await browser.newPage();
+  const errors = []; page.on('pageerror', (e) => errors.push(e.message));
+  try {
+    await page.goto(`${base}/dev/game-mock.html?shot=1&phase=PREP`, { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('.relic-icons__heading');
+    await page.evaluate(() => {
+      const input = document.createElement('input'); input.id = 'mask-input'; input.value = '金币123'; document.body.append(input);
+      globalThis.__MOCK__.mutate((s) => { s.priv.relics = [{ id: 'relic_159', round: 7 }]; });
+    });
+    await page.waitForFunction(() => document.querySelector('#mask-input').style.fontFamily.startsWith('RelicDigits'));
+    const font = await page.evaluate(async () => {
+      await document.fonts.load('30px RelicDigits');
+      const canvas = document.createElement('canvas'); canvas.width = 100; canvas.height = 50;
+      const c = canvas.getContext('2d'); c.font = '30px RelicDigits';
+      const pixels = (text) => { c.clearRect(0, 0, 100, 50); c.fillText(text, 5, 35); return Array.from(c.getImageData(0, 0, 100, 50).data); };
+      const a = pixels('1'), b = pixels('8');
+      return { same: a.every((n, i) => n === b[i]), ink: a.some((n) => n > 0), loaded: document.fonts.check('30px RelicDigits'), value: document.querySelector('#mask-input').value,
+        all: [...document.body.querySelectorAll('*')].filter((e) => e instanceof HTMLElement && !['SCRIPT', 'STYLE'].includes(e.tagName)).every((e) => e.style.fontFamily.startsWith('RelicDigits')) };
+    });
+    assert.deepEqual(font, { same: true, ink: true, loaded: true, value: '金币123', all: true });
+    const pixi = await page.evaluate(async () => {
+      const { ensurePixi } = await import('/js/render/app.js'); const P = await ensurePixi();
+      const { installPixiNumberMask } = await import('/js/ui/numberMask.js'); installPixiNumberMask(P);
+      const text = new P.Text('123', { fontFamily: 'sans-serif', fontSize: 20 }); text.updateText(true);
+      const { ensureDamageFonts } = await import('/js/render/fx.js'); ensureDamageFonts();
+      const bitmap = new P.BitmapText('123', { fontName: 'sp-dmg-phys', fontSize: 24 }); bitmap.updateText();
+      const width = text.width; const square = new P.Text('■■■', { fontFamily: 'sans-serif', fontSize: 20 }); square.updateText(true);
+      const bitmapSquare = new P.BitmapText('■■■', { fontName: 'sp-dmg-phys', fontSize: 24 }); bitmapSquare.updateText();
+      const masked = Math.abs(width - square.width) < .01 && Math.abs(bitmap.width - bitmapSquare.width) < .01;
+      const raw = text.text; if (bitmap.text !== '123') throw new Error('位图原始数字被修改');
+      bitmapSquare.destroy();
+      globalThis.__maskText = text; square.destroy(); bitmap.destroy(); return { masked, raw };
+    });
+    assert.deepEqual(pixi, { masked: true, raw: '123' });
+    await page.screenshot({ path: `${OUT}/relic-stick-masked.png` });
+    await page.evaluate(() => globalThis.__MOCK__.mutate((s) => { s.priv.relics = []; }));
+    await page.waitForFunction(() => !document.querySelector('#mask-input').style.fontFamily.includes('RelicDigits'));
+    assert.equal(await page.evaluate(() => globalThis.__maskText.text), '123');
+    assert.deepEqual(errors, []);
+  } finally { await page.close(); }
 });

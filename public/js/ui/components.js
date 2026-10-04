@@ -15,7 +15,8 @@ import { h, Fragment } from '../../vendor/preact.module.js';
 import { useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from '../../vendor/hooks.module.js';
 import htm from '../../vendor/htm.module.js';
 import { DIFFICULTY_NAMES, DIFFICULTY_COLORS } from '../../../shared/constants.js';
-import { serverNow } from '../store.js';
+import { ownsNumberMask } from './numberMask.js';
+import { serverNow, useStore } from '../store.js';
 import { data, useData, localAsset } from '../data.js';
 import { uiUrl } from './assetUrls.js';
 
@@ -274,7 +275,8 @@ const DIGIT_SEGS = {
   '-': 'g', ' ': '', _: 'd', A: 'abcefg', b: 'cdefg', C: 'adef', d: 'bcdeg', E: 'adefg', F: 'aefg', H: 'bcefg', L: 'def', P: 'abefg', o: 'cdeg', r: 'eg', U: 'bcdef',
 };
 
-function SegChar({ ch }) {
+function SegChar({ ch, hideNumbers }) {
+  if (hideNumbers && /[0-9]/.test(ch)) return html`<svg class="seg__char" viewBox="-4 -2 64 104" aria-hidden="true"><rect class="on" x="2" y="24" width="52" height="52" /></svg>`;
   if (ch === ':') {
     return html`<svg class="seg__char seg__char--colon" viewBox="0 0 20 100" aria-hidden="true">
       <rect class="on" x="4" y="26" width="12" height="12" /><rect class="on" x="4" y="62" width="12" height="12" /></svg>`;
@@ -292,10 +294,11 @@ function SegChar({ ch }) {
  *   size = CSS height (default via --seg-h)
  */
 export function SevenSeg({ text, tone = 'mint', size, class: cls, flicker = false }) {
+  const hideNumbers = useStore(ownsNumberMask);
   const s = String(text ?? '');
   return html`<span class=${cx('seg', `seg--${tone}`, flicker && 'is-flicker', cls)} style=${size ? `--seg-h:${size}` : undefined}
       role="img" aria-label=${s}>
-    ${[...s].map((ch, i) => html`<${SegChar} key=${i} ch=${ch} />`)}
+    ${[...s].map((ch, i) => html`<${SegChar} key=${i} ch=${ch} hideNumbers=${hideNumbers} />`)}
   </span>`;
 }
 

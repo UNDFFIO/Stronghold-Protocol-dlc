@@ -102,7 +102,7 @@ import { ResultScreen } from './result.js';
 import { net } from '../net.js';
 import { store, useStore, shallowEqual, serverNow, emptyMatch } from '../store.js';
 import { battleRunner } from '../battle/runner.js';
-import { isClientCombat, observeTarget, teammateProgress, cameraLayers, layerCamera, sidesOf, resumedWatch } from '../battle/observe.js';
+import { isClientCombat, observeTarget, teammateProgress, cameraLayers, layerCamera, sidesOf, resumedWatch, spectatorTarget } from '../battle/observe.js';
 import { screenStrip, playerBonds, playerLayer, detailBondOwner, toggleBond, popupView } from '../ui/watchBonds.js';
 import { data, localAsset, getMode } from '../data.js';
 import { audio } from '../audio.js';
@@ -256,6 +256,7 @@ function MatchScreen() {
     phase, round: pub?.round, lp: priv?.lp, statsLeaks: priv?.stats?.leaks, alive,
     leaks: ownLeaks(localLeaks, meP?.pendingLp), cap: gd.config?.lpCapPerRound,
     uniteLeft: leaker ? uniteRemaining(localLeft, meP?.uniteLeft) : null,
+    reverseLp: priv?.reverseLp,
     shield: phase === PHASE.UNITE || localLeaks != null ? priv?.lpShield : 0,
   });
   lpBaseRef.current = liveLpNow.base;
@@ -561,8 +562,8 @@ function MatchScreen() {
     else if (phase === PHASE.FINAL_ASSAULT) audio.sfx(solo ? 'bossRoundSingle' : 'bossRoundTeam');
     else if (phase === PHASE.HIDDEN_CORE) audio.sfx('bossRoundSecret');
     else if (phase === PHASE.SP_DRAFT) audio.sfx('draft');
-    setWatching(null); // the server resets every watcher to its own field on phase changes
-    setWatchWho(null);
+    // Living players return home; eliminated players keep following their teammate (effect below).
+    if (alive) { setWatching(null); setWatchWho(null); }
     // the pen is a 休整期 view: leaving prep returns the camera (the next setCam would, too)
     if (phase !== PHASE.PREP && penRef.current.on) togglePenRef.current(false);
     // a battle unit's panel (live HP of a unit of the fight that just ended) never outlives its battle
@@ -670,9 +671,25 @@ function MatchScreen() {
     return ok;
   }, []);
 
+  // The server discards battle watchers at settlement and recreates fields next round. Remember the player,
+  // not the old field id (a shared 联防 / boss field becomes that player's prep board).
+  const spectatorRef = useRef({ playerId: null, requestKey: null });
+  useEffect(() => {
+    if (alive) { spectatorRef.current = { playerId: null, requestKey: null }; return; }
+    const remembered = spectatorRef.current;
+    const target = spectatorTarget(pub, myId, { playerId: watchWho?.playerId || remembered.playerId, field });
+    if (!target) return;
+    remembered.playerId = target.playerId;
+    const key = `${phaseKey}:${target.fieldId}:${target.playerId}`;
+    if (remembered.requestKey === key) return;
+    remembered.requestKey = key;
+    requestWatch(target.fieldId, target.playerId);
+  }, [alive, pub, field, watchWho, phaseKey, myId, requestWatch]);
+
   /** Back to the own field (返回战场 / the own row). */
   const backHome = useCallback(() => {
     const L = live.current;
+    if (L.priv?.alive === false || L.pub?.players?.find((p) => p.playerId === L.myId)?.alive === false) return;
     if (L.watching && L.watching !== L.home) {
       const target = isCombatPhase(L.pub?.phase) ? L.home : ownFieldId(L.myId);
       // client-side combat without an own field to go back to (a 联防 leaker, an eliminated player): the screen keeps
@@ -686,6 +703,7 @@ function MatchScreen() {
 
   const watchPlayer = useCallback((p) => {
     const L = live.current;
+    if (p.playerId === L.myId && (L.priv?.alive === false || L.pub?.players?.find((row) => row.playerId === L.myId)?.alive === false)) return;
     if (isClientCombat(L.pub)) {
       const observing = !!L.watching && L.watching !== L.home && L.watching !== ownFieldId(L.myId);
       const t = observeTarget(p, L.pub, L.myId, { observing, ownDone: L.localDone });
@@ -1202,7 +1220,7 @@ function MatchScreen() {
 
       <${TeamPanel} pub=${pub} myId=${myId} watching=${watchingNow} bubbles=${bubbles} onWatch=${watchPlayer} cap=${gd.config?.lpCapPerRound ?? 10} uniteLocal=${uniteLocal}
         self=${Number.isFinite(priv?.lp) ? { lp: priv.lp, pending: liveLpNow.pending, unite: liveLpNow.unite, left: liveLpNow.left } : null}
-        observe=${cc ? { canObserve: (p) => observeTarget(p, pub, myId, { observing: watchingOther, ownDone: localDone }), observing: watchingOther, onBack: backHome } : null} />
+        observe=${cc ? { canObserve: (p) => observeTarget(p, pub, myId, { observing: alive && watchingOther, ownDone: localDone }), observing: alive && watchingOther, onBack: backHome } : null} />
 
       <div class="gm__effects">
         <${RelicCollection} key=${strip.ownerId} owner=${strip.name} relics=${collection.relics} reward=${collection.reward} round=${pub?.round || 1} shield=${collection.shield} nextShield=${collection.nextShield} />
@@ -1211,7 +1229,7 @@ function MatchScreen() {
 
       ${watchingOther && !combat ? html`<div class="gm__watching" role="status">
         <${GIcon} name="eye" /><span>正在查看 <b>${watchedName}</b> 的阵地（只读）</span>
-        <${Button} size="sm" variant="primary" icon="back" onClick=${() => watchPlayer({ playerId: myId })}>返回自己<//>
+        ${alive ? html`<${Button} size="sm" variant="primary" icon="back" onClick=${() => watchPlayer({ playerId: myId })}>返回自己<//>` : null}
       </div>` : null}
 
       ${showShop ? html`<${ShopBar} priv=${priv} editable=${editable} collapsed=${collapsed} onCollapse=${setCollapsed}

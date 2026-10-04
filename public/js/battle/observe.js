@@ -80,6 +80,24 @@ export function resumedWatch(b, { pub = null, myId = '', alive = true, watching 
   return { seen: b.battleId, fieldId: b.fieldId };
 }
 
+/** Keep an eliminated viewer on a live teammate across settlement, prep and new battle fields. */
+export function spectatorTarget(pub, myId, { playerId = null, field = null } = {}) {
+  const live = players(pub).filter((p) => p.playerId !== myId && p.alive !== false && p.status !== 'left');
+  const members = Array.isArray(field?.players) ? field.players : [];
+  const target = live.find((p) => p.playerId === playerId)
+    || live.find((p) => field?.fieldId === `n:${p.playerId}` || members.includes(p.playerId))
+    || live[0];
+  if (!target) return null;
+  if (COMBAT.has(pub?.phase)) {
+    const f = fieldOf(pub, target.playerId);
+    return f ? { playerId: target.playerId, fieldId: f.fieldId } : null;
+  }
+  // SETTLE can be published before the old battle fields are removed. Wait for their removal.
+  if (fields(pub).length) return null;
+  if (![PHASE.SETTLE, PHASE.ROUND_START, PHASE.SP_DRAFT, PHASE.PREP].includes(pub?.phase)) return null;
+  return { playerId: target.playerId, fieldId: `n:${target.playerId}` };
+}
+
 /** Teammates' progress for the waiting pill: [{ playerId, name, killed, total, done, isBot }]. */
 export function teammateProgress(pub, myId) {
   const out = [];

@@ -103,7 +103,8 @@ test('overtime: −1 team LP per REAL second after 150 real s (300 game s at 2×
   const h = makeMatch({ mode: 'coop', difficulty: 'FUNNY', humans: 2, seed: 50, fake: true, script: (b) => (b.kind === 'boss' ? { bossDps: 1 } : {}) }).start();
   const m = h.m;
   h.drive(() => m.phase === PHASE.PREP && m.round === 14);
-  for (const p of m.players.values()) p.lp = 10;
+  // 本用例验证基础超时扣血，排除随机领取的时间机器；反转另有专门覆盖。
+  for (const p of m.players.values()) { p.lp = 10; p.relicReverseLpRound = 0; }
   h.drive(() => m.phase === PHASE.FINAL_ASSAULT);
   assert.equal(m.teamLp, 20);
   const f = bossFields()[0];

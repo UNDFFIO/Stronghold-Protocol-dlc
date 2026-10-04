@@ -123,7 +123,7 @@ import { PHASE, ERR, EMOTES, EMOTE_COOLDOWN_MS, GEO, modeIdFor, layerGainRoom, n
 import { Battle } from '../sim/Battle.js';
 import { DataSource } from '../sim/simdata.js';
 import { createRng, deriveSeed } from '../sim/rng.js';
-import { settleRelics, selectRelic, autoSelectRelic, activeRelicShield, shieldedLpLoss, consumeRelicShield, relicsView } from './relics.js';
+import { settleRelics, selectRelic, autoSelectRelic, activeRelicShield, activeReverseLp, previewRelicLpLoss, consumeRelicLpLoss, consumeRelicShield, relicsView } from './relics.js';
 import { RELIC_CHOICE_SECONDS } from '../../shared/relics.js';
 import { GameData } from './gamedata.js';
 import { RealScheduler } from './scheduler.js';
@@ -829,6 +829,7 @@ export class Match {
         alive: ps.alive,
         lp: Math.max(0, ps.lp),
         lpShield: activeRelicShield(ps),
+        reverseLp: activeReverseLp(ps),
         nextLpShield: ps.relicNextShieldRound > this.round ? 2 : 0,
         relics: relicsView(ps),
         bandId: ps.bandId,
@@ -2018,8 +2019,8 @@ export class Match {
     // 联防: a leaker's enemies still standing on the 联防 field (uncapped), the loss capped like settle()
     const left = this._uniteLeft(ps);
     if (left != null) {
-      const loss = shieldedLpLoss(ps, Math.min(this.gd.lpCapPerRound, left));
-      return loss > 0 ? { uniteLeft: left, pendingLp: loss } : { uniteLeft: left };
+      const loss = previewRelicLpLoss(ps, Math.min(this.gd.lpCapPerRound, left));
+      return loss !== 0 ? { uniteLeft: left, pendingLp: loss } : { uniteLeft: left };
     }
     let n = 0;
     if (this.lastResults.has(ps.playerId)) n = counted(this.lastResults.get(ps.playerId));
@@ -2028,8 +2029,8 @@ export class Match {
       if (f && f.cc) n = f.done && f.result ? counted(f.result.perPlayer && f.result.perPlayer[ps.playerId]) : Number(f.progress && f.progress.leaks) || 0;
       else if (f && f.battle) { try { n = battleProgress(f.battle).leaks; } catch { n = 0; } }
     }
-    const loss = shieldedLpLoss(ps, Math.min(this.gd.lpCapPerRound, Math.max(0, Math.trunc(Number(n) || 0))));
-    return loss > 0 ? { pendingLp: loss } : {};
+    const loss = previewRelicLpLoss(ps, Math.min(this.gd.lpCapPerRound, Math.max(0, Math.trunc(Number(n) || 0))));
+    return loss !== 0 ? { pendingLp: loss } : {};
   }
 
   /**
@@ -2742,9 +2743,9 @@ export class Match {
       const r = this.lastResults.get(ps.playerId) || { leaked: [], perfect: true, coins: 0, layerGains: {}, killed: 0, damageDealt: 0 };
       const counted = (r.leaked || []).filter((l) => l && l.counted !== false).length;
       const rawLoss = uniteRan && plan.leakers.includes(ps) ? Math.min(cap, survivors.get(ps.playerId) || 0) : Math.min(cap, counted);
-      const loss = consumeRelicShield(ps, rawLoss);
+      const loss = consumeRelicLpLoss(ps, rawLoss);
       ps.lp -= loss;
-      ps.stats.lpLost += loss;
+      ps.stats.lpLost += Math.max(0, loss);
       ps.stats.leaks += counted;
       ps.stats.kills += Number(r.killed) || 0;
       ps.stats.dmgDealt += Number(r.damageDealt) || 0;
@@ -2978,7 +2979,16 @@ export class Match {
     let n = Number(amount);
     if (this.teamLp == null || !Number.isFinite(n) || !(n > 0)) return;
     // Boss HP is shared: shields cover losses on their owner's field; global overtime uses the team's shields.
-    for (const ps of this.alivePlayers()) if (!players || players.includes(ps.playerId)) n = consumeRelicShield(ps, n);
+    const affected = this.alivePlayers().filter((ps) => !players || players.includes(ps.playerId));
+    // 首领阵地共用血池：该阵地有时间机器时反转整笔扣血；全队超时则按玩家血池份额反转。
+    if (players && affected.some(activeReverseLp)) n = -n;
+    else if (!players && affected.some(activeReverseLp)) {
+      const total = affected.reduce((sum, ps) => sum + Math.max(0, ps.lpAtFinal ?? ps.lp), 0);
+      n = affected.reduce((sum, ps) => {
+        const share = total > 0 ? Math.max(0, ps.lpAtFinal ?? ps.lp) / total : 1 / affected.length;
+        return sum + consumeRelicLpLoss(ps, Number(amount) * share);
+      }, 0);
+    } else for (const ps of affected) n = consumeRelicShield(ps, n);
     this.teamLp = Math.max(0, this.teamLp - n);
     if (this._bossLazyPublic()) { this._bossPublic(); return; }
     this._syncTeamLp();

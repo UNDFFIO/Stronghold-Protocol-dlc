@@ -31,7 +31,7 @@ English summary: [below](#english).
 | 项目 | 原项目（0.1.1 基线） | 本 fork |
 |---|---|---|
 | 难度 | 标准 / 险境 / 绝境 / 终极四种模拟 | 保留四种基础难度，新增以终极为基础的「超限模拟」0–20 级，逐级累积战场协议 |
-| 作战奖励 | 无本局收藏品选择流程 | 无漏怪作战后藏品三选一，42 件藏品按回合进度分档掉落，增益整局保留 |
+| 作战奖励 | 无本局收藏品选择流程 | 无漏怪作战后藏品三选一，43 件藏品按回合进度分档掉落，增益整局保留 |
 | 连续漏怪 | 按原有扣血与联防规则结算 | 连续三个完成的作战回合本人漏怪后，存活玩家获得逆风补给三选一与下回合 2 点护盾 |
 | 后期招募 | 干员招募位数量由调度中心等级决定 | 第 9 回合起，在原有数量上增加两个干员招募位，装备位不变 |
 | 界面 | 原有难度选择、效果栏与结算展示 | 增加超限等级轮盘与规则预览、个人收藏图标和详情、奖励选择及结算收藏展示 |
@@ -44,12 +44,12 @@ English summary: [below](#english).
 
 ### 本局收藏品
 
-- **42 件、五档强度**：普通 / 精良 / 稀有 / 史诗 / 传说，候选概率随回合推进变化。无漏怪作战后从三个候选中领取一件，候选排除已拥有藏品。
-- **个人持有、整局生效**：从下一场战斗开始生效，不占装备槽或整备区，不直接给队友增益；新的一局重新收集。同类增益相加且不设累计上限，同名藏品不会重复获得。
+- **43 件、五档强度**：普通 / 精良 / 稀有 / 史诗 / 传说，候选概率随回合推进变化。无漏怪作战后从三个候选中领取一件，候选排除已拥有藏品。
+- **个人持有、整局生效**：从下一场战斗开始生效，不占装备槽或整备区，干员属性加成只给持有者，鸭梨手机降低全队累计难度；新的一局重新收集。同类增益相加且不设累计上限，同名藏品不会重复获得。
 - **逆风补给**：连续三回合本人漏怪可触发较高档位奖励，并获得仅下回合有效的 2 点扣血护盾。联防救回敌人或护盾抵消扣血，都不会抹掉本人漏怪记录。
 - **选择与展示**：单人及仅一名人类的对局选择不计时，多人限时 30 秒；右侧图标支持悬停、聚焦或长按查看，结算保留本局收藏记录。
 
-完整清单、概率、生效边界与领袖结算规则见 [收藏品说明](docs/COLLECTIBLES.md)。已有素材的安装可运行 `node tools/fetch-relic-icons.mjs` 补齐 42 张收藏品图标（含三件原创图片）；首次安装的素材下载流程已包含这些图标。
+完整清单、概率、生效边界与领袖结算规则见 [收藏品说明](docs/COLLECTIBLES.md)。已有素材的安装可运行 `node tools/fetch-relic-icons.mjs` 补齐 43 张收藏品图标（含四件原创图片）；首次安装的素材下载流程已包含这些图标。
 
 ### 超限模拟
 
@@ -154,7 +154,7 @@ node --test test/content/relics.test.js test/match/relics.test.js test/sim/ascen
 
 ## English
 
-**Stronghold-Protocol-dlc** is an unofficial gameplay-expansion fork of [sganggs/Stronghold-Protocol](https://github.com/sganggs/Stronghold-Protocol), based on upstream 0.1.1. It adds 42 match-scoped collectibles, comeback rewards and a next-round shield after three consecutive leaking rounds, cumulative Ascension levels 0–20, and two extra operator offers from round 9. Collectibles and the shop expansion also apply to the four base difficulties. DLC is this fork's label, not an official Arknights release.
+**Stronghold-Protocol-dlc** is an unofficial gameplay-expansion fork of [sganggs/Stronghold-Protocol](https://github.com/sganggs/Stronghold-Protocol), based on upstream 0.1.1. It adds 43 match-scoped collectibles, comeback rewards and a next-round shield after three consecutive leaking rounds, cumulative Ascension levels 0–20, and two extra operator offers from round 9. Collectibles and the shop expansion also apply to the four base difficulties. DLC is this fork's label, not an official Arknights release.
 
 - **Run:** clone this fork, install Node.js 22 or 24, then run `npm install`, `npm run setup` and `npm start`. Open [http://localhost:3000](http://localhost:3000). Upstream bundles do not include this fork's extensions.
 - **Rules:** see [PLAYING.md](docs/PLAYING.md) and [COLLECTIBLES.md](docs/COLLECTIBLES.md); hosting details are in [DEPLOY.md](docs/DEPLOY.md).

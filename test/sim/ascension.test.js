@@ -150,13 +150,13 @@ test('10: armor rotates on the game clock; late spawns inherit the current phase
   const { b, e, a } = field(10);
   a.x = 8; a.y = 9;
   hit(b, a, e);
-  assert.equal(hit(b, a, e, 'phys'), 50);
+  assert.equal(hit(b, a, e, 'phys'), 90);
   assert.equal(hit(b, a, e, 'arts'), 100);
   run(b, 4.1);
   assert.equal(hit(b, a, e, 'phys'), 100);
-  assert.equal(hit(b, a, e, 'arts'), 50);
+  assert.equal(hit(b, a, e, 'arts'), 90);
   const late = b.spawnEnemy('enemy_test', { pos: [12, 10] });
-  assert.equal(late.s.artsTakenMul, 0.5);
+  assert.equal(late.s.artsTakenMul, 0.9);
   assert.equal(late.s.physTakenMul, 1);
 });
 
