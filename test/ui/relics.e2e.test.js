@@ -156,15 +156,28 @@ test('phone/desktop: icons wrap, tooltips stay clear of three-choice dialogs, an
       assert.ok(bounds.lastVisible, `${width}: last acquired relic cannot be scrolled into view`);
       if (width === 640) assert.ok(bounds.bodyScrollable);
       await closeWithEscape(page);
-      // Prep scouting changes the field and bond owner. The collection remains the viewer's m.private list.
+      // Scouting follows public teammate records, not the viewer's private collection.
+      const watchedNames = await page.evaluate(async () => {
+        const { RELICS } = await import('/shared/relics.js');
+        const chosen = RELICS.slice(20, 22);
+        globalThis.__MOCK__.mutate((s) => {
+          for (const p of s.pub.players) if (p.playerId !== 'p1') {
+            p.relics = chosen.map((r) => ({ id: r.id, round: 2 }));
+          }
+        });
+        globalThis.__MOCK__.pushPublic();
+        return chosen.map((r) => r.name);
+      });
       await page.click('.team__row:not(.is-self) .team__btn');
       await page.waitForSelector('.gm__watching');
-      assert.match(await page.$eval('.relic-icons__heading', (el) => el.textContent), /RELICS\s*15/);
-      assert.equal(await page.$$eval('.effect--relic', (els) => els.length), 15);
+      assert.match(await page.$eval('.relic-icons__heading', (el) => el.textContent), /RELICS\s*2/);
+      assert.equal(await page.$$eval('.effect--relic', (els) => els.length), 2);
       await page.click('.relic-icons__heading');
       await page.waitForSelector('.relic-panel');
-      assert.deepEqual(await page.$$eval('.relic-panel .relic-card__name', (els) => els.map((e) => e.textContent)), names);
+      assert.deepEqual(await page.$$eval('.relic-panel .relic-card__name', (els) => els.map((e) => e.textContent)), watchedNames);
       await closeWithEscape(page);
+      await page.click('.gm__watching button');
+      await page.waitForFunction(() => document.querySelectorAll('.effect--relic').length === 15);
       // The user's target is the battle HUD: the collectible column must also clear COST and battle controls.
       await page.evaluate(() => {
         const own = globalThis.__MOCK__.S().priv.relics;

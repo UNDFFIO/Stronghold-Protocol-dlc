@@ -123,7 +123,7 @@ import { PHASE, ERR, EMOTES, EMOTE_COOLDOWN_MS, GEO, modeIdFor, layerGainRoom, n
 import { Battle } from '../sim/Battle.js';
 import { DataSource } from '../sim/simdata.js';
 import { createRng, deriveSeed } from '../sim/rng.js';
-import { settleRelics, selectRelic, autoSelectRelic, activeRelicShield, shieldedLpLoss, consumeRelicShield } from './relics.js';
+import { settleRelics, selectRelic, autoSelectRelic, activeRelicShield, shieldedLpLoss, consumeRelicShield, relicsView } from './relics.js';
 import { RELIC_CHOICE_SECONDS } from '../../shared/relics.js';
 import { GameData } from './gamedata.js';
 import { RealScheduler } from './scheduler.js';
@@ -828,6 +828,8 @@ export class Match {
         alive: ps.alive,
         lp: Math.max(0, ps.lp),
         lpShield: activeRelicShield(ps),
+        nextLpShield: ps.relicNextShieldRound > this.round ? 2 : 0,
+        relics: relicsView(ps),
         bandId: ps.bandId,
         shopLevel: ps.shop.level,
         boardCount: ps.deployCount,

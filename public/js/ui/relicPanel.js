@@ -1,4 +1,4 @@
-// Personal, match-scoped collection. Always read m.private, including while watching another field;
+// Match-scoped collection. Follow the same owner as the bond strip while watching another field;
 // the right-hand icons and full list are independent of EffectsList's ten-icon limit.
 import { useEffect, useState } from '../../vendor/hooks.module.js';
 import { getRelic, RELIC_TIERS, dropWeights } from '../../../shared/relics.js';
@@ -12,6 +12,18 @@ export function relicEntries(records) {
   return (Array.isArray(records) ? records : []).filter((r) => r && typeof r.id === 'string').map((r) => ({
     ...getRelic(r.id), id: r.id, round: Number.isInteger(r.round) && r.round > 0 ? r.round : null,
   }));
+}
+
+/** Own records stay private; watched records come from public metadata, never fall back to yours. */
+export function ownerRelics({ pub, priv, myId, ownerId }) {
+  const self = ownerId === myId;
+  const view = self ? priv : pub?.players?.find((p) => p.playerId === ownerId);
+  return {
+    relics: Array.isArray(view?.relics) ? view.relics : [],
+    reward: self ? view?.relicReward : null,
+    shield: view?.lpShield || 0,
+    nextShield: view?.nextLpShield || 0,
+  };
 }
 
 /** Base odds; acquired entries are removed from the server's remaining candidates. */
@@ -61,7 +73,7 @@ export function RelicList({ relics, reward = null, history = false }) {
 }
 
 /** Non-blocking notification: only a new reward identity changes the badge, not every private push. */
-export function RelicCollection({ relics, reward, round = 1, shield = 0, nextShield = 0 }) {
+export function RelicCollection({ relics, reward, owner = null, round = 1, shield = 0, nextShield = 0 }) {
   const [open, setOpen] = useState(false);
   const [notice, setNotice] = useState(false);
   const count = relicEntries(relics).length;
@@ -73,10 +85,11 @@ export function RelicCollection({ relics, reward, round = 1, shield = 0, nextShi
     return () => clearTimeout(timer);
   }, [rewardKey]);
   const show = () => { setOpen(true); setNotice(false); };
-  return html`<div class="relic-icons" aria-label="自己的本局收藏品">
+  const collectionLabel = owner ? `${owner} 的本局收藏品` : '自己的本局收藏品';
+  return html`<div class="relic-icons" aria-label=${collectionLabel}>
     <${Tooltip} placement="bottom" text="收藏品：本人无漏怪可三选一；连续三回合漏怪获得较高稀有度三选一及下回合两点护盾。悬停查看效果，点击查看完整收藏。">
       <button type="button" class="relic-icons__heading micro" onClick=${show}
-        aria-label=${`查看自己的本局收藏品，共 ${count} 件`} aria-haspopup="dialog" aria-expanded=${open}>
+        aria-label=${`查看${collectionLabel}，共 ${count} 件`} aria-haspopup="dialog" aria-expanded=${open}>
         RELICS <span class="num">${count}</span>
       </button>
     <//>
@@ -87,7 +100,7 @@ export function RelicCollection({ relics, reward, round = 1, shield = 0, nextShi
       <${RelicIcons} relics=${relics} reward=${reward} notice=${notice} onOpen=${show} />
     </div>
   </div>
-    <${Modal} open=${open} title=${html`<span class="relic-panel__title"><${Icon} name="key" />你的收藏品 <span class="num">${count}</span></span>`}
+    <${Modal} open=${open} title=${html`<span class="relic-panel__title"><${Icon} name="key" />${owner ? `${owner} 的收藏品` : '你的收藏品'} <span class="num">${count}</span></span>`}
       micro="RELIC COLLECTION // THIS MATCH" class="relic-panel" width="min(8rem, 94vw)" onClose=${() => setOpen(false)}
       actions=${html`<${Button} size="sm" onClick=${() => setOpen(false)} icon="close">关闭<//>`}>
       <p class="relic-panel__rule">每回合本人无漏怪，弹出藏品三选一；连续三回合漏怪，获得一次较高稀有度三选一及下回合 2 点护盾。每次只获得所选的一件，同名不重复，效果仅在本局有效。</p>

@@ -1,5 +1,8 @@
 # --- dependencies & generated client libs -------------------------------------------------------
 node_modules/
+vendor/
+.gradle/
+.maven/
 # copied from node_modules by tools/vendor.mjs (postinstall); never commit third-party builds
 public/vendor/
 
@@ -16,24 +19,55 @@ data/local-assets.json
 # --- Python (optional local-client extraction) ----------------------------------------------------
 .venv*/
 venv/
+env/
 __pycache__/
 *.py[cod]
 
-# --- tests & logs ----------------------------------------------------------------------------------
+# --- build artifacts ------------------------------------------------------------------------------
+dist/
+build/
+out/
+target/
+*.class
+*.jar
+*.o
+*.so
+*.dll
+
+# --- tests, logs & temporary files ----------------------------------------------------------------
 test/e2e/out/
 logs/
 *.log
+tmp/
+temp/
+*.tmp
+*.bak
 
-# --- per-machine config (scripts/install-service-windows.ps1) ------------------------------------
+# --- per-machine config & sensitive credentials ---------------------------------------------------
 scripts/service.env.cmd
 .env
 .env.*
+!.env.example
+secrets.json
+credentials.json
+config.secret.*
+*.pem
+*.key
+*.cert
+*.p12
+*.pfx
+id_rsa
+id_ed25519
 
 # --- OS / editor clutter ---------------------------------------------------------------------------
 .DS_Store
 Thumbs.db
 desktop.ini
 *.swp
+*.swo
+.project
+.settings/
 .idea/
 .vscode/
 .claude/
+.agents/

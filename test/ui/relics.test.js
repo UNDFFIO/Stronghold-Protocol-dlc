@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { RELICS } from '../../shared/relics.js';
-import { RelicList, relicEntries, relicOdds } from '../../public/js/ui/relicPanel.js';
+import { RelicList, relicEntries, relicOdds, ownerRelics } from '../../public/js/ui/relicPanel.js';
 import { liveLp } from '../../public/js/ui/hud.js';
 import { rowLp } from '../../public/js/ui/teamPanel.js';
 import { PHASE } from '../../shared/constants.js';
@@ -41,6 +41,19 @@ test('older empty payloads explain how to obtain a relic; unknown ids remain vis
   const list = relicEntries([null, {}, { id: 'future-relic', round: 4 }]);
   assert.deepEqual(list, [{ id: 'future-relic', round: 4 }]);
   assert.match(textOf(RelicList({ relics: list })), /效果资料暂不可用/);
+});
+
+test('collection follows the screen owner without leaking own rewards or shields to watched players', () => {
+  const priv = { relics: [{ id: RELICS[0].id, round: 1 }], relicReward: { id: RELICS[0].id, round: 1 }, lpShield: 2, nextLpShield: 2 };
+  const teammate = { playerId: 'other', relics: [{ id: RELICS[1].id, round: 2 }], lpShield: 1 };
+  const pub = { players: [teammate] };
+  const view = (ownerId) => ownerRelics({ pub, priv, myId: 'me', ownerId });
+  assert.deepEqual(view('me'), { relics: priv.relics, reward: priv.relicReward, shield: 2, nextShield: 2 });
+  assert.deepEqual(view('other'), { relics: teammate.relics, reward: null, shield: 1, nextShield: 0 });
+  teammate.relics = [];
+  assert.deepEqual(view('other').relics, []);
+  assert.deepEqual(view('missing'), { relics: [], reward: null, shield: 0, nextShield: 0 });
+  assert.equal(view('me').relics, priv.relics, 'returning home restores your collection');
 });
 
 test('displayed odds sum to 100% and lock high-strength tiers until their unlock round', () => {

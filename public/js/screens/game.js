@@ -76,7 +76,7 @@ import { EnemyDrawer } from '../ui/enemyDrawer.js';
 import { Ticker } from '../ui/ticker.js';
 import { EmoteWheel } from '../ui/emotes.js';
 import { EffectsList } from '../ui/effectsList.js';
-import { RelicCollection, RelicChoice } from '../ui/relicPanel.js';
+import { RelicCollection, RelicChoice, ownerRelics } from '../ui/relicPanel.js';
 import { CombatHud } from '../ui/combatHud.js';
 import { SettingsModal } from '../ui/settings.js';
 import { ExitModal, AwayOverlay, awayStore } from '../ui/matchChrome.js';
@@ -1099,6 +1099,7 @@ function MatchScreen() {
     battleFieldId: cc ? (battleState?.fieldId || null) : (combat || settleMode ? lastFieldRef.current : null),
     field, layers, layer, who: watchWho, bondLayers: battleState?.bondLayers || null,
   });
+  const collection = ownerRelics({ pub, priv, myId, ownerId: strip.ownerId });
   const stripFid = strip.fieldId;
   const liveLayers = (combat || settleMode) && battleState?.bondLayers ? battleState.bondLayers : null;
   // the observing pill names the player whose bonds the strip shows (the same teammate as the strip's "👁 name" tag)
@@ -1204,7 +1205,7 @@ function MatchScreen() {
         observe=${cc ? { canObserve: (p) => observeTarget(p, pub, myId, { observing: watchingOther, ownDone: localDone }), observing: watchingOther, onBack: backHome } : null} />
 
       <div class="gm__effects">
-        <${RelicCollection} relics=${priv?.relics} reward=${priv?.relicReward} round=${pub?.round || 1} shield=${priv?.lpShield} nextShield=${priv?.nextLpShield} />
+        <${RelicCollection} key=${strip.ownerId} owner=${strip.name} relics=${collection.relics} reward=${collection.reward} round=${pub?.round || 1} shield=${collection.shield} nextShield=${collection.nextShield} />
         <div class="gm__effect-base"><${EffectsList} effects=${priv?.effects} /></div>
       </div>
 

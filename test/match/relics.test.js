@@ -110,6 +110,12 @@ for (const clientCombat of [false, true]) {
       assert.equal(getRelic(p0.relics[0].id).tier, 1);
       assert.equal(p0.relics[0].round, 1);
       assert.deepEqual(p0.battleInput().relics, [p0.relics[0].id]);
+      const watched = h.m.publicView().players.find((p) => p.playerId === p0.playerId);
+      assert.deepEqual(watched.relics, p0.relics, 'spectators receive acquired ids and rounds');
+      assert.equal(watched.nextLpShield, p0.privateView().nextLpShield);
+      assert.equal(watched.relicOffer, undefined, 'private reward choices are not exposed');
+      watched.relics[0].id = 'forged';
+      assert.notEqual(p0.relics[0].id, 'forged', 'public collection cannot mutate authoritative state');
       const view = p0.privateView();
       view.relics[0].id = 'forged';
       assert.notEqual(p0.relics[0].id, 'forged', 'a wire view is isolated from authoritative state');
