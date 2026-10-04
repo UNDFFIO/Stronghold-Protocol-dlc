@@ -60,7 +60,7 @@ test('drops: one uninterrupted perfect match earns distinct, progress-gated coll
 test('balance: duplicate IDs, forged payloads, profession and position add without cumulative caps', () => {
   const all = RELICS.map((r) => r.id);
   const mods = relicModifiers(all, 'WARRIOR', 'MELEE');
-  const expected = { atkPct: 0.69, hpPct: 0.75, defPct: 0.75, aspd: 35, spRecoveryFlat: 0.38, hpRegen: 50, hpRegenRatio: 0.01, dodgePhys: 0.16, dodgeArts: 0.14, physDealtMul: 1.39, artsDealtMul: 1.39, healingTakenMul: 1.1 };
+  const expected = { atkPct: 1.23, hpPct: 1.4, defPct: 1.22, aspd: 35, spRecoveryFlat: 0.75, hpRegen: 100, hpRegenRatio: 0.02, dodgePhys: 0.22, dodgeArts: 0.27, physDealtMul: 1.6, artsDealtMul: 1.6, healingTakenMul: 1.1 };
   assert.deepEqual(Object.keys(mods).sort(), Object.keys(expected).sort());
   for (const [key, value] of Object.entries(expected)) assert.ok(Math.abs(mods[key] - value) < 1e-9, key);
   assert.deepEqual(relicModifiers(['relic_003', 'relic_003', 'unknown', { id: 'unknown', mods: { atkPct: 999 } }]), { atkPct: 0.08 });

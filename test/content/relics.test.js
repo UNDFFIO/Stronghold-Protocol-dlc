@@ -49,7 +49,7 @@ test('relics: trusted IDs give real operator attributes and damage; duplicate, u
   const enemy = h.spawn('r_dummy', { pos: [10, 5] });
   const before = enemy.hp;
   h.b.dealDamage(u, enemy, { amount: u.s.atk, type: 'phys' });
-  close(before - enemy.hp, 540 * 1.2, 'the real damage pipeline applies the physical damage relic');
+  close(before - enemy.hp, 540 * 1.3, 'the real damage pipeline applies the physical damage relic');
   assert.equal(u.buffs.filter((b) => b.key.startsWith('relic:')).length, 1);
   healthy(h);
 });
@@ -68,7 +68,7 @@ test('relics: ownership, profession and kind isolate bonuses on a shared field',
     autoFinish: false,
   });
   h.step();
-  close(h.unit(1).s.atk, 600, 'the owner guard receives global +8% and guard +12%');
+  close(h.unit(1).s.atk, 665, 'the owner guard receives global +8% and guard +25%');
   close(h.unit(2).s.atk, 540, 'a different profession receives only the global bonus');
   close(h.unit(3).s.atk, 500, 'a summon receives no operator relic even with WARRIOR profession');
   close(h.unit(4).s.atk, 500, 'the other player receives no bonus');
@@ -80,13 +80,13 @@ test('relics: death, redeployment and repeated installation preserve one copy of
   h.step();
   const u = h.unit(1);
   installRelics(h.b);
-  close(u.s.atk, 600, 're-installation replaces the collection buff');
+  close(u.s.atk, 665, 're-installation replaces the collection buff');
   for (let i = 0; i < 3; i++) {
     h.b.kill(u);
     assert.ok(!u.alive);
-    close(u.s.atk, 600, 'the bonus survives death');
+    close(u.s.atk, 665, 'the bonus survives death');
     assert.ok(h.runUntil(() => u.alive && u.deployed, 2), 'the operator redeploys');
-    close(u.s.atk, 600, 'redeployment keeps the original attack bonus');
+    close(u.s.atk, 665, 'redeployment keeps the original attack bonus');
     close(u.s.maxHp, 2300, 'redeployment keeps the original max HP');
     close(u.hp, 2300, 'redeployment restores full augmented HP');
     assert.equal(u.buffs.filter((b) => b.key.startsWith('relic:')).length, 1);
@@ -104,7 +104,7 @@ test('relics: melee and ranged bonuses use the actual deployment position', () =
     autoFinish: false,
   });
   h.step();
-  close(h.unit(1).s.atk, 540, 'melee operators receive the +8% bonus');
+  close(h.unit(1).s.atk, 600, 'melee operators receive the +20% bonus');
   close(h.unit(2).s.atk, 500, 'ranged operators receive no melee bonus');
   healthy(h);
 });
@@ -112,7 +112,7 @@ test('relics: melee and ranged bonuses use the actual deployment position', () =
 test('relics: overlapping global, profession and position attack bonuses add without a collection cap', () => {
   const h = fight([ATK, GUARD_ATK, 'relic_052']);
   h.step();
-  close(h.unit(1).s.atk, 690, '8% + 12% + 18% adds to 38%');
+  close(h.unit(1).s.atk, 840, '8% + 25% + 35% adds to 68%');
   healthy(h);
 });
 
@@ -126,7 +126,7 @@ test('relics: normal-to-unite carry preserves the HP ratio without multiplying t
   const g = fight(relics, { kind: 'unite', players: [player(relics, [{ ...piece(), carryState: { hpPct: carry.hpPct, sp: carry.sp, skillActive: carry.skillActive } }])] });
   g.step();
   const joined = g.unit(1);
-  close(joined.s.atk, 600, 'a fresh shared-field battle receives the same bonus once');
+  close(joined.s.atk, 665, 'a fresh shared-field battle receives the same bonus once');
   close(joined.s.maxHp, 2300, 'shared-field max HP stays equal');
   close(joined.hp, 920, 'the carried HP ratio uses augmented max HP');
   healthy(g);
@@ -135,7 +135,7 @@ test('relics: normal-to-unite carry preserves the HP ratio without multiplying t
   down.step();
   assert.ok(!down.unit(1).alive, 'a knocked-down carried operator is forced out at shared-field start');
   assert.ok(down.runUntil(() => down.unit(1).alive, 2));
-  close(down.unit(1).s.atk, 600, 'forced-exit redeployment also retains one copy');
+  close(down.unit(1).s.atk, 665, 'forced-exit redeployment also retains one copy');
   close(down.unit(1).hp, 2300, 'forced-exit redeployment restores full HP');
   healthy(down);
 });
@@ -162,7 +162,7 @@ test('relics: passive regeneration scales from augmented max HP in the real tick
   const u = h.unit(1);
   u.hp = 1000;
   h.run(1);
-  close(u.hp, 1000 + 2300 * 0.01, '1 second heals 1% of augmented max HP');
+  close(u.hp, 1000 + 50 + 2300 * 0.02, '1 second heals 50 HP plus 2% of augmented max HP');
   healthy(h);
 });
 
@@ -177,12 +177,12 @@ test('收藏品：固定回血与百分比回血完整相加，物理与法术�
   const u = h.unit(1);
   u.hp = 1000;
   h.run(1);
-  close(u.hp, 1000 + 50 + 2300 * 0.01, '固定 50 点与 1% 最大生命回血均完整生效');
+  close(u.hp, 1000 + 100 + 2300 * 0.02, '两件藏品的固定回血合计 100 点，与 2% 最大生命回血均完整生效');
   const enemy = h.spawn('r_dummy', { pos: [10, 5] });
   for (const type of ['phys', 'arts']) {
     const before = enemy.hp;
     h.b.dealDamage(u, enemy, { amount: 500, type });
-    close(before - enemy.hp, 500 * 1.39, '10% + 9% + 20% 伤害增幅完整相加');
+    close(before - enemy.hp, 500 * 1.6, '10% + 20% + 30% 伤害增幅完整相加');
   }
   healthy(h);
 });
