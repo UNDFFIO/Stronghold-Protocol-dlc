@@ -30,7 +30,7 @@ async function closed(page) {
 
 for (const item of [
   { id: 'relic_158', name: '时间机器', tier: '普通', phrases: ['目标生命值', '等量增加', '仅生效一场'], shot: 'time-machine' },
-  { id: 'relic_159', name: '木棍', tier: '传说', phrases: ['4 金币', '■', '仅影响显示'], shot: 'stick' },
+  { id: 'relic_159', name: '木棍', tier: '精良', phrases: ['2 金币'], hiddenPhrases: ['数字', '■', '仅影响显示'], shot: 'stick' },
   { id: 'relic_156', name: '解压玩具', phrases: ['向下取整', '首领波次不生效', '10%', '未持有者各保留 1 个', '触发时替代减半效果'], shot: 'toy' },
   { id: 'relic_157', name: '鸭梨手机', phrases: ['全队累计难度降低 2 级', '最低为 0', '下一场战斗', '多名玩家领取可叠加'], shot: 'phone' },
 ]) test(`${item.name}：三选一名称、稀有度、说明及透明图片可用，领取后收藏栏展示`, {
@@ -52,6 +52,11 @@ for (const item of [
     await page.waitForSelector('.relic-choice__card');
     const text = await page.$eval('.relic-choice__card', (e) => e.textContent);
     for (const phrase of [item.name, item.tier || '稀有', ...item.phrases]) assert.ok(text.includes(phrase), phrase);
+    const label = await page.$eval('.relic-choice__card', (e) => e.getAttribute('aria-label'));
+    for (const phrase of item.hiddenPhrases || []) {
+      assert.ok(!text.includes(phrase), `领取前正文不透露：${phrase}`);
+      assert.ok(!label.includes(phrase), `领取前无障碍标签不透露：${phrase}`);
+    }
     await page.waitForFunction(() => {
       const img = document.querySelector('.relic-choice__card img');
       return img?.complete && img.naturalWidth > 0;
@@ -71,6 +76,14 @@ for (const item of [
     assert.equal(await page.evaluate(() => globalThis.__MOCK__.S().priv.relics.at(-1).id), item.id);
     await page.waitForSelector('.effect--relic img');
     await page.waitForFunction(() => document.querySelector('.effect--relic img')?.naturalWidth > 0);
+    if (item.hiddenPhrases) {
+      const ownedLabel = await page.$eval('.effect--relic', (e) => e.getAttribute('aria-label'));
+      for (const phrase of item.hiddenPhrases) assert.ok(ownedLabel.includes(phrase), `领取后显示完整效果：${phrase}`);
+      await page.click('.relic-icons__heading');
+      await page.waitForSelector('.relic-card__desc');
+      const ownedDesc = await page.$eval('.relic-card__desc', (e) => e.textContent);
+      for (const phrase of [...item.phrases, ...item.hiddenPhrases]) assert.ok(ownedDesc.includes(phrase), phrase);
+    }
   } finally { await page.close(); }
 });
 

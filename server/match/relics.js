@@ -34,16 +34,24 @@ export function selectRelic(ps, offerId, idx) {
     || !Number.isInteger(idx) || idx < 0 || idx >= offer.options.length) return null;
   const r = getRelic(offer.options[idx]);
   if (!r || (r.multiplayerOnly && ps.m.isSolo) || ps.relics.some((o) => o.id === r.id)) return null;
-  const reward = { id: r.id, round: offer.round };
+  ps.relicOffer = null;
+  return grantRelic(ps, r.id, { round: offer.round });
+}
+
+/** Shared acquisition path for choices and immediate grants; preserves one-time collectible effects. */
+export function grantRelic(ps, id, { round = ps.m.round, battleRound = round + 1 } = {}) {
+  const r = getRelic(id);
+  if (!ps.alive || ps.left || !r || (r.multiplayerOnly && ps.m.isSolo)
+    || ps.relics.some((o) => o.id === id)) return null;
+  const reward = { id: r.id, round };
   ps.relics.push(reward);
   // 合法领取时一次性降低全队等级；既有战斗保留原规则，后续所有阵地共用新等级。
   if (r.difficultyReduction) {
     ps.m.difficultyLevel = normalizeDifficultyLevel(ps.m.difficultyLevel - r.difficultyReduction);
     ps.m.markPublic();
   }
-  if (r.reverseLpOnce) ps.relicReverseLpRound = offer.round + 1;
+  if (r.reverseLpOnce) ps.relicReverseLpRound = battleRound;
   ps.relicReward = reward;
-  ps.relicOffer = null;
   ps.dirty();
   const tier = RELIC_TIERS[r.tier - 1];
   ps.m.toast(ps, 'success', `获得${tier.name}收藏品「${r.name}」`);

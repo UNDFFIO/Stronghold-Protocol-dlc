@@ -30,6 +30,7 @@ import { installDifficulty } from './difficulty.js';
 import { createRng } from './rng.js';
 import { Grid } from './grid.js';
 import { Unit } from './units.js';
+import { damageRanking, damageTypes } from '../../shared/damageRanking.js';
 import { makeBuff, STATUS, RESIST_STATUSES } from './buffs.js';
 import { dealDamage as pipeDamage, heal as pipeHeal, applyHpLoss, makeDamageInfo, reduceElement, palsyBuff, elementView, leaderHitCancelled } from './damage.js';
 import { absoluteRangeKeys, canTargetEnemy, extendedGrid, evadesGround } from './targeting.js';
@@ -550,6 +551,7 @@ export class Battle {
       }));
       pp.unitStats = ps.units.map((u) => ({
         id: u.id, uid: u.uid, defId: u.defId, name: u.name, kind: u.kind,
+        dmgTypes: damageTypes(u.stats.dmgTypes),
         dmg: Math.round(u.stats.dmg), kills: u.stats.kills, heal: Math.round(u.stats.heal), taken: Math.round(u.stats.taken), attacks: u.stats.attacks,
       }));
       perPlayer[ps.playerId] = pp;
@@ -2253,6 +2255,7 @@ export class Battle {
       dp: this.players.length ? Math.floor(this.players[0].dp) : 0,
       killed: this.killed,
       total: this.total,
+      damageRanking: damageRanking(this.allyUnits),
     };
     if (this.players.length > 1) {
       snap.dps = {};

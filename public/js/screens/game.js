@@ -75,8 +75,10 @@ import { ChoiceOverlay } from '../ui/choiceOverlay.js';
 import { EnemyDrawer } from '../ui/enemyDrawer.js';
 import { Ticker } from '../ui/ticker.js';
 import { EmoteWheel } from '../ui/emotes.js';
+import { DamageRanking } from '../ui/damageRanking.js';
 import { EffectsList } from '../ui/effectsList.js';
 import { RelicCollection, RelicChoice, ownerRelics } from '../ui/relicPanel.js';
+import { AscensionLottery } from '../ui/ascensionLottery.js';
 import { CombatHud } from '../ui/combatHud.js';
 import { SettingsModal } from '../ui/settings.js';
 import { ExitModal, AwayOverlay, awayStore } from '../ui/matchChrome.js';
@@ -1257,6 +1259,9 @@ function MatchScreen() {
         <${EmoteWheel} open=${emoteOpen} onToggle=${setEmoteOpen} onSend=${(id) => actions.emote(id)} disabled=${conn.status !== 'online'} />
         <button type="button" class="gm__gear" aria-label="设置" title="设置" onClick=${() => setSettingsOpen(true)}><${GIcon} name="gear" /></button>
         <button type="button" class="gm__gear gm__guide" aria-label="玩法说明" title="玩法说明" onClick=${() => openGuide(0)}><${Icon} name="book" /></button>
+        <${DamageRanking} ownerId=${strip.ownerId} ownerName=${strip.self ? '你自己' : strip.name}
+          fieldId=${stripFid} combat=${combat} prep=${phase === PHASE.PREP} round=${pub?.round}
+          previous=${players.find((p) => p.playerId === strip.ownerId)?.lastDamageRanking || []} />
         <${FullscreenButton} class="gm__gear gm__fs" />
       </div>
 
@@ -1283,6 +1288,7 @@ function MatchScreen() {
 
     ${banner ? html`<${PhaseBanner} key=${banner.key} mode="overlay" title=${banner.title} sub=${banner.sub} micro=${banner.micro}
       tone=${banner.tone} duration=${banner.duration || 1500} onDone=${() => setBanner(null)} />` : null}
+    <${AscensionLottery} reward=${priv?.ascensionLottery} round=${pub?.round} />
     <${RelicChoice} offer=${priv?.relicOffer} deadline=${pub?.deadline} onChoose=${actions.relic} />
 
     ${facing && view ? html`<${FacingWheel} key=${`${facing.uid}:${facing.row},${facing.col}`} view=${view} row=${facing.row} col=${facing.col}

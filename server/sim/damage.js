@@ -304,6 +304,9 @@ export function applyHpLoss(battle, source, target, amount, dmg) {
   // 史尔特尔 S3 …), friendly damage; `taken` and the kill credit do
   if (source && source.side !== target.side) {
     source.stats.dmg += dealt;
+    const type = dmg?.type ?? 'true';
+    const types = source.stats.dmgTypes || (source.stats.dmgTypes = {});
+    types[type] = (types[type] || 0) + dealt;
     if (source.side === 'ally' && source.ownerId != null) { const pp = battle._pp(source.ownerId); if (pp) pp.damageDealt += dealt; }
   }
   target.stats.taken += dealt;

@@ -49,17 +49,17 @@ test('时间机器：无扣血也到期，持有者隔离、首领阵地扣血�
     assert.equal(previewRelicLpLoss(a, 2), 2, '即使上一场没有扣血也不延长');
   } finally { h.m.dispose(); }
 });
-test('木棍：真实候选领取，下回合资金+4，重复不叠加，队友和新局不受影响及收入审计', () => {
+test('木棍：真实候选领取，下回合资金+2，重复不叠加，队友和新局不受影响及收入审计', () => {
   const h = makeMatch({ humans: 2, fake: true }).start();
   try {
-    h.toPrep(7); const a = h.ps('p_0'), b = h.ps('p_1'); claim(h, a, 'relic_159');
+    h.toPrep(1); const a = h.ps('p_0'), b = h.ps('p_1'); claim(h, a, 'relic_159');
     const audit = attachAudit(h.m, { strict: true });
     a.endPrep(); b.endPrep();
-    const before = a.funds; a.startRound(8);
-    assert.equal(a.funds - before, h.m.gd.income(8) + 4);
-    assert.equal(relicIncome(['relic_159', 'relic_159', 'relic_025']), 5);
-    const bIncome = relicIncome(b.relics); const bBefore = b.funds; b.startRound(8);
-    assert.equal(b.funds - bBefore, h.m.gd.income(8) + bIncome);
+    const before = a.funds; a.startRound(2);
+    assert.equal(a.funds - before, h.m.gd.income(2) + 2);
+    assert.equal(relicIncome(['relic_159', 'relic_159', 'relic_025']), 3);
+    const bIncome = relicIncome(b.relics); const bBefore = b.funds; b.startRound(2);
+    assert.equal(b.funds - bBefore, h.m.gd.income(2) + bIncome);
     assert.equal(audit.violations.length, 0);
     assert.ok(a.privateView().relics.some((r) => r.id === 'relic_159'));
   } finally { h.m.dispose(); }

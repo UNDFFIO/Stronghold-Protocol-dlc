@@ -22,6 +22,7 @@
 // ownerLoadout)); an explicit loadout argument always wins over the view's per-chess lookup.
 
 import { Battle } from './Battle.js';
+import { damageTypes } from '../../shared/damageRanking.js';
 import { toDataSource, withUnitLoadouts } from './simdata.js';
 import { BOSS_POOL_MIN_HP } from './constants.js';
 import { normalizeDifficultyLevel } from '../../shared/constants.js';
@@ -344,6 +345,7 @@ export function compactResult(res) {
       })),
       unitStats: cap(p.unitStats, 160).filter(Boolean).map((u) => ({
         uid: uidOr(u.uid), defId: keyOr(u.defId), kind: typeof u.kind === 'string' && u.kind.length <= 16 ? u.kind : 'op',
+        dmgTypes: damageTypes(u.dmgTypes),
         dmg: Math.max(0, Math.round(fnum(u.dmg))), kills: Math.max(0, Math.trunc(fnum(u.kills))), heal: Math.max(0, Math.round(fnum(u.heal))),
         taken: Math.max(0, Math.round(fnum(u.taken))), attacks: Math.max(0, Math.trunc(fnum(u.attacks))),
       })),

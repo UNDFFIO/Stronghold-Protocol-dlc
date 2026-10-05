@@ -105,7 +105,7 @@ export function DifficultyLevelPicker({ value = 0, onChange, disabled = false, r
       <div class="level-effects__head"><span>${preview ? '本级新增协议' : '终极基准'}</span><b class="num">LEVEL ${String(preview).padStart(2, '0')}</b></div>
       <div class="level-rule" aria-live="polite" aria-atomic="true">
         <strong class="level-rule__name">${current?.name ?? '原始模拟'}</strong>
-        <p class="level-rule__description">${current?.description ?? '与终极模拟完全一致，尚未启用超限协议。'}</p>
+        <p class="level-rule__description">${current?.description ?? '沿用终极模拟基础参数，不附加超限协议；第 4 回合额外抽奖一次。'}</p>
         <span class="level-rule__counter">应对 · ${current?.counter ?? '逐级开启新的战场规则，选择适合阵容的挑战。'}</span>
       </div>
       <div class="level-effects__tabs" role="group" aria-label="协议查看范围">
@@ -119,7 +119,7 @@ export function DifficultyLevelPicker({ value = 0, onChange, disabled = false, r
           <div><strong>${r.name}</strong><span>${r.description}</span></div>
           <${Icon} name=${r.level <= preview ? 'check' : 'lock'} />
         </div>`)}
-        ${!shown.length ? html`<span class="level-effects__empty">0 级无附加规则，点击「全部协议」预览挑战。</span>` : null}
+        ${!shown.length ? html`<span class="level-effects__empty">0 级无附加战场协议，仍有第 4 回合抽奖；点击「全部协议」预览挑战。</span>` : null}
       </div>
       <span class="level-effects__note">生命、攻击沿用终极基准；滚动右侧列表查看累计规则。</span>
     </div>

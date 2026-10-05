@@ -140,9 +140,9 @@ export function RelicChoice({ offer, deadline = 0, onChoose }) {
     <p class="relic-choice__rule">${comeback ? '连续三回合漏怪：本次候选稀有度提升一档（最高传说），下回合获得 2 点护盾，抵消两点扣血。' : '本回合没有漏怪：从以下收藏品中选择一件。'}</p>
     <div class="relic-choice__cards">
       ${cards.map((r, idx) => r ? html`<button key=${r.id} type="button" class=${`relic-choice__card relic-tier-${r.tier}`}
-        disabled=${busy != null} aria-label=${`选择${r.name}，${tierName(r.tier)}，${r.desc}`} data-relic-id=${r.id} onClick=${() => pick(idx)}>
+        disabled=${busy != null} aria-label=${`选择${r.name}，${tierName(r.tier)}，${r.previewDesc || r.desc}`} data-relic-id=${r.id} onClick=${() => pick(idx)}>
         <span class="relic-choice__art"><${Img} src=${relicIconUrl(data.get('assets'), r.id)} fallback=${html`<${Icon} name="key" />`} /></span>
-        <span class="relic-choice__tier">${tierName(r.tier)}</span><b>${r.name}</b><p>${r.desc}</p>
+        <span class="relic-choice__tier">${tierName(r.tier)}</span><b>${r.name}</b><p>${r.previewDesc || r.desc}</p>
         <span class="relic-choice__pick">${busy === idx ? '领取中…' : '选择此藏品'}</span>
       </button>` : null)}
     </div>

@@ -80,6 +80,7 @@ import { itemKey } from './gamedata.js';
 import { bountyText } from './choices.js';
 import { relicIncome } from '../../shared/relics.js';
 import { relicsView, relicOfferView, activeRelicShield, activeReverseLp, startRelicRound } from './relics.js';
+import { ascensionLotteryView } from './ascensionLottery.js';
 
 const HAND_SIZE = GEO.HAND_SIZE;
 const TEMP_SIZE = GEO.TEMP_SIZE;
@@ -150,6 +151,7 @@ export class PlayerState {
     this.relicShieldRound = 0;
     this.relicNextShieldRound = 0;
     this.relicReward = null;
+    this.ascensionLottery = null;
     this.relicReverseLpRound = 0;
     /** active bounties: { id, card, roundsLeft, chooser } */
     this.bounties = [];
@@ -1658,6 +1660,7 @@ export class PlayerState {
       relics: relicsView(this),
       relicReward: this.relicReward ? { ...this.relicReward } : null,
       relicOffer: relicOfferView(this),
+      ascensionLottery: ascensionLotteryView(this),
       relicLeakStreak: this.relicLeakStreak,
       lpShield: activeRelicShield(this),
       reverseLp: activeReverseLp(this),

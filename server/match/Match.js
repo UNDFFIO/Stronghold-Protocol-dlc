@@ -121,10 +121,12 @@
 import { C2S, unitStatsEntry } from '../../shared/protocol.js';
 import { PHASE, ERR, EMOTES, EMOTE_COOLDOWN_MS, GEO, modeIdFor, layerGainRoom, normalizeDifficultyLevel } from '../../shared/constants.js';
 import { Battle } from '../sim/Battle.js';
+import { damageRanking } from '../../shared/damageRanking.js';
 import { DataSource } from '../sim/simdata.js';
 import { createRng, deriveSeed } from '../sim/rng.js';
 import { settleRelics, selectRelic, autoSelectRelic, activeRelicShield, activeReverseLp, previewRelicLpLoss, consumeRelicLpLoss, consumeRelicShield, relicsView } from './relics.js';
 import { RELIC_CHOICE_SECONDS } from '../../shared/relics.js';
+import { drawAscensionLottery } from './ascensionLottery.js';
 import { GameData } from './gamedata.js';
 import { RealScheduler } from './scheduler.js';
 import { SharedPool, drawDisabledBonds } from './pool.js';
@@ -356,6 +358,7 @@ export class Match {
     /** playerId → fieldId */
     this.watchers = new Map();
     this.lastResults = new Map();
+    this.lastDamageResults = new Map();
     this.unitePlan = null;
     /** server-run 联防: the leakers' counts last published (_uniteTick) */
     this._uniteLeftKey = null;
@@ -844,6 +847,7 @@ export class Match {
         bonds: ps.alive ? bondList(this.gd, ps.bondsView()) : [],
         fieldId: this.fieldOf(ps),
         status: this.statusOf(ps),
+        ...(this.phase === PHASE.PREP ? { lastDamageRanking: this.lastDamageResults.get(ps.playerId) || [] } : {}),
         autoplay: ps.autoplay,
         // the LP this round's own battle will cost at settlement so far (COMBAT / 联防 only, omitted when 0)
         ...this._pendingLpView(ps),
@@ -1389,6 +1393,7 @@ export class Match {
     for (const ps of alive) ps.startRound(r);
     for (const ps of alive) this.dispatch(ps, 'onRoundStart', { round: r });
     for (const ps of alive) ps.recompute();
+    for (const ps of alive) drawAscensionLottery(ps);
     this.setDeadline(DELAYS.ROUND_START / 1000, () => this.afterRoundStart(), { silent: this.soloUntimed });
     this.markPublic();
   }
@@ -2754,6 +2759,7 @@ export class Match {
       // bounty coins (own battle + unite kills) are credited to the next prep
       let coins = Math.max(0, Math.trunc(Number(r.coins) || 0));
       const up = uniteResult && uniteResult.perPlayer && uniteResult.perPlayer[ps.playerId];
+      this.lastDamageResults.set(ps.playerId, damageRanking((up || r).unitStats || []));
       if (up) {
         coins += Math.max(0, Math.trunc(Number(up.coins) || 0));
         ps.stats.dmgDealt += Number(up.damageDealt) || 0;
@@ -3073,7 +3079,10 @@ export class Match {
       for (const pid of f.players) {
         const pp = res.perPlayer && res.perPlayer[pid];
         const ps = this.players.get(pid);
-        if (pp) this.lastResults.set(pid, { ...pp, synthetic: !!res.synthetic });
+        if (pp) {
+          this.lastResults.set(pid, { ...pp, synthetic: !!res.synthetic });
+          this.lastDamageResults.set(pid, damageRanking(pp.unitStats || []));
+        }
         if (pp && ps) {
           ps.stats.dmgDealt += Number(pp.damageDealt) || 0;
           ps.stats.kills += Number(pp.killed) || 0;
