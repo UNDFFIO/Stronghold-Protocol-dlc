@@ -2,7 +2,7 @@
 
 基于 [sganggs/Stronghold-Protocol](https://github.com/sganggs/Stronghold-Protocol) 的非官方玩法扩展 fork，在原有浏览器自走棋塔防与单人 / 1–4 人合作玩法上，加入**收藏品、超限模拟和后期商店扩展**。DLC 是本 fork 的扩展标识，非鹰角官方 DLC。
 
-![base version](https://img.shields.io/badge/upstream%20base-0.1.1-2ea44f)
+![base version](https://img.shields.io/badge/upstream%20base-0.1.3-2ea44f)
 ![license](https://img.shields.io/badge/code%20license-GPL--3.0--or--later-blue)
 ![node](https://img.shields.io/badge/node-22%20%7C%2024-339933)
 
@@ -21,14 +21,14 @@ English summary: [below](#english).
 ## 目录
 
 - [与原项目的差异](#与原项目的差异) · [Fork 扩展玩法](#fork-扩展玩法)
-- [快速开始](#快速开始) · [配置与联机](#配置与联机) · [文档](#文档) · [开发与测试](#开发与测试)
+- [快速开始](#快速开始) · [配置与联机](#配置与联机) · [操作](#操作) · [文档](#文档) · [开发与测试](#开发与测试)
 - [声明](#声明) · [许可证](#许可证) · [致谢与数据来源](#致谢与数据来源) · [贡献](#贡献)
 
 ## 与原项目的差异
 
-本 fork 以原项目 **0.1.1** 为基础，当前保留上游至 `052e906` 的修复。以下比较针对这一基线；`package.json` 中的 0.1.1 是沿用的基础版本号，不表示这些扩展已属于上游发布内容。
+本 fork 以原项目 **0.1.3** 为基础，当前保留上游至 `a9dfd17` 的更新。以下比较针对这一基线；`package.json` 中的 0.1.3 是沿用的基础版本号，不表示这些扩展已属于上游发布内容。
 
-| 项目 | 原项目（0.1.1 基线） | 本 fork |
+| 项目 | 原项目（0.1.3 基线） | 本 fork |
 |---|---|---|
 | 难度 | 标准 / 险境 / 绝境 / 终极四种模拟 | 保留四种基础难度，新增以终极为基础的「超限模拟」0–20 级，逐级累积战场协议 |
 | 作战奖励 | 无本局收藏品选择流程 | 无漏怪作战后藏品三选一，43 件藏品按回合进度分档掉落，增益整局保留 |
@@ -36,7 +36,7 @@ English summary: [below](#english).
 | 后期招募 | 干员招募位数量由调度中心等级决定 | 第 9 回合起，在原有数量上增加两个干员招募位，装备位不变 |
 | 界面 | 原有难度选择、效果栏与结算展示 | 增加超限等级轮盘与规则预览、个人收藏图标和详情、奖励选择及结算收藏展示 |
 
-原项目的招募与晋升、盟约、装备、联防、最终攻势、隐秘核心、AI 队友及断线重连仍作为基础玩法保留；干员技能、敌人规则、渲染、启动器和诊断等上游修复也继续保留。基础玩法见 [玩法指南](docs/PLAYING.md)，上游版本记录见 [CHANGELOG.md](CHANGELOG.md)。
+原项目的招募与晋升、盟约、装备、联防、最终攻势、隐秘核心、AI 队友及断线重连仍作为基础玩法保留；同盟观战席、调配导入 / 导出、战斗语音、分回合音乐，以及干员技能、敌人规则、渲染、启动器和诊断等上游更新也继续保留。基础玩法见 [玩法指南](docs/PLAYING.md)，上游版本记录见 [CHANGELOG.md](CHANGELOG.md)。
 
 这些扩展会改变成长与战斗平衡：**选择四种基础难度仍会启用收藏品与后期商店扩展**，并不等于回到原项目规则。藏品名称与图标参考明日方舟其他玩法，但档位、数值与效果经过本 fork 适配，不代表官方「卫戍协议」规则。
 
@@ -78,9 +78,9 @@ npm start
 也可使用启动脚本：Windows 双击 `scripts\start-windows.bat`；macOS / Linux 运行 `bash scripts/start.sh`。首次启动会自动安装依赖并下载素材。
 
 - **运行条件**：服务器使用 Windows / macOS / Linux + Node.js；玩家使用支持 WebGL 的现代浏览器，手机建议横屏。
-- **3D 棋盘**：需要从本机《明日方舟》客户端提取贴图；未提取时使用 2D 棋盘。提取与素材目录说明见 [docs/ASSETS.md](docs/ASSETS.md)。
+- **素材**：表情和「玩法说明」的教程图随上面的素材一起从公开镜像下载。3D 棋盘、部分界面图标和灼热 / 炽焰源石虫模型需要从本机《明日方舟》客户端提取；未提取时使用替代样式。服务器也可从**同一版本**的整合包复制 `public/assets/local/` 和 `data/local-assets.json`，详见 [docs/ASSETS.md](docs/ASSETS.md)。
 - **诊断**：`npm run doctor` 检查 Node 版本、素材、端口、局域网地址和防火墙。
-- **整合包**：如使用整合包，请确认包含本 fork 的扩展代码与收藏品图标；上游 0.1.1 整合包不包含这些扩展。
+- **整合包**：如使用整合包，请确认包含本 fork 的扩展代码与收藏品图标；上游整合包不包含这些扩展。
 
 ## 配置与联机
 
@@ -98,7 +98,27 @@ npm start
 
 PowerShell 更换端口：`$env:PORT=8080; npm start`。健康检查：`GET /healthz`。
 
-服务器使用常驻 Node.js 进程与 WebSocket（`/ws`），运行单实例，反向代理需转发 WebSocket 升级。游戏没有账号系统，请仅与熟人分享地址。对局保存在内存中，**重启服务器会结束所有对局**。
+刷新页面或断线后，同盟模拟 10 分钟内、独立模拟 24 小时内重新打开即可回到原座位。服务器使用常驻 Node.js 进程与 WebSocket（`/ws`），运行单实例，反向代理需转发 WebSocket 升级。游戏没有账号系统，请仅与熟人分享地址。对局保存在内存中，**重启服务器会结束所有对局**。
+
+## 操作
+
+| 操作 | 方法 |
+|---|---|
+| 购买 / 升级调度中心 / 机变选卡 | 点一次选中，再点一次确认（`D` 升级） |
+| 部署 / 移动干员 | 从整备区拖到棋盘格 → 出现方向轮盘 → 往上 / 右 / 下 / 左滑动选择朝向后松手；松在中心或点「✕ 点击取消」取消。拖动时模型在指针 / 手指下，指针所在的格子就是落点 |
+| 调整朝向 | 把干员拖回它自己的格子，再选方向 |
+| 出售 / 撤退 / 销毁装备 | 点击单位所在的格子 → 底部按钮「出售 +1」「撤退」；也可以把棋盘上的干员拖回整备区撤退。整备区里的装备与法术只能「销毁」，已配发的装备锁定在干员身上（干员出售或合成精锐时退回整备区） |
+| 装备 | 把装备拖到干员所在的格子上（每人 2 件；满了会弹出替换窗口，被替换的一件会被销毁）；法术拖到地块上并选方向 |
+| 查看详情 | 右键或长按单位 / 卡牌（属性为实时数值，高于基础值为绿色、低于为红色） |
+| 快捷键 | `R` 刷新 · `F` 冻结 · `D` 升级 · `Space` 准备就绪 · `Esc` 取消 / 关闭 |
+| 方向轮盘键盘操作 | 方向键预览 · `Enter` 确认 · `Esc` 取消 |
+| 暂停（独立模拟） | 作战中（含最终攻势 / 隐秘核心）点顶栏的「暂停」或按 `Space`，再点「继续作战」（或 `Space`）继续；同盟模拟的作战不能暂停 |
+| 表情 | 左下角「交流」，左右滑动（或方向键）换主题，冷却 1 秒 |
+| 观战 | 自己的作战结束后（或休整期）点左侧队友头像 →「前往查看」；不参战的朋友可以在大厅输入同盟密钥点「观战」（每个同盟最多 2 名观战者，本作新增） |
+
+完整的规则、数值和小技巧见 **[docs/PLAYING.md](docs/PLAYING.md)**（游戏内左下角也有「玩法说明」）。
+
+选择单位按地上的方格；漏怪时顶栏的目标生命值实时减少，藏品护盾抵消扣血，时间机器则显示本场结算的回血预览。
 
 ## 文档
 
@@ -108,6 +128,7 @@ PowerShell 更换端口：`$env:PORT=8080; npm start`。健康检查：`GET /hea
 | [docs/PLAYING.md](docs/PLAYING.md) | 基础玩法与扩展规则：操作、经济、难度、联防和领袖流程 |
 | [CHANGELOG.md](CHANGELOG.md) | 保留的上游版本更新记录 |
 | [docs/DEPLOY.md](docs/DEPLOY.md) | 开服、联机、部署与排错 |
+| [docs/WINDOWS.md](docs/WINDOWS.md) | Windows 便携包的制作与授权注意事项 |
 | [docs/DESIGN.md](docs/DESIGN.md) · [docs/SIM.md](docs/SIM.md) · [docs/META.md](docs/META.md) | 上游架构、战斗模拟及对局经济参考；扩展实现另见共用定义与对应代码 |
 | [docs/DATA.md](docs/DATA.md) · [docs/ASSETS.md](docs/ASSETS.md) | 游戏数据与素材来源 |
 | [docs/BALANCE.md](docs/BALANCE.md) · [docs/research/](docs/research/00-INDEX.md) | 上游难度模型与官方规则调研 |
@@ -154,7 +175,7 @@ node --test test/content/relics.test.js test/match/relics.test.js test/sim/ascen
 
 ## English
 
-**Stronghold-Protocol-dlc** is an unofficial gameplay-expansion fork of [sganggs/Stronghold-Protocol](https://github.com/sganggs/Stronghold-Protocol), based on upstream 0.1.1. It adds 43 match-scoped collectibles, comeback rewards and a next-round shield after three consecutive leaking rounds, cumulative Ascension levels 0–20, and two extra operator offers from round 9. Collectibles and the shop expansion also apply to the four base difficulties. DLC is this fork's label, not an official Arknights release.
+**Stronghold-Protocol-dlc** is an unofficial gameplay-expansion fork of [sganggs/Stronghold-Protocol](https://github.com/sganggs/Stronghold-Protocol) for Arknights' mode *Stronghold Protocol: Alliance*, based on upstream 0.1.3. It adds 43 match-scoped collectibles, comeback rewards and a next-round shield after three consecutive leaking rounds, cumulative Ascension levels 0–20, and two extra operator offers from round 9. Collectibles and the shop expansion also apply to the four base difficulties. DLC is this fork's label, not an official Arknights release.
 
 - **Run:** clone this fork, install Node.js 22 or 24, then run `npm install`, `npm run setup` and `npm start`. Open [http://localhost:3000](http://localhost:3000). Upstream bundles do not include this fork's extensions.
 - **Rules:** see [PLAYING.md](docs/PLAYING.md) and [COLLECTIBLES.md](docs/COLLECTIBLES.md); hosting details are in [DEPLOY.md](docs/DEPLOY.md).

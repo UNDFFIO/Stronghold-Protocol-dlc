@@ -1,6 +1,6 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const CHROME = process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe';
@@ -35,6 +35,11 @@ test('收藏品图鉴：局内入口、完整效果、跨局与刷新持久化�
             Array.from({ length: count }, (_, i) => [`autochess_${chapter}_${i + 1}`, { path: '/test-guide.svg' }])));
           // 手机降级场景明确提供空资源，避免本机已有说明图改变预期分支。
           await req.respond({ status: 200, contentType: 'application/json', body: JSON.stringify({ groups: { guide: width === 390 ? {} : guide } }) });
+        } else if (width === 390 && req.url().endsWith('/data/assets.json')) {
+          // 上游增加公开镜像说明图；降级场景同时清除两个来源，仍验证文字要点。
+          const manifest = JSON.parse(readFileSync(new URL('../../data/assets.json', import.meta.url), 'utf8'));
+          manifest.ui = Object.fromEntries(Object.entries(manifest.ui).filter(([key]) => !key.startsWith('guide/')));
+          await req.respond({ status: 200, contentType: 'application/json', body: JSON.stringify(manifest) });
         } else if (req.url().endsWith('/test-guide.svg')) {
           await req.respond({ status: 200, contentType: 'image/svg+xml', body: '<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024"><rect width="1024" height="1024" fill="#102c23"/></svg>' });
         } else if (req.url().startsWith(base) || req.url().startsWith('data:')) await req.continue();

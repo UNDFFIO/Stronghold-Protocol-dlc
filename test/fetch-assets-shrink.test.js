@@ -68,7 +68,27 @@ test('fetch-assets shrink guard: the committed manifest minus some audio entries
   assert.deepEqual(shrinkGuard(null, next, parseArgs([])), { dropped: [], write: true }, 'no current manifest: written');
   assert.equal(parseArgs(['--allow-shrink']).allowShrink, true);
   assert.throws(() => parseArgs(['--allow-shrinks']), /unknown option/);
+  // 干员战斗语音: the prep-only slots are opt-in (DESIGN §21.30 — no battle requests them)
+  assert.equal(parseArgs([]).voiceAll, false, 'the battle slots are what a plain run plans');
+  assert.equal(parseArgs(['--voice-all']).voiceAll, true);
+  assert.equal(parseArgs(['--voice-lang=jp']).voiceLang, 'jp');
   assert.equal(statSync(MANIFEST).mtimeMs, before, 'importing the tool runs nothing');
+});
+
+test('a server where the mirror emotes / 玩法说明 pages failed to download keeps the committed manifest, so the next setup retries them (#42)', async () => {
+  // setup re-runs fetch-assets only while data/assets.json lists a file that is not on disk: a manifest rewritten without
+  // these entries would stop the retries, and the emotes would stay default icons on that server
+  const { shrinkGuard, parseArgs } = await import('../tools/fetch-assets.mjs');
+  const prev = JSON.parse(readFileSync(MANIFEST, 'utf8'));
+  const next = JSON.parse(JSON.stringify(prev));
+  for (const k of Object.keys(next.ui)) if (/^(emoticon|guide)\//.test(k)) delete next.ui[k];
+  next.stats = { ...next.stats, ui: Object.keys(next.ui).length };
+  const g = shrinkGuard(prev, next, parseArgs([]));
+  assert.equal(g.write, false);
+  assert.equal(g.dropped.length, 36 + 19);
+  for (const k of ['ui.emoticon/basic/pic_happy_battle', 'ui.emoticon/fooldoctor/pic_fooldoctor_08_battle', 'ui.guide/autochess_home_1', 'ui.guide/autochess_handbook_4']) {
+    assert.ok(g.dropped.includes(k), k);
+  }
 });
 
 test('fetch-assets still runs as a script: --help lists --allow-shrink', () => {

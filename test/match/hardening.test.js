@@ -38,6 +38,8 @@ test('Final Assault: a harmless leak (lpr 0) costs no team LP; a leak without lp
   }).start();
   const m = h.m;
   h.drive(() => m.phase === PHASE.PREP && m.round === 14);
+  // 本例只检查 lpr 换算；正常流程获得的藏品护盾和时间机器由专项用例验证。
+  for (const ps of m.alivePlayers()) { ps.relicShield = 0; ps.relicReverseLpRound = 0; }
   h.drive(() => m.phase === PHASE.FINAL_ASSAULT);
   const start = m.teamLp;
   // the boss never dies here: stop right after the scripted leaks
@@ -88,7 +90,7 @@ test('merge with a full hand and a full temp: the elite takes its deployed copy\
   assert.deepEqual(m.handle('p_0', { t: 'g.buy', slot: 0 }), { ok: true }, 'a purchase that completes a merge is allowed with a full hand');
   const elite = [...ps.board.values()].find((p) => p.id === m.gd.goldenIdOf(id));
   assert.ok(elite, 'the elite stands on a consumed copy\'s tile');
-  assert.equal(ps.find(elite.uid).key, `${t1[0]},${t1[1]}`, 'the copy that deploys first (legalTileFor walks the deploy order)');
+  assert.equal(ps.find(elite.uid).key, `${t1[0]},${t1[1]}`, 'the copy that deploys first (legalTileFor walks the top row left to right: on one row, the deploy order)');
   assert.equal(elite.poolCopies, 3, 'it holds all three copies');
   assert.deepEqual(elite.items.map((x) => x.id).sort(), ['chess_item_1_01_e_a', 'chess_item_2_04_e_a'], 'returned items are kept on it');
   checkInvariants(m);

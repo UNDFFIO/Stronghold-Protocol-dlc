@@ -10,6 +10,9 @@
 //   names used by public/js/audio.js, plus a few generic UI sounds where the
 //   autochess mode has no dedicated bank (buy/refresh/error/pick/drop).
 // Every sound is addressed by its path under sound_beta_2 (lower-case, .mp3).
+// - A bank's mix (bankMix, community report #30): the official banks weigh their sounds, and an empty asset is a chance
+//   of silence (猎狗 / 深池侦察犬 bark on 20 of 100 attacks), and give each sound a volume; `indexAudio().mixOf(paths)`
+//   returns { p?, vol? } of the bank a picked path list came from (plan.mjs writes it as sfx.units[id].mix).
 
 const PREFIX_RE = /^audio\/sound_beta_2\//i;
 
@@ -25,20 +28,55 @@ export function assetToPath(asset) {
   return p.endsWith('.mp3') ? p : p + '.mp3';
 }
 
+const round3 = (v) => Math.round(v * 1000) / 1000;
+
+/**
+ * The official play chance and volume of a bank, for the file the client plays (`path`, the first of its list):
+ * `p` = the weight of the sounds that have a file over all the weights (an empty asset is a chance of silence),
+ * `vol` = that file's volume (the mean of minVolume / maxVolume). Only what differs from 1 is returned; null when
+ * neither does (the default: every attack plays its sound at the base gain).
+ * @param {Array<{ asset?: string, weight?: number, minVolume?: number, maxVolume?: number }>} sounds
+ * @param {string} path the played file (assetToPath form)
+ * @returns {{ p?: number, vol?: number } | null}
+ */
+export function bankMix(sounds, path) {
+  let total = 0, real = 0, vol = 1, found = false;
+  for (const s of Array.isArray(sounds) ? sounds : []) {
+    const w = Number(s && s.weight);
+    const wt = Number.isFinite(w) && w > 0 ? w : 0;
+    total += wt;
+    const p = assetToPath(s && s.asset);
+    if (!p) continue;
+    real += wt;
+    if (!found && p === path) {
+      found = true;
+      const lo = Number(s.minVolume), hi = Number(s.maxVolume);
+      if (Number.isFinite(lo) && Number.isFinite(hi) && lo >= 0 && hi >= 0) vol = round3((lo + hi) / 2);
+    }
+  }
+  const out = {};
+  if (total > 0 && real < total) out.p = round3(real / total);
+  if (vol !== 1) out.vol = vol;
+  return Object.keys(out).length ? out : null;
+}
+
 /**
  * Index an audio_data.json object.
  * @param {any} audioData parsed excel/audio_data.json
  * @returns {{ bank: (name:string)=>string[], bgm: (name:string)=>({intro:string|null, loop:string}|null),
- *   unitBanks: Map<string, Map<string, string[]>>, skillBanks: Map<string, Map<string,string[]>> }}
+ *   unitBanks: Map<string, Map<string, string[]>>, skillBanks: Map<string, Map<string,string[]>>,
+ *   mixOf: (paths: string[]|null|undefined) => ({ p?: number, vol?: number }|null) }}
  */
 export function indexAudio(audioData) {
   const banks = new Map();
+  const mixes = new WeakMap(); // a bank's path list (the very array every lookup hands out) → bankMix
   for (const b of Array.isArray(audioData?.soundFXBanks) ? audioData.soundFXBanks : []) {
     if (!b || typeof b.name !== 'string') continue;
     const paths = (Array.isArray(b.sounds) ? b.sounds : []).map((s) => assetToPath(s?.asset)).filter(Boolean);
     if (!banks.has(b.name)) banks.set(b.name, []);
     const list = banks.get(b.name);
     for (const p of paths) if (!list.includes(p)) list.push(p);
+    if (list.length && !mixes.has(list)) { const m = bankMix(b.sounds, list[0]); if (m) mixes.set(list, m); }
   }
   const alias = audioData?.bankAlias && typeof audioData.bankAlias === 'object' ? audioData.bankAlias : {};
   const bank = (name, depth = 0) => {
@@ -77,7 +115,8 @@ export function indexAudio(audioData) {
   };
   for (const [name, paths] of banks) if (paths.length) addUnit(name, paths);
   for (const name of Object.keys(alias)) if (!banks.has(name)) { const p = bank(name); if (p.length) addUnit(name, p); }
-  return { bank, bgm, unitBanks, skillBanks };
+  const mixOf = (paths) => (paths && typeof paths === 'object' && mixes.get(paths)) || null;
+  return { bank, bgm, unitBanks, skillBanks, mixOf };
 }
 
 /** Sort key for ability sub-keys: plain first, then numeric suffixes ascending. */
@@ -228,4 +267,92 @@ export function resolveSpec(spec, bank) {
   if (spec?.path) return [spec.path];
   if (spec?.bank) return bank(spec.bank);
   return [];
+}
+
+// ---- operator battle voice (excel/charword_table.json) -------------------------------------------------
+//
+// Every playable operator has official battle lines (行动出发 / 行动开始 / 选中干员 / 部署 / 作战中 / 编入队伍 /
+// 任命队长 / 结算 / 干员报到) in `voice_cn/<charId>/cn_<n>.mp3` — JP: `voice/`, EN: `voice_en/`, KR: `voice_kr/`,
+// the same file names in every dump, only the folder differs. charword_table.json's `placeType` says when the game
+// plays each line; its `voiceAsset` is the path under the dump.
+
+/** Voice dump folder per language (under sound_beta_2). */
+export const VOICE_DIRS = Object.freeze({ cn: 'voice_cn', jp: 'voice', en: 'voice_en', kr: 'voice_kr' });
+
+/** Official `placeType` → the manifest's voice slot (public/js/audio.js VOICE_PRIORITY / VOICE_COOLDOWN_MS). */
+export const VOICE_SLOTS = Object.freeze({
+  BATTLE_START: 'start',            // 行动出发: 开战
+  BATTLE_FACE_ENEMY: 'faceEnemy',   // 行动开始: 首次接敌
+  BATTLE_SELECT: 'select',          // 选中干员1/2
+  BATTLE_PLACE: 'place',            // 部署1/2
+  BATTLE_SKILL_1: 'skill1',         // 作战中1-4: the equipped skill's own slot
+  BATTLE_SKILL_2: 'skill2',
+  BATTLE_SKILL_3: 'skill3',
+  BATTLE_SKILL_4: 'skill4',
+  SQUAD: 'squad',                   // 编入队伍
+  SQUAD_FIRST: 'squadFirst',        // 任命队长
+  FOUR_STAR: 'resultFour',          // 完成高难行动
+  THREE_STAR: 'resultThree',        // 3星结束行动 (完美作战)
+  TWO_STAR: 'resultTwo',            // 非3星结束行动
+  LOSE: 'resultLose',               // 行动失败
+  GACHA: 'gacha',                   // 干员报到
+});
+
+/**
+ * The slots a running battle can actually request — the only ones `public/js/audio.js` ever asks for (the 休整期 is
+ * silent, so nothing else is played): 行动出发 start, 首次接敌 faceEnemy, 作战中1-4 skillN, 部署 place (the deploy
+ * events) and 选中干员 select (the detail panel, behind its combat flag), plus the settlement lines
+ * resultFour / resultThree / resultTwo / resultLose (public/js/screens/game.js onResult).
+ * `buildPlan` plans these by default; `--voice-all` widens it to every slot of VOICE_SLOTS.
+ */
+export const VOICE_BATTLE_SLOTS = Object.freeze(['start', 'faceEnemy', 'select', 'place',
+  'skill1', 'skill2', 'skill3', 'skill4', 'resultFour', 'resultThree', 'resultTwo', 'resultLose']);
+
+/**
+ * Slots no battle plays: the lines the official client uses in its own 养成 / 编队 UI (干员报到 gacha, 编入队伍 squad,
+ * 任命队长 squadFirst). `test/docs-consistency.test.js` proves the client never asks for one, so planning them only
+ * makes every `npm run assets` download 360 files (19.3 MB, CN dub) that no player will ever hear — they are left out
+ * unless `--voice-all` is passed. 部署 `place` and 选中干员 `select` deliberately stay in: the official client groups
+ * them with the prep lines, but a battle does play them (the deploy events; the detail panel behind its combat flag).
+ */
+export const VOICE_PREP_SLOTS = Object.freeze(['gacha', 'squad', 'squadFirst']);
+
+/**
+ * Index charword_table.json into per-character voice slots, in voiceIndex order (one slot may have several lines).
+ * Only the base word key (`wordKey === charId`) is used: the dump has no folder for a skin variant's word key
+ * (`char_x_ita`, `char_x_epoque#28`, …) — those files simply do not exist upstream.
+ * @param {any} charword parsed excel/charword_table.json
+ * @param {string} [lang] voiceId prefix — the zh_CN table carries the `CN_*` lines; the other dubs share the numbering
+ * @param {Iterable<string>|null} [only] slot names to keep; null/omitted keeps every slot (VOICE_BATTLE_SLOTS is what
+ *   the plan uses by default, so a battle's own lines are planned and the prep-only ones are not)
+ * @returns {Map<string, Record<string, string[]>>} charId → slot → voiceAsset ('char_263_skadi/CN_023')
+ */
+export function indexVoice(charword, lang = 'CN', only = null) {
+  const keep = only ? new Set(only) : null;
+  const out = new Map();
+  const words = charword?.charWords;
+  if (!words || typeof words !== 'object') return out;
+  /** @type {Map<string, Map<string, Map<string, {index:number, asset:string}>>>} */
+  const seen = new Map();
+  for (const e of Object.values(words)) {
+    if (!e || typeof e !== 'object') continue;
+    const charId = e.charId, slot = VOICE_SLOTS[e.placeType], vid = e.voiceId;
+    if (!charId || !slot || (keep && !keep.has(slot)) || typeof vid !== 'string' || !vid.startsWith(`${lang}_`)) continue;
+    if (e.wordKey !== charId) continue;
+    if (typeof e.voiceAsset !== 'string' || !e.voiceAsset) continue;
+    if (!seen.has(charId)) seen.set(charId, new Map());
+    const slots = seen.get(charId);
+    if (!slots.has(slot)) slots.set(slot, new Map());
+    // the same line can be listed twice (an operator's 升变 / alt records): keep its lowest voiceIndex, once
+    const m = slots.get(slot);
+    const index = Number.isFinite(e.voiceIndex) ? e.voiceIndex : 0;
+    const prev = m.get(vid);
+    if (!prev || index < prev.index) m.set(vid, { index, asset: e.voiceAsset });
+  }
+  for (const [charId, slots] of seen) {
+    const rec = {};
+    for (const [slot, m] of slots) rec[slot] = [...m.values()].sort((a, b) => a.index - b.index).map((x) => x.asset);
+    out.set(charId, rec);
+  }
+  return out;
 }
