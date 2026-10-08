@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from '../../vendor/hooks.module.js';
 import { MAX_DIFFICULTY_LEVEL, normalizeDifficultyLevel, DIFFICULTY_RULES } from '../../../shared/constants.js';
 import { html, Icon, MicroLabel } from './components.js';
+import { t } from '../../../shared/i18n.js';
 
 const LEVELS = Array.from({ length: MAX_DIFFICULTY_LEVEL + 1 }, (_, i) => MAX_DIFFICULTY_LEVEL - i);
 
@@ -83,14 +84,14 @@ export function DifficultyLevelPicker({ value = 0, onChange, disabled = false, r
   };
   const current = DIFFICULTY_RULES[preview - 1];
   const shown = showAll ? DIFFICULTY_RULES : DIFFICULTY_RULES.slice(0, preview).reverse();
-  return html`<section class=${`level-picker brackets${readOnly ? ' is-readonly' : ''}`} aria-label="超限难度等级与效果">
+  return html`<section class=${`level-picker brackets${readOnly ? ' is-readonly' : ''}`} aria-label=${t('超限难度等级与效果')}>
     <div class="level-picker__selector">
       <${MicroLabel}>ASCENSION LEVEL<//>
       <div class="level-wheel__frame">
         <span class="level-wheel__marker" aria-hidden="true"></span>
         <div ref=${wheel} class="level-wheel" role="spinbutton" tabindex=${disabled || readOnly ? -1 : 0}
-          aria-label="超限难度等级" aria-valuemin="0" aria-valuemax=${MAX_DIFFICULTY_LEVEL} aria-valuenow=${preview}
-          aria-valuetext=${`${preview}级，${current?.name ?? '终极基准'}，累计启用${preview}项协议`}
+          aria-label=${t('超限难度等级')} aria-valuemin="0" aria-valuemax=${MAX_DIFFICULTY_LEVEL} aria-valuenow=${preview}
+          aria-valuetext=${t('{preview}级，{1}，累计启用{preview}项协议', { preview, 1: t(current?.name) || t('终极基准') })}
           aria-disabled=${disabled} aria-readonly=${readOnly} onScroll=${onScroll} onKeyDown=${onKeyDown}
           onPointerDown=${onPointerDown} onPointerMove=${onPointerMove} onPointerUp=${onPointerUp} onPointerCancel=${onPointerUp}
           onClickCapture=${(e) => { if (suppressClick.current) { suppressClick.current = false; e.preventDefault(); e.stopPropagation(); } }}
@@ -99,29 +100,29 @@ export function DifficultyLevelPicker({ value = 0, onChange, disabled = false, r
             aria-hidden="true" class=${`level-wheel__row num${n === preview ? ' is-selected' : ''}`} onClick=${() => choose(n)}>${String(n).padStart(2, '0')}</button>`)}
         </div>
       </div>
-      <span class="level-picker__hint">${readOnly ? '由创建者选择' : '滚动 / 拖动选择 · 0–20'}</span>
+      <span class="level-picker__hint">${readOnly ? t('由创建者选择') : t('滚动 / 拖动选择 · 0–20')}</span>
     </div>
     <div class="level-effects">
-      <div class="level-effects__head"><span>${preview ? '本级新增协议' : '终极基准'}</span><b class="num">LEVEL ${String(preview).padStart(2, '0')}</b></div>
+      <div class="level-effects__head"><span>${preview ? t('本级新增协议') : t('终极基准')}</span><b class="num">LEVEL ${String(preview).padStart(2, '0')}</b></div>
       <div class="level-rule" aria-live="polite" aria-atomic="true">
-        <strong class="level-rule__name">${current?.name ?? '原始模拟'}</strong>
-        <p class="level-rule__description">${current?.description ?? '沿用终极模拟基础参数，不附加超限协议；第 4 回合额外抽奖一次。'}</p>
-        <span class="level-rule__counter">应对 · ${current?.counter ?? '逐级开启新的战场规则，选择适合阵容的挑战。'}</span>
+        <strong class="level-rule__name">${t(current?.name) || t('原始模拟')}</strong>
+        <p class="level-rule__description">${current?.description ?? t('沿用终极模拟基础参数，不附加超限协议；第 4 回合额外抽奖一次。')}</p>
+        <span class="level-rule__counter">${t('应对 ·')} ${t(current?.counter) || t('逐级开启新的战场规则，选择适合阵容的挑战。')}</span>
       </div>
-      <div class="level-effects__tabs" role="group" aria-label="协议查看范围">
-        <button type="button" class=${!showAll ? 'is-selected' : ''} aria-pressed=${!showAll} onClick=${() => setShowAll(false)}>已启用 <b class="num">${preview}</b></button>
-        <button type="button" class=${showAll ? 'is-selected' : ''} aria-pressed=${showAll} onClick=${() => setShowAll(true)}>全部协议 <b class="num">20</b></button>
-        <span>逐级叠加</span>
+      <div class="level-effects__tabs" role="group" aria-label=${t('协议查看范围')}>
+        <button type="button" class=${!showAll ? 'is-selected' : ''} aria-pressed=${!showAll} onClick=${() => setShowAll(false)}>${t('已启用')} <b class="num">${preview}</b></button>
+        <button type="button" class=${showAll ? 'is-selected' : ''} aria-pressed=${showAll} onClick=${() => setShowAll(true)}>${t('全部协议')} <b class="num">20</b></button>
+        <span>${t('逐级叠加')}</span>
       </div>
-      <div ref=${effectList} class="level-effects__list" tabindex="0" aria-label=${showAll ? '全部超限协议，可滚动查看' : '已启用的累计协议，可滚动查看'}>
+      <div ref=${effectList} class="level-effects__list" tabindex="0" aria-label=${showAll ? t('全部超限协议，可滚动查看') : t('已启用的累计协议，可滚动查看')}>
         ${shown.map(r => html`<div key=${r.level} class=${`level-effects__rule${r.level <= preview ? ' is-active' : ''}${r.level === preview ? ' is-current' : ''}`}>
           <span class="level-effects__threshold num">${String(r.level).padStart(2, '0')}</span>
-          <div><strong>${r.name}</strong><span>${r.description}</span></div>
+          <div><strong>${t(r.name)}</strong><span>${r.description}</span></div>
           <${Icon} name=${r.level <= preview ? 'check' : 'lock'} />
         </div>`)}
-        ${!shown.length ? html`<span class="level-effects__empty">0 级无附加战场协议，仍有第 4 回合抽奖；点击「全部协议」预览挑战。</span>` : null}
+        ${!shown.length ? html`<span class="level-effects__empty">${t('0 级无附加战场协议，仍有第 4 回合抽奖；点击「全部协议」预览挑战。')}</span>` : null}
       </div>
-      <span class="level-effects__note">生命、攻击沿用终极基准；滚动右侧列表查看累计规则。</span>
+      <span class="level-effects__note">${t('生命、攻击沿用终极基准；滚动右侧列表查看累计规则。')}</span>
     </div>
   </section>`;
 }

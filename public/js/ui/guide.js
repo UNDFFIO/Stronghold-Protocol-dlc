@@ -16,6 +16,7 @@ import { useEffect, useMemo, useRef, useState } from '../../vendor/hooks.module.
 import { html, Icon, MicroLabel, Button, Spinner } from './components.js';
 import { createStore, useStore } from '../store.js';
 import { data, useData, artUrls, nextArtUrl } from '../data.js';
+import { t, N_ } from '../../../shared/i18n.js';
 import { RELICS } from '../../../shared/relics.js';
 import { RelicList } from './relicPanel.js';
 import { installRelicJournal, relicJournalStore } from './relicJournal.js';
@@ -24,18 +25,18 @@ const cx = (...p) => p.flat().filter(Boolean).join(' ');
 
 /** Page catalogue in reading order (titles transcribed from the pages). */
 export const GUIDE_CHAPTERS = [
-  { id: 'home', name: '基础规则', micro: 'BASICS', pages: [
-    ['autochess_home_1', '卫戍协议已运行'], ['autochess_home_2', '攻防战'], ['autochess_home_3', '休整期 · 区域'],
-    ['autochess_home_4', '休整期 · 资金与调度'], ['autochess_home_5', '机变阶段'], ['autochess_home_6', '限时战斗'],
-    ['autochess_home_7', '作战期'], ['autochess_home_8', '协同战斗'], ['autochess_home_9', '盟约'],
+  { id: 'home', name: N_('基础规则'), micro: 'BASICS', pages: [
+    ['autochess_home_1', N_('卫戍协议已运行')], ['autochess_home_2', N_('攻防战')], ['autochess_home_3', N_('休整期 · 区域')],
+    ['autochess_home_4', N_('休整期 · 资金与调度')], ['autochess_home_5', N_('机变阶段')], ['autochess_home_6', N_('限时战斗')],
+    ['autochess_home_7', N_('作战期')], ['autochess_home_8', N_('协同战斗')], ['autochess_home_9', N_('盟约')],
   ] },
-  { id: 'shop', name: '调度手册', micro: 'HANDBOOK', pages: [
-    ['autochess_shop_1', '调度手册'], ['autochess_shop_2', '干员晋级'], ['autochess_shop_3', '加成情况'],
-    ['autochess_shop_4', '卫戍能力'], ['autochess_shop_5', '盟约'], ['autochess_shop_6', '助战及自选编队'],
+  { id: 'shop', name: N_('调度手册'), micro: 'HANDBOOK', pages: [
+    ['autochess_shop_1', N_('调度手册')], ['autochess_shop_2', N_('干员晋级')], ['autochess_shop_3', N_('加成情况')],
+    ['autochess_shop_4', N_('卫戍能力')], ['autochess_shop_5', N_('盟约')], ['autochess_shop_6', N_('助战及自选编队')],
   ] },
-  { id: 'handbook', name: '进阶图鉴', micro: 'ADVANCED', pages: [
-    ['autochess_handbook_1', '敌人类型'], ['autochess_handbook_2', '盟约激活与叠加'], ['autochess_handbook_3', '追加盟约'],
-    ['autochess_handbook_4', '策略与轮选'],
+  { id: 'handbook', name: N_('进阶图鉴'), micro: 'ADVANCED', pages: [
+    ['autochess_handbook_1', N_('敌人类型')], ['autochess_handbook_2', N_('盟约激活与叠加')], ['autochess_handbook_3', N_('追加盟约')],
+    ['autochess_handbook_4', N_('策略与轮选')],
   ] },
 ];
 
@@ -81,9 +82,9 @@ export function openGuide(page = 0) {
 export const closeGuide = () => guideStore.set({ open: false });
 
 /** Standard 玩法说明 trigger button. */
-export function GuideButton({ class: cls, size = 'sm', variant = 'ghost', label = '玩法说明', square = false }) {
+export function GuideButton({ class: cls, size = 'sm', variant = 'ghost', label = t('玩法说明'), square = false }) {
   return html`<${Button} variant=${variant} size=${size} icon="book" square=${square} class=${cx('guide-btn', cls)}
-    onClick=${() => openGuide(0)} title="玩法说明" aria-label="玩法说明">${square ? null : label}<//>`;
+    onClick=${() => openGuide(0)} title=${t('玩法说明')} aria-label=${t('玩法说明')}>${square ? null : label}<//>`;
 }
 
 function preload(url) {
@@ -98,9 +99,9 @@ function preload(url) {
 function TipsFallback() {
   const tips = (Array.isArray(data.get('config')?.tips) ? data.get('config').tips : []).map((t) => t?.tip).filter(Boolean);
   return html`<div class="guide__tips">
-    <${MicroLabel} tone="mint">TIPS // 模拟要点</${MicroLabel}>
+    <${MicroLabel} tone="mint">${t('TIPS // 模拟要点')}</${MicroLabel}>
     <ol>${tips.map((t, i) => html`<li key=${i}>${t}</li>`)}</ol>
-    ${!tips.length ? html`<p class="t-lo">暂无说明内容</p>` : null}
+    ${!tips.length ? html`<p class="t-lo">${t('暂无说明内容')}</p>` : null}
   </div>`;
 }
 
@@ -110,7 +111,7 @@ export function GuideHost() {
   const ids = useStore((s) => s.ids, Object.is, relicJournalStore);
   useEffect(() => installRelicJournal(), []);
   const journal = section === 'relics';
-  const ready = useData('local', 'config', 'assets');
+  const ready = useData('local', 'assets', 'config');
   const pages = useMemo(() => (ready ? guidePages() : []), [ready]);
   const [loaded, setLoaded] = useState(() => new Set());
   const [failed, setFailed] = useState(() => new Set());
@@ -152,53 +153,53 @@ export function GuideHost() {
   const src = stage.kind === 'image' ? stage.src : null;
   const isLoaded = !!src && loaded.has(src);
   return html`<div class="guide" role="presentation" onMouseDown=${(e) => { if (e.target === e.currentTarget) closeGuide(); }}>
-    <div class="guide__box brackets" role="dialog" aria-modal="true" aria-label="玩法说明" tabindex="-1" ref=${boxRef}>
+    <div class="guide__box brackets" role="dialog" aria-modal="true" aria-label=${t('玩法说明')} tabindex="-1" ref=${boxRef}>
       <header class="guide__head">
         <div class="guide__titles">
           <${MicroLabel} tone="mint">HOW TO PLAY // STRONGHOLD PROTOCOL</${MicroLabel}>
-          <h2 class="guide__title">玩法说明</h2>
+          <h2 class="guide__title">${t('玩法说明')}</h2>
         </div>
-        <nav class="guide__chapters" aria-label="章节">
+        <nav class="guide__chapters" aria-label=${t('章节')}>
           ${!n ? html`<button type="button" class=${cx('guide__chapter', !journal && 'is-on')} aria-pressed=${!journal} onClick=${() => guideStore.set({ section: 'pages' })}>
-            <span class="guide__chname">基础规则</span><span class="guide__chmicro">BASICS</span>
+            <span class="guide__chname">${t('基础规则')}</span><span class="guide__chmicro">BASICS</span>
           </button>` : null}
           ${GUIDE_CHAPTERS.map((ch, ci) => {
             const at = firstOf(ci);
             if (at < 0) return null;
             return html`<button key=${ch.id} type="button" class=${cx('guide__chapter', !journal && cur?.chapter === ci && 'is-on')} aria-pressed=${!journal && cur?.chapter === ci} onClick=${() => go(at)}>
-              <span class="guide__chname">${ch.name}</span><span class="guide__chmicro">${ch.micro}</span>
+              <span class="guide__chname">${t(ch.name)}</span><span class="guide__chmicro">${ch.micro}</span>
             </button>`;
           })}
           <button type="button" class=${cx('guide__chapter', journal && 'is-on')} aria-pressed=${journal} onClick=${() => guideStore.set({ section: 'relics' })}>
-            <span class="guide__chname">收藏品图鉴</span><span class="guide__chmicro">COLLECTION</span>
+            <span class="guide__chname">${t('收藏品图鉴')}</span><span class="guide__chmicro">COLLECTION</span>
           </button>
         </nav>
-        <button type="button" class="guide__close" aria-label="关闭" title="关闭 (Esc)" onClick=${closeGuide}><${Icon} name="close" /></button>
+        <button type="button" class="guide__close" aria-label=${t('关闭')} title=${t('关闭 (Esc)')} onClick=${closeGuide}><${Icon} name="close" /></button>
       </header>
 
-      ${journal ? html`<section class="guide__journal" aria-label="收藏品图鉴" tabindex="0">
-        <div class="guide__journal-head"><div><${MicroLabel} tone="mint">COLLECTION // 已获得过</${MicroLabel}>
-          <h3>收藏品图鉴</h3></div><span class="guide__count num">${ids.length} / ${RELICS.length}</span></div>
-        <p class="guide__journal-note">领取后自动收录，跨局保留。以下为收藏品在本游戏中的效果；获得记录保存在当前浏览器。</p>
+      ${journal ? html`<section class="guide__journal" aria-label=${t('收藏品图鉴')} tabindex="0">
+        <div class="guide__journal-head"><div><${MicroLabel} tone="mint">${t('COLLECTION // 已获得过')}</${MicroLabel}>
+          <h3>${t('收藏品图鉴')}</h3></div><span class="guide__count num">${ids.length} / ${RELICS.length}</span></div>
+        <p class="guide__journal-note">${t('领取后自动收录，跨局保留。以下为收藏品在本游戏中的效果；获得记录保存在当前浏览器。')}</p>
         <${RelicList} relics=${ids.map((id) => ({ id }))} history=${true} />
       </section>` : src ? html`<div class="guide__stage">
-        <button type="button" class="guide__nav guide__prev" aria-label="上一页" onClick=${() => go(i - 1)}><${Icon} name="chevronLeft" /></button>
+        <button type="button" class="guide__nav guide__prev" aria-label=${t('上一页')} onClick=${() => go(i - 1)}><${Icon} name="chevronLeft" /></button>
         <div class=${cx('guide__page', isLoaded && 'is-loaded')}>
-          <img key=${src} src=${src} alt=${cur.title} draggable=${false}
+          <img key=${src} src=${src} alt=${t(cur.title)} draggable=${false}
             onLoad=${() => setLoaded((s) => new Set(s).add(src))}
             onError=${() => setFailed((s) => new Set(s).add(src))} />
           ${!isLoaded ? html`<span class="guide__loading"><${Spinner} size="md" /></span>` : null}
         </div>
-        <button type="button" class="guide__nav guide__next" aria-label="下一页" onClick=${() => go(i + 1)}><${Icon} name="chevronRight" /></button>
+        <button type="button" class="guide__nav guide__next" aria-label=${t('下一页')} onClick=${() => go(i + 1)}><${Icon} name="chevronRight" /></button>
       </div>` : html`<div class="guide__stage guide__stage--text"><${TipsFallback} /></div>`}
 
       ${n && !journal ? html`<footer class="guide__foot">
         <div class="guide__label">
-          <span class="guide__chtag">${chapter?.name || ''}</span>
-          <b class="guide__ptitle">${cur?.title || ''}</b>
+          <span class="guide__chtag">${t(chapter?.name || '')}</span>
+          <b class="guide__ptitle">${t(cur?.title || '')}</b>
         </div>
-        <div class="guide__dots" role="tablist" aria-label="页码">
-          ${pages.map((p, k) => html`<button key=${p.key} type="button" role="tab" aria-selected=${k === i ? 'true' : 'false'} title=${p.title}
+        <div class="guide__dots" role="tablist" aria-label=${t('页码')}>
+          ${pages.map((p, k) => html`<button key=${p.key} type="button" role="tab" aria-selected=${k === i ? 'true' : 'false'} title=${t(p.title)}
             class=${cx('guide__dot', k === i && 'is-on', k > 0 && pages[k - 1].chapter !== p.chapter && 'is-first')} onClick=${() => go(k)}></button>`)}
         </div>
         <span class="guide__count num">${i + 1} / ${n}</span>

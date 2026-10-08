@@ -11,6 +11,32 @@ const setup = (opts = {}) => makeMatch({ mode: 'coop', humans: 2, fake: true, ..
 const request = (playerId = 'p_1', relicId = ID) => ({ t: 'g.relicRevive', relicId, playerId });
 const kill = (ps) => { ps.lp = 0; ps.eliminate(ps.m.round); };
 
+test('revival restores a DIY operator from the player stock without touching the shared or teammate stock', () => {
+  const slot = 'chess_char_5_diy1_a';
+  const diy = { [slot]: { charId: 'char_112_siege', skillIndex: 2, uniEquipId: 'uniequip_002_siege' } };
+  const seats = [0, 1].map((seat) => ({ seat, playerId: 'p_' + seat, name: 'P' + seat, isBot: false, connected: true, diy }));
+  const h = setup({ seats, seed: 11 });
+  try {
+    const owner = h.ps('p_0'), target = h.ps('p_1');
+    grantRelic(owner, ID);
+    const before = target.diyStock.snapshot()[slot];
+    const ownerStock = owner.diyStock.snapshot()[slot];
+    assert.equal(before, 8, 'the selected DIY slot is available for this seed');
+    const piece = target.acquireChess(slot, { source: 'buy' });
+    assert.ok(piece);
+    assert.equal(target.diyStock.snapshot()[slot], before - 1);
+    kill(target);
+    assert.equal(target.diyStock.snapshot()[slot], before);
+    assert.equal(h.m.handle(owner.playerId, request()).ok, true);
+    assert.equal(target.find(piece.uid).piece.id, slot);
+    assert.equal(target.find(piece.uid).piece.poolCopies, 1);
+    assert.equal(target.diyStock.snapshot()[slot], before - 1);
+    assert.equal(owner.diyStock.snapshot()[slot], ownerStock);
+    assert.equal(h.m.pool.has(slot), false);
+    h.invariants();
+  } finally { h.m.dispose(); }
+});
+
 test('时光之末：真实候选及合法领取；使用后仍排除同名，协议拒绝伪造字段', () => {
   const h = setup();
   try {

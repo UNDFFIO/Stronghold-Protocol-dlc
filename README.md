@@ -2,7 +2,7 @@
 
 基于 [sganggs/Stronghold-Protocol](https://github.com/sganggs/Stronghold-Protocol) 的非官方玩法扩展 fork，在原有浏览器自走棋塔防与单人 / 1–4 人合作玩法上，加入**收藏品、超限模拟和后期商店扩展**。DLC 是本 fork 的扩展标识，非鹰角官方 DLC。
 
-![base version](https://img.shields.io/badge/upstream%20base-0.1.3-2ea44f)
+![base version](https://img.shields.io/badge/upstream%20base-0.2.1-2ea44f)
 ![license](https://img.shields.io/badge/code%20license-GPL--3.0--or--later-blue)
 ![node](https://img.shields.io/badge/node-22%20%7C%2024-339933)
 
@@ -26,17 +26,17 @@ English summary: [below](#english).
 
 ## 与原项目的差异
 
-本 fork 以原项目 **0.1.3** 为基础，当前保留上游至 `a9dfd17` 的更新。以下比较针对这一基线；`package.json` 中的 0.1.3 是沿用的基础版本号，不表示这些扩展已属于上游发布内容。
+本 fork 以原项目 **0.2.1** 为基础，当前保留上游至 `c2a2ef7` 的更新。以下比较针对这一基线；`package.json` 中的 0.2.1 是沿用的基础版本号，不表示这些扩展已属于上游发布内容。
 
-| 项目 | 原项目（0.1.3 基线） | 本 fork |
+| 项目 | 原项目（0.2.1 基线） | 本 fork |
 |---|---|---|
 | 难度 | 标准 / 险境 / 绝境 / 终极四种模拟 | 保留四种基础难度，新增以终极为基础的「超限模拟」0–20 级，逐级累积战场协议 |
-| 作战奖励 | 无本局收藏品选择流程 | 无漏怪作战后藏品三选一，43 件藏品按回合进度分档掉落，增益整局保留 |
+| 作战奖励 | 无本局收藏品选择流程 | 无漏怪作战后藏品三选一，46 件藏品按回合进度分档掉落，增益整局保留 |
 | 连续漏怪 | 按原有扣血与联防规则结算 | 连续三个完成的作战回合本人漏怪后，存活玩家获得逆风补给三选一与下回合 2 点护盾 |
 | 后期招募 | 干员招募位数量由调度中心等级决定 | 第 9 回合起，在原有数量上增加两个干员招募位，装备位不变 |
 | 界面 | 原有难度选择、效果栏与结算展示 | 增加超限等级轮盘与规则预览、个人收藏图标和详情、奖励选择及结算收藏展示 |
 
-原项目的招募与晋升、盟约、装备、联防、最终攻势、隐秘核心、AI 队友及断线重连仍作为基础玩法保留；同盟观战席、调配导入 / 导出、战斗语音、分回合音乐，以及干员技能、敌人规则、渲染、启动器和诊断等上游更新也继续保留。基础玩法见 [玩法指南](docs/PLAYING.md)，上游版本记录见 [CHANGELOG.md](CHANGELOG.md)。
+原项目的招募与晋升、盟约、装备、联防、最终攻势、隐秘核心、AI 队友及断线重连仍作为基础玩法保留；同盟观战席、补位干员、自选编队、多语言、自定义快捷键、满潜能数据、调配导入 / 导出、战斗语音、分回合音乐，以及干员技能、敌人规则、渲染、启动器和诊断等上游更新也继续保留。基础玩法见 [玩法指南](docs/PLAYING.md)，上游版本记录见 [CHANGELOG.md](CHANGELOG.md)。
 
 这些扩展会改变成长与战斗平衡：**选择四种基础难度仍会启用收藏品与后期商店扩展**，并不等于回到原项目规则。藏品名称与图标参考明日方舟其他玩法，但档位、数值与效果经过本 fork 适配，不代表官方「卫戍协议」规则。
 
@@ -44,12 +44,12 @@ English summary: [below](#english).
 
 ### 本局收藏品
 
-- **43 件、五档强度**：普通 / 精良 / 稀有 / 史诗 / 传说，候选概率随回合推进变化。无漏怪作战后从三个候选中领取一件，候选排除已拥有藏品。
+- **46 件、五档强度**：普通 / 精良 / 稀有 / 史诗 / 传说，候选概率随回合推进变化。无漏怪作战后从三个候选中领取一件，候选排除已拥有藏品。
 - **个人持有、整局生效**：从下一场战斗开始生效，不占装备槽或整备区，干员属性加成只给持有者，鸭梨手机降低全队累计难度；新的一局重新收集。同类增益相加且不设累计上限，同名藏品不会重复获得。
 - **逆风补给**：连续三回合本人漏怪可触发较高档位奖励，并获得仅下回合有效的 2 点扣血护盾。联防救回敌人或护盾抵消扣血，都不会抹掉本人漏怪记录。
 - **选择与展示**：单人及仅一名人类的对局选择不计时，多人限时 30 秒；右侧图标支持悬停、聚焦或长按查看，结算保留本局收藏记录。
 
-完整清单、概率、生效边界与领袖结算规则见 [收藏品说明](docs/COLLECTIBLES.md)。已有素材的安装可运行 `node tools/fetch-relic-icons.mjs` 补齐 43 张收藏品图标（含四件原创图片）；首次安装的素材下载流程已包含这些图标。
+完整清单、概率、生效边界与领袖结算规则见 [收藏品说明](docs/COLLECTIBLES.md)。已有素材的安装可运行 `node tools/fetch-relic-icons.mjs` 补齐 46 张收藏品图标（含六件原创图片）；首次安装的素材下载流程已包含这些图标。
 
 ### 超限模拟
 
@@ -78,7 +78,7 @@ npm start
 也可使用启动脚本：Windows 双击 `scripts\start-windows.bat`；macOS / Linux 运行 `bash scripts/start.sh`。首次启动会自动安装依赖并下载素材。
 
 - **运行条件**：服务器使用 Windows / macOS / Linux + Node.js；玩家使用支持 WebGL 的现代浏览器，手机建议横屏。
-- **素材**：表情和「玩法说明」的教程图随上面的素材一起从公开镜像下载。3D 棋盘、部分界面图标和灼热 / 炽焰源石虫模型需要从本机《明日方舟》客户端提取；未提取时使用替代样式。服务器也可从**同一版本**的整合包复制 `public/assets/local/` 和 `data/local-assets.json`，详见 [docs/ASSETS.md](docs/ASSETS.md)。
+- **素材**：表情和「玩法说明」的教程图随上面的素材一起从公开镜像下载。3D 棋盘、部分界面图标、灼热 / 炽焰源石虫模型和部分自选干员召唤物模型需要从本机《明日方舟》客户端提取；未提取时使用替代样式。服务器也可从**同一版本**的整合包复制 `public/assets/local/` 和 `data/local-assets.json`，详见 [docs/DEPLOY.md 第 6 节](docs/DEPLOY.md#6-本地客户端素材) 和 [docs/ASSETS.md](docs/ASSETS.md)。
 - **诊断**：`npm run doctor` 检查 Node 版本、素材、端口、局域网地址和防火墙。
 - **整合包**：如使用整合包，请确认包含本 fork 的扩展代码与收藏品图标；上游整合包不包含这些扩展。
 
@@ -110,7 +110,7 @@ PowerShell 更换端口：`$env:PORT=8080; npm start`。健康检查：`GET /hea
 | 出售 / 撤退 / 销毁装备 | 点击单位所在的格子 → 底部按钮「出售 +1」「撤退」；也可以把棋盘上的干员拖回整备区撤退。整备区里的装备与法术只能「销毁」，已配发的装备锁定在干员身上（干员出售或合成精锐时退回整备区） |
 | 装备 | 把装备拖到干员所在的格子上（每人 2 件；满了会弹出替换窗口，被替换的一件会被销毁）；法术拖到地块上并选方向 |
 | 查看详情 | 右键或长按单位 / 卡牌（属性为实时数值，高于基础值为绿色、低于为红色） |
-| 快捷键 | `R` 刷新 · `F` 冻结 · `D` 升级 · `Space` 准备就绪 · `Esc` 取消 / 关闭 |
+| 快捷键 | `R` 刷新 · `F` 冻结 · `D` 升级 · `Space` 准备就绪 · `Esc` 取消 / 关闭；可在设置中修改 |
 | 方向轮盘键盘操作 | 方向键预览 · `Enter` 确认 · `Esc` 取消 |
 | 暂停（独立模拟） | 作战中（含最终攻势 / 隐秘核心）点顶栏的「暂停」或按 `Space`，再点「继续作战」（或 `Space`）继续；同盟模拟的作战不能暂停 |
 | 表情 | 左下角「交流」，左右滑动（或方向键）换主题，冷却 1 秒 |
@@ -130,6 +130,8 @@ PowerShell 更换端口：`$env:PORT=8080; npm start`。健康检查：`GET /hea
 | [docs/DEPLOY.md](docs/DEPLOY.md) | 开服、联机、部署与排错 |
 | [docs/WINDOWS.md](docs/WINDOWS.md) | Windows 便携包的制作与授权注意事项 |
 | [docs/DESIGN.md](docs/DESIGN.md) · [docs/SIM.md](docs/SIM.md) · [docs/META.md](docs/META.md) | 上游架构、战斗模拟及对局经济参考；扩展实现另见共用定义与对应代码 |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [CONTRIBUTING.md](CONTRIBUTING.md) | 模块地图与上游开发约定 |
+| [docs/I18N.md](docs/I18N.md) · [docs/PACKS.md](docs/PACKS.md) | 多语言与内容包格式 |
 | [docs/DATA.md](docs/DATA.md) · [docs/ASSETS.md](docs/ASSETS.md) | 游戏数据与素材来源 |
 | [docs/BALANCE.md](docs/BALANCE.md) · [docs/research/](docs/research/00-INDEX.md) | 上游难度模型与官方规则调研 |
 
@@ -138,6 +140,10 @@ PowerShell 更换端口：`$env:PORT=8080; npm start`。健康检查：`GET /hea
 ```bash
 npm run dev       # 监听服务器代码修改并自动重启
 node --test       # 单元与集成测试
+npm run lint
+npm run check:imports
+npm run typecheck
+npm run golden    # 固定种子战斗与对局回归
 node --test test/content/relics.test.js test/match/relics.test.js test/sim/ascension.test.js test/difficulty-level.test.js test/ui/relics.test.js
 ```
 
@@ -158,7 +164,7 @@ node --test test/content/relics.test.js test/match/relics.test.js test/sim/ascen
 - 素材来源：[yuanyan3060/ArknightsGameResource](https://github.com/yuanyan3060/ArknightsGameResource)、[fexli/ArknightsResource](https://github.com/fexli/ArknightsResource)、[isHarryh/Ark-Models](https://github.com/isHarryh/Ark-Models)、[ArknightsAssets/ArknightsAssets2](https://github.com/ArknightsAssets/ArknightsAssets2)；字体来自 [TimWangZi/The-font-of-Arknights](https://github.com/TimWangZi/The-font-of-Arknights) 与 Google Fonts（Noto Sans SC）。详见 [docs/ASSETS.md](docs/ASSETS.md)。
 - 规则核对参考：[PRTS 明日方舟中文 Wiki](https://prts.wiki/)。
 - LZ4AK 解包：`tools/local-extract/aklz4.py` 的算法来自 [isHarryh/Ark-Unpacker](https://github.com/isHarryh/Ark-Unpacker)（BSD-3-Clause，经 MooncellWiki/UnityPy）；解析 Unity 资源使用 [UnityPy](https://github.com/K0lb3/UnityPy)（MIT）。
-- 库：[PixiJS](https://pixijs.com/)（MIT）、[pixi-spine](https://github.com/pixijs/spine)（MIT；其中包含的 Spine Runtime 另受 [Spine Runtimes License](https://esotericsoftware.com/spine-runtimes-license) 约束）、[three.js](https://threejs.org/)（MIT）、[Preact](https://preactjs.com/) + [htm](https://github.com/developit/htm)（MIT）、[ws](https://github.com/websockets/ws)（MIT）。
+- 库：[PixiJS](https://pixijs.com/)（MIT）、[pixi-spine](https://github.com/pixijs/spine)（MIT；其中包含的 Spine Runtime 另受 [Spine Runtimes License](https://esotericsoftware.com/spine-runtimes-license) 约束）、[three.js](https://threejs.org/)（MIT）、[Preact](https://preactjs.com/)（MIT）、[htm](https://github.com/developit/htm)（Apache-2.0）、[ws](https://github.com/websockets/ws)（MIT）。
 
 感谢以上项目的作者与维护者，以及鹰角网络带来的这款游戏。
 
@@ -166,7 +172,7 @@ node --test test/content/relics.test.js test/match/relics.test.js test/sim/ascen
 
 欢迎提 Issue 反馈 bug、与官方规则不一致的地方或改进建议，也欢迎提交 Pull Request：
 
-- 提交前请运行 `node --test`，并同步更新相关文档；文档使用简体中文，代码与注释使用英文。
+- 提交前运行 `node --test`、`npm run lint`、`npm run check:imports`、`npm run typecheck`，并同步更新相关文档；玩家文档使用简体中文，代码、注释与技术文档使用英文。开发约定见 [CONTRIBUTING.md](CONTRIBUTING.md)。
 - 提交的代码将以 GPL-3.0-or-later 发布。
 - 请不要提交任何游戏素材文件（`public/assets/` 等目录已被 `.gitignore` 排除）。
 - 本项目坚持非商业：请不要提交广告、付费、打赏等任何形式的变现功能。
@@ -175,7 +181,7 @@ node --test test/content/relics.test.js test/match/relics.test.js test/sim/ascen
 
 ## English
 
-**Stronghold-Protocol-dlc** is an unofficial gameplay-expansion fork of [sganggs/Stronghold-Protocol](https://github.com/sganggs/Stronghold-Protocol) for Arknights' mode *Stronghold Protocol: Alliance*, based on upstream 0.1.3. It adds 43 match-scoped collectibles, comeback rewards and a next-round shield after three consecutive leaking rounds, cumulative Ascension levels 0–20, and two extra operator offers from round 9. Collectibles and the shop expansion also apply to the four base difficulties. DLC is this fork's label, not an official Arknights release.
+**Stronghold-Protocol-dlc** is an unofficial gameplay-expansion fork of [sganggs/Stronghold-Protocol](https://github.com/sganggs/Stronghold-Protocol) for Arknights' mode *Stronghold Protocol: Alliance*, based on upstream 0.2.1. It adds 46 match-scoped collectibles, comeback rewards and a next-round shield after three consecutive leaking rounds, cumulative Ascension levels 0–20, and two extra operator offers from round 9. Collectibles and the shop expansion also apply to the four base difficulties. DLC is this fork's label, not an official Arknights release.
 
 - **Run:** clone this fork, install Node.js 22 or 24, then run `npm install`, `npm run setup` and `npm start`. Open [http://localhost:3000](http://localhost:3000). Upstream bundles do not include this fork's extensions.
 - **Rules:** see [PLAYING.md](docs/PLAYING.md) and [COLLECTIBLES.md](docs/COLLECTIBLES.md); hosting details are in [DEPLOY.md](docs/DEPLOY.md).

@@ -1,6 +1,7 @@
 import { pickRelic, getRelic } from '../../shared/relics.js';
 import { createRng, deriveSeed } from '../sim/rng.js';
 import { grantRelic } from './relics.js';
+import { t } from '../../shared/i18n.js';
 
 /** One independent, server-owned, equal-probability draw per survivor at the start of ASCENSION R4. */
 export function drawAscensionLottery(ps) {
@@ -14,11 +15,11 @@ export function drawAscensionLottery(ps) {
   if (kind === 'coins') {
     ps.addFunds(15, { reason: 'ascension-lottery' });
     reward.amount = 15;
-    reward.text = '15 金币';
+    reward.text = t('15 金币');
   } else if (kind === 'heal') {
     ps.lp += 8;
     reward.amount = 8;
-    reward.text = '恢复 8 点目标生命值';
+    reward.text = t('恢复 8 点目标生命值');
     m.markPublic();
   } else if (kind === 'operators') {
     // Persistent layers, not activation tier. Inactive bonds with accumulated layers remain eligible.
@@ -38,17 +39,17 @@ export function drawAscensionLottery(ps) {
       // Effect grants may create a copy when the shared pool is exhausted, as other direct grants do.
       if (ps.acquireChess(id, { source: 'ascension-lottery' })) reward.ids.push(id);
     }
-    const bondName = m.gd.bond(reward.bondId)?.name || reward.bondId || '盟约';
-    reward.text = `${bondName}盟约干员：${reward.ids.map((id) => m.gd.chess(id).name).join('、') || '整备区已满，未能领取'}`;
+    const bondName = m.gd.bond(reward.bondId)?.name || reward.bondId || t('盟约');
+    reward.text = t('{bondName}盟约干员：{1}', { bondName, 1: reward.ids.map((id) => m.gd.chess(id).name).join('、') || t('整备区已满，未能领取') });
   } else {
     for (let i = 0; i < 2; i++) {
       const r = pickRelic(4, ps.relics, rng, { multiplayer: !m.isSolo });
       if (r && grantRelic(ps, r.id, { round: 4, battleRound: 4 })) reward.ids.push(r.id);
     }
-    reward.text = `收藏品：${reward.ids.map((id) => getRelic(id).name).join('、') || '可用收藏品已全部持有'}`;
+    reward.text = t('收藏品：{0}', { 0: reward.ids.map((id) => getRelic(id).name).join('、') || t('可用收藏品已全部持有') });
   }
   ps.dirty();
-  m.toast(ps, 'success', `超限模拟 · 第 4 回合抽奖：${reward.text}`);
+  m.toast(ps, 'success', t('超限模拟 · 第 4 回合抽奖：{text}', { text: reward.text }));
   return reward;
 }
 
