@@ -710,6 +710,9 @@ button.bpop__harmony:hover { border-style: solid; color: #fff; }
 .relic-card__tier { flex: none; color: var(--relic-tone); font-size: max(.12rem, 8px); line-height: 1.7; white-space: nowrap; }
 .relic-card__desc { color: var(--text-md); font-size: max(.14rem, 9px); line-height: 1.65; margin: .06rem 0; overflow-wrap: anywhere; }
 .relic-card__round { color: var(--text-lo); font-size: max(.12rem, 8px); }
+.relic-card__used { color: var(--text-lo); font-size: max(.14rem, 10px); }
+.relic-card__revive { display: flex; flex-wrap: wrap; align-items: center; gap: .08rem; margin: .06rem 0; }
+.relic-card__revive > .relic-panel__note { flex-basis: 100%; }
 /* 图鉴与局内收藏列表复用左图右文布局。 */
 .relic-card--illustrated {
   display: grid; grid-template-columns: max(.64rem, 48px) minmax(0, 1fr);

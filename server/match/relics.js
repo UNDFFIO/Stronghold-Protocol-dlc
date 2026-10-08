@@ -85,8 +85,56 @@ export function startRelicRound(ps, round) {
   ps.relicNextShieldRound = 0;
 }
 
+/** 自救与救队友共用持有记录中的一次使用机会，保留图鉴及本局获得记录。 */
+export function unusedRevival(ps, id = null) {
+  if (!ps.alive || ps.left) return null;
+  const used = new Set(ps.relics.filter((r) => r.used).map((r) => r.id));
+  return ps.relics.find((r) => (!id || r.id === id) && !used.has(r.id) && getRelic(r.id)?.reviveOnce) || null;
+}
+
+export function consumeRevival(ps, targetId, id = null) {
+  const record = unusedRevival(ps, id);
+  if (!record) return null;
+  record.used = true;
+  record.usedRound = ps.m.round;
+  record.targetId = targetId;
+  ps.dirty();
+  return getRelic(record.id).reviveOnce;
+}
+
+export function reviveSelf(ps) {
+  if (ps.lp > 0) return false;
+  const effect = consumeRevival(ps, ps.playerId);
+  if (!effect) return false;
+  ps.lp = effect.lp;
+  ps.dirty();
+  ps.m.toast(ps, 'success', `「时光之末」已自动使用，恢复 ${effect.lp} 点目标生命值`);
+  return true;
+}
+
+/** 只从被救者当前可招募的盟约中选累计层数最高者；独立随机流不干扰商店。 */
+export function revivalOperators(ps, owner, count) {
+  const m = ps.m;
+  const rng = createRng(deriveSeed(m.seed, `relic-revive:${owner.seat}:${ps.seat}:${m.round}`));
+  const eligible = [...m.pool.entries.keys()].filter((id) => m.gd.tierOf(id) <= ps.shop.level);
+  const bonds = m.gd.bondIds.filter((bondId) => !m.gd.modeInactiveBonds.has(bondId)
+    && eligible.some((id) => m.gd.chess(id).bonds?.includes(bondId)));
+  const max = Math.max(0, ...bonds.map((id) => ps.layers[id] || 0));
+  let ties = bonds.filter((id) => (ps.layers[id] || 0) === max);
+  if (max === 0) {
+    const roster = ps.eliminatedRoster?.board || ps.board;
+    const represented = ties.filter((id) => [...roster.values()].some((p) => p.kind === 'chess' && m.gd.chess(p.id)?.bonds?.includes(id)));
+    if (represented.length) ties = represented;
+  }
+  const bondId = ties.length ? ties[rng.int(ties.length)] : null;
+  const pool = eligible.filter((id) => m.gd.chess(id).bonds?.includes(bondId));
+  return { bondId, ids: Array.from({ length: pool.length ? count : 0 }, () => pool[rng.int(pool.length)]) };
+}
+
 /** Fresh wire values: UI state and battle inputs must not share mutable references with a player's collection. */
 export function relicsView(ps) {
-  return ps.relics.filter((r) => getRelic(r.id)).map(({ id, round }) => ({ id, round }));
+  return ps.relics.filter((r) => getRelic(r.id)).map(({ id, round, used, usedRound, targetId }) => ({
+    id, round, ...(used ? { used: true, usedRound, targetId } : {}),
+  }));
 }
 export const relicOfferView = (ps) => ps.relicOffer ? { ...ps.relicOffer, options: [...ps.relicOffer.options] } : null;

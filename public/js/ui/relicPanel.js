@@ -11,6 +11,7 @@ import { data } from '../data.js';
 export function relicEntries(records) {
   return (Array.isArray(records) ? records : []).filter((r) => r && typeof r.id === 'string').map((r) => ({
     ...getRelic(r.id), id: r.id, round: Number.isInteger(r.round) && r.round > 0 ? r.round : null,
+    ...(r.used ? { used: true } : {}),
   }));
 }
 
@@ -45,7 +46,7 @@ export function RelicIcons({ relics, reward, notice = false, onOpen }) {
     const fresh = notice && reward?.id === r.id && reward?.round === r.round;
     return html`<${Tooltip} key=${`${r.id}:${r.round}`} placement="bottom" text=${html`<div class="efftip">
         <b>${r.name || r.id}</b><span class="efftip__kind">收藏品 · ${tierName(r.tier)}${r.round ? ` · 第 ${r.round} 回合获得` : ''}</span>
-        <p>${r.desc || '该收藏品的效果资料暂不可用'}</p>
+        <p>${r.desc || '该收藏品的效果资料暂不可用'}</p>${r.used ? html`<span>已使用</span>` : null}
       </div>`}>
       <button type="button" class=${`effect effect--relic relic-tier-${r.tier || 1}${fresh ? ' is-new' : ''}`}
         data-relic-id=${r.id} onClick=${onOpen} aria-haspopup="dialog"
@@ -59,7 +60,7 @@ export function RelicIcons({ relics, reward, notice = false, onOpen }) {
 }
 
 /** Shared by the live modal and each settlement card. No richness/HTML from remote sources. */
-export function RelicList({ relics, reward = null, history = false, illustrated = history }) {
+export function RelicList({ relics, reward = null, history = false, illustrated = history, revival = null }) {
   const entries = relicEntries(relics);
   if (!entries.length) return html`<p class="relic-empty">${history ? '尚未收录收藏品。领取收藏品后将自动加入图鉴。' : '尚未获得收藏品。每回合本人无漏怪，可从三件藏品中选择一件。'}</p>`;
   return html`<ol class="relic-list" aria-label=${history ? '已获得过的收藏品' : '本局收藏品'}>
@@ -70,13 +71,36 @@ export function RelicList({ relics, reward = null, history = false, illustrated 
       <div class="relic-card__head"><b class="relic-card__name">${r.name || r.id}</b>
         <span class="relic-card__tier">${tierName(r.tier)}</span></div>
       <p class="relic-card__desc">${r.desc || '该收藏品的效果资料暂不可用'}</p>
+      ${!history && r.reviveOnce ? (r.used ? html`<span class="relic-card__used">已使用 · 复活机会已消耗</span>`
+        : revival ? html`<${RelicReviveActions} relicId=${r.id} revival=${revival} />` : html`<span class="relic-card__used">未使用 · 剩余 1 次</span>`) : null}
       ${history ? null : html`<span class="relic-card__round">${r.round == null ? '本局获得' : `第 ${r.round} 回合获得`}</span>`}
     </li>`)}
   </ol>`;
 }
 
+export const revivalTargets = (pub, myId) => (pub?.players || []).filter((p) => p.playerId !== myId && !p.alive && p.canRevive);
+
+function RelicReviveActions({ relicId, revival }) {
+  const [busy, setBusy] = useState(null);
+  const pick = async (playerId) => {
+    if (busy) return;
+    setBusy(playerId);
+    try { await revival.onRevive(relicId, playerId); }
+    finally { setBusy(null); }
+  };
+  const enabled = revival.phase === 'PREP' && revival.alive;
+  return html`<div class="relic-card__revive">
+    <span class="relic-panel__note">剩余 1 次 · 自救与救队友共用</span>
+    ${revival.targets.length ? revival.targets.map((p) => html`<${Button} key=${p.playerId} size="sm" variant="primary"
+      disabled=${!enabled || !!busy} onClick=${() => pick(p.playerId)}>
+      ${busy === p.playerId ? '复活中…' : `复活 ${p.name}`}<//>`)
+      : html`<span class="relic-panel__note">暂无可复活的队友</span>`}
+    ${enabled ? null : html`<span class="relic-panel__note">整备阶段可复活队友；死亡时自动用于自救。</span>`}
+  </div>`;
+}
+
 /** Non-blocking notification: only a new reward identity changes the badge, not every private push. */
-export function RelicCollection({ relics, reward, owner = null, round = 1, shield = 0, nextShield = 0 }) {
+export function RelicCollection({ relics, reward, owner = null, round = 1, shield = 0, nextShield = 0, revival = null, queuedChess = 0 }) {
   const [open, setOpen] = useState(false);
   const [notice, setNotice] = useState(false);
   const count = relicEntries(relics).length;
@@ -115,7 +139,8 @@ export function RelicCollection({ relics, reward, owner = null, round = 1, shiel
       </div>
       <p class="relic-panel__note">第 ${round} 回合基础概率；已获得的藏品移出候选池，实际概率随剩余藏品调整。</p>
       <p class="relic-panel__note">收藏品增益无累计上限。同类属性与伤害增幅相加，同名藏品不重复获得。</p>
-      <${RelicList} relics=${relics} reward=${reward} illustrated=${true} />
+      ${queuedChess ? html`<p class="relic-panel__note" role="status">复活干员补给：${queuedChess} 名等待整备区空位，腾出位置后自动获得，跨回合保留。</p>` : null}
+      <${RelicList} relics=${relics} reward=${reward} illustrated=${true} revival=${revival} />
     <//>`;
 }
 

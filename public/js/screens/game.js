@@ -81,7 +81,7 @@ import { Ticker } from '../ui/ticker.js';
 import { EmoteWheel } from '../ui/emotes.js';
 import { DamageRanking } from '../ui/damageRanking.js';
 import { EffectsList } from '../ui/effectsList.js';
-import { RelicCollection, RelicChoice, ownerRelics } from '../ui/relicPanel.js';
+import { RelicCollection, RelicChoice, ownerRelics, revivalTargets } from '../ui/relicPanel.js';
 import { AscensionLottery } from '../ui/ascensionLottery.js';
 import { CombatHud } from '../ui/combatHud.js';
 import { SettingsModal } from '../ui/settings.js';
@@ -611,6 +611,18 @@ function MatchScreen() {
     if (phase !== PHASE.PREP) setRewardMin(false);
     setSpBusy(null);
   }, [phaseKey]);
+
+  // 复活发生在同一个整备阶段；恢复自己的可编辑阵地，不继续停留在淘汰后的观战视角。
+  const previousAlive = useRef(alive);
+  useEffect(() => {
+    if (alive && !previousAlive.current) {
+      setWatching(null);
+      setWatchWho(null);
+      setSel(null);
+      setDetail(null);
+    }
+    previousAlive.current = alive;
+  }, [alive]);
 
   // a reload / reconnect while watching a teammate's battle after the own one (client-side combat): the server resends
   // the watched field, the fresh screen adopts it as watched once per battle — the observing pill, 返回战场 and the own
@@ -1311,7 +1323,9 @@ function MatchScreen() {
         observe=${cc ? { canObserve: (p) => observeTarget(p, pub, myId, { observing: alive && watchingOther, ownDone: localDone }), observing: alive && watchingOther, onBack: backHome } : null} />
 
       <div class="gm__effects">
-        <${RelicCollection} key=${strip.ownerId} owner=${strip.name} relics=${collection.relics} reward=${collection.reward} round=${pub?.round || 1} shield=${collection.shield} nextShield=${collection.nextShield} />
+        <${RelicCollection} key=${strip.ownerId} owner=${strip.name} relics=${collection.relics} reward=${collection.reward} round=${pub?.round || 1} shield=${collection.shield} nextShield=${collection.nextShield}
+          revival=${strip.ownerId === myId ? { phase, alive, targets: revivalTargets(pub, myId), onRevive: actions.relicRevive } : null}
+          queuedChess=${strip.ownerId === myId ? priv?.relicChessQueue?.length || 0 : 0} />
         <div class="gm__effect-base"><${EffectsList} effects=${watchingOther && field ? (field.effects ?? null) : priv?.effects} /></div>
       </div>
 

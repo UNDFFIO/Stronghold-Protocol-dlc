@@ -65,6 +65,7 @@ export const actions = {
   destroy: (uid) => act('g.destroy', { uid }),
   reward: (idx) => act('g.reward', { idx }),
   relic: (offerId, idx) => act('g.relic', { offerId, idx }),
+  relicRevive: (relicId, playerId) => act('g.relicRevive', { relicId, playerId }, { sfx: 'confirm' }),
   choice: (idx) => act('g.choice', { idx }),
   ready: (ready) => act('g.ready', { ready }, { sfx: ready ? 'ready' : 'back' }),
   emote: (id) => act('g.emote', { id }, { quiet: true }),

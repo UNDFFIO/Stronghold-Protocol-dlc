@@ -28,7 +28,68 @@ async function closed(page) {
   await page.waitForFunction(() => !document.querySelector('.relic-panel'), { timeout: 2000 });
 }
 
+test('时光之末：自己的列表按钮复活队友、显示已使用，观战列表保持只读', {
+  skip: !ENABLED && 'set SP_E2E=1 and provide system Chrome', timeout: 60000,
+}, async () => {
+  const page = await browser.newPage();
+  try {
+    await page.setViewport({ width: 1280, height: 900 });
+    await page.goto(`${base}/dev/game-mock.html?shot=1&phase=PREP`, { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('.relic-icons__heading');
+    const targetId = await page.evaluate(() => {
+      let targetId;
+      globalThis.__MOCK__.mutate((s) => {
+        s.priv.relics = [{ id: 'relic_233', round: 7 }];
+        s.priv.relicChessQueue = ['test_1', 'test_2'];
+        const target = s.pub.players.find((p) => p.playerId !== s.priv.playerId);
+        targetId = target.playerId;
+        target.alive = false; target.canRevive = true; target.lp = 0; target.name = '待救队友';
+      });
+      return targetId;
+    });
+    await page.click('.relic-icons__heading');
+    await page.waitForSelector('.relic-card__revive button');
+    assert.equal(await page.$eval('.relic-card__revive button', (e) => e.disabled), false);
+    assert.match(await page.$eval('.relic-panel', (e) => e.textContent), /2 名等待整备区空位/);
+    await page.waitForSelector('.pbanner--overlay', { hidden: true });
+    await page.screenshot({ path: `${OUT}/relic-time-end-revive.png` });
+    await page.click('.relic-card__revive button');
+    await page.waitForFunction(() => document.querySelector('.relic-card__used')?.textContent.includes('已使用'));
+    const result = await page.evaluate((id) => ({
+      requests: globalThis.__MOCK__.S().requests.filter(([t]) => t === 'g.relicRevive'),
+      target: globalThis.__MOCK__.S().pub.players.find((p) => p.playerId === id),
+    }), targetId);
+    assert.deepEqual(result.requests, [['g.relicRevive', { relicId: 'relic_233', playerId: targetId }]]);
+    assert.equal(result.target.alive, true); assert.equal(result.target.lp, 11);
+    assert.equal(await page.$('.relic-card__revive button'), null);
+    await page.keyboard.press('Escape'); await closed(page);
+    await page.evaluate((id) => {
+      globalThis.__MOCK__.mutate((s) => { s.pub.players.find((p) => p.playerId === id).relics = [{ id: 'relic_233', round: 7 }]; });
+    }, targetId);
+    await page.click('.team__row:not(.is-self) .team__btn');
+    await page.waitForSelector('.gm__watching');
+    await page.click('.relic-icons__heading');
+    await page.waitForSelector('.relic-card__used');
+    assert.match(await page.$eval('.relic-card__used', (e) => e.textContent), /未使用/);
+    assert.equal(await page.$('.relic-card__revive button'), null);
+    await page.keyboard.press('Escape'); await closed(page);
+    // 被淘汰的本人在当前整备阶段获救，自动回到自己的阵地。
+    await page.evaluate(() => globalThis.__MOCK__.mutate((s) => {
+      s.priv.alive = false;
+      s.pub.players.find((p) => p.playerId === s.priv.playerId).alive = false;
+    }));
+    await page.waitForSelector('.gm__dead');
+    await page.evaluate(() => globalThis.__MOCK__.mutate((s) => {
+      s.priv.alive = true; s.priv.lp = 11;
+      s.pub.players.find((p) => p.playerId === s.priv.playerId).alive = true;
+    }));
+    await page.waitForSelector('.gm__watching', { hidden: true });
+    await page.waitForSelector('.gm__dead', { hidden: true });
+  } finally { await page.close(); }
+});
+
 for (const item of [
+  { id: 'relic_233', name: '“时光之末”', tier: '史诗', phrases: ['11 点', '4 名', '死亡时自动复活', '保留原有干员'], shot: 'time-end' },
   { id: 'relic_158', name: '时间机器', tier: '普通', phrases: ['目标生命值', '等量增加', '仅生效一场'], shot: 'time-machine' },
   { id: 'relic_159', name: '木棍', tier: '精良', phrases: ['2 金币'], hiddenPhrases: ['数字', '■', '仅影响显示'], shot: 'stick' },
   { id: 'relic_156', name: '解压玩具', phrases: ['向下取整', '首领波次不生效', '10%', '未持有者各保留 1 个', '触发时替代减半效果'], shot: 'toy' },

@@ -153,6 +153,8 @@ export class PlayerState {
     this.relicReward = null;
     this.ascensionLottery = null;
     this.relicReverseLpRound = 0;
+    this.eliminatedRoster = null;
+    this.relicChessQueue = [];
     /** active bounties: { id, card, roundsLeft, chooser } */
     this.bounties = [];
     /** free-form counters for content (ctx.counter / setCounter) */
@@ -1516,6 +1518,14 @@ export class PlayerState {
   // `effects` are kept: a 信标 gift still pending is delivered to the teammate at the next round start (builtin_gift is
   // flagged afterElimination — GitHub #86); nothing else of an eliminated player is dispatched.
   eliminate(round) {
+    if (!this.alive) return;
+    // 死亡仍归还共享池；快照保留原 UID、装备、站位及实际占用副本数，离场不保存。
+    this.eliminatedRoster = this.left ? null : {
+      board: new Map(this.board), hand: this.hand.slice(), temp: this.temp.slice(),
+      copies: new Map(this.allChess().map((p) => [p.uid, p.poolCopies])),
+      queue: this.relicChessQueue.slice(),
+    };
+    this.relicChessQueue = [];
     this.alive = false;
     this.ready = false;
     this.eliminatedRound = round;
@@ -1536,7 +1546,37 @@ export class PlayerState {
     this.recompute();
   }
 
+  restoreEliminatedRoster() {
+    const saved = this.eliminatedRoster;
+    if (!saved) return;
+    this.board = saved.board;
+    this.hand = saved.hand;
+    this.temp = saved.temp;
+    this.relicChessQueue = saved.queue;
+    this.eliminatedRoster = null;
+    for (const p of this.allChess()) p.poolCopies = this.m.pool.take(this.gd.baseIdOf(p.id), saved.copies.get(p.uid) || 0);
+    // 死亡期间错过的整备不销毁还原的临时区物件，重新给一次完整处理机会。
+    this._tempDue.clear();
+    for (let i = 0; i < this.temp.length; i++) if (this.temp[i]) this._putTemp(i, this.temp[i]);
+    this.invalidateDeployMap();
+  }
+
+  /** 复活补给空间不足时排队，使用正常获得／合并流程，腾出位置后自动发放。 */
+  drainRelicChess() {
+    if (this._drainingRelicChess || !this.alive || this.left || this.ready || this.m.phase !== PHASE.PREP) return;
+    this._drainingRelicChess = true;
+    try {
+      while (this.relicChessQueue.length) {
+        const id = this.relicChessQueue[0];
+        if (freeSlot(this.hand) < 0 && freeSlot(this.temp) < 0 && !this.completesChessMerge(id)) break;
+        this.relicChessQueue.shift();
+        if (!this.acquireChess(id, { source: 'relic-revive' })) { this.relicChessQueue.unshift(id); break; }
+      }
+    } finally { this._drainingRelicChess = false; }
+  }
+
   recompute() {
+    this.drainRelicChess();
     this.deployMap(); // a change of the deploy field (a boss round's prep) marks the legality stale
     if (this._legalityStale) this._evictIllegal();
     this._liftOutOfRange();
@@ -1679,6 +1719,7 @@ export class PlayerState {
       relics: relicsView(this),
       relicReward: this.relicReward ? { ...this.relicReward } : null,
       relicOffer: relicOfferView(this),
+      relicChessQueue: [...this.relicChessQueue],
       ascensionLottery: ascensionLotteryView(this),
       relicLeakStreak: this.relicLeakStreak,
       lpShield: activeRelicShield(this),

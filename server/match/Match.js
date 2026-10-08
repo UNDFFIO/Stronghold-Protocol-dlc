@@ -135,8 +135,8 @@ import { Battle } from '../sim/Battle.js';
 import { damageRanking } from '../../shared/damageRanking.js';
 import { DataSource } from '../sim/simdata.js';
 import { createRng, deriveSeed } from '../sim/rng.js';
-import { settleRelics, selectRelic, autoSelectRelic, activeRelicShield, activeReverseLp, previewRelicLpLoss, consumeRelicLpLoss, consumeRelicShield, relicsView } from './relics.js';
-import { RELIC_CHOICE_SECONDS } from '../../shared/relics.js';
+import { settleRelics, selectRelic, autoSelectRelic, activeRelicShield, activeReverseLp, previewRelicLpLoss, consumeRelicLpLoss, consumeRelicShield, relicsView, unusedRevival, consumeRevival, reviveSelf, revivalOperators } from './relics.js';
+import { RELIC_CHOICE_SECONDS, getRelic } from '../../shared/relics.js';
 import { drawAscensionLottery } from './ascensionLottery.js';
 import { GameData } from './gamedata.js';
 import { RealScheduler } from './scheduler.js';
@@ -895,6 +895,7 @@ export class Match {
         isBot: ps.isBot,
         connected: ps.isBot || (ps.connected && !ps.left),
         alive: ps.alive,
+        canRevive: !ps.alive && !ps.left && !!ps.eliminatedRoster,
         lp: Math.max(0, ps.lp),
         lpShield: activeRelicShield(ps),
         reverseLp: activeReverseLp(ps),
@@ -1106,6 +1107,7 @@ export class Match {
       case 'g.destroy': return ps.destroy(msg.uid);
       case 'g.reward': return ps.pickReward(msg.idx);
       case 'g.relic': return this.pickRelicChoice(ps, msg.offerId, msg.idx);
+      case 'g.relicRevive': return this.reviveTeammate(ps, msg.relicId, msg.playerId);
       case 'g.choice': return this.pickCard(ps, msg.idx);
       case 'g.ready': return ps.setReady(!!msg.ready);
       case 'g.emote': return this.emote(ps, msg.id);
@@ -1127,6 +1129,38 @@ export class Match {
     if (now - ps.lastEmoteAt < EMOTE_COOLDOWN_MS) return fail(ERR.RATE);
     ps.lastEmoteAt = now;
     this.broadcast({ t: 'm.emote', playerId: ps.playerId, id });
+    return OK;
+  }
+
+  reviveTeammate(ps, relicId, playerId) {
+    if (this.phase !== PHASE.PREP || this.ended || this.isSolo) return fail(ERR.WRONG_PHASE);
+    if (!ps.alive || ps.left) return fail(ERR.ELIMINATED);
+    const target = this.players.get(playerId);
+    if (!unusedRevival(ps, relicId) || !target || target === ps || target.alive || target.left || !target.eliminatedRoster) return fail(ERR.BAD_TARGET);
+    // 先计算四名确定的补给；没有合法干员时拒绝，不消耗藏品。
+    const effect = getRelic(relicId).reviveOnce;
+    const reward = revivalOperators(target, ps, effect.operators);
+    if (reward.ids.length !== effect.operators) return fail(ERR.BAD_TARGET);
+    consumeRevival(ps, target.playerId, relicId);
+    target.alive = true;
+    target.lp = effect.lp;
+    target.eliminatedRound = null;
+    target.lpAtFinal = null;
+    target.ready = false;
+    target.restoreEliminatedRoster();
+    // 首领回合的整备允许救人，重新配对后所有阵地沿用新的部署区域。
+    if (this.round === this.gd.bossRound || this.round === this.gd.hiddenRound) this._planBossWaves();
+    target.startRound(this.round);
+    this.dispatch(target, 'onRoundStart', { round: this.round });
+    this.dispatch(target, 'onPrepStart', { round: this.round });
+    target.relicChessQueue.push(...reward.ids);
+    for (const p of this.alivePlayers()) p.recompute();
+    this.watchers.delete(target.playerId);
+    this.sendTo(target.playerId, this.prepFieldMeta(target));
+    if (target.botControlled) this.scheduleBotPrep(target);
+    this.markPublic();
+    this.toast(ps, 'success', `「时光之末」已使用，复活了 ${target.name}`);
+    this.toast(target, 'success', `${ps.name} 使用「时光之末」复活了你：${effect.lp} 点生命、${effect.operators} 名干员补给`);
     return OK;
   }
 
@@ -2950,6 +2984,7 @@ export class Match {
       this._charDamageTickers(ps, r);
       this.dispatch(ps, 'onBattleResult', { result: r, lpLoss: loss, perfect: counted === 0 && r.perfect !== false, unite: uniteResult || null });
       ps.relicShield = 0; // unused protection expires with this round
+      reviveSelf(ps);
       if (ps.lp > 0) settleRelics(ps, r, { completed: r.relicCompleted === true });
       ps.recompute();
     }
@@ -3163,6 +3198,15 @@ export class Match {
       }, 0);
     } else for (const ps of affected) n = consumeRelicShield(ps, n);
     this.teamLp = Math.max(0, this.teamLp - n);
+    // 首领战全队共用生命：血池耗尽时按座位只消耗一件，恢复共享血池 11 点。
+    if (this.teamLp <= 0) {
+      const owner = this.alivePlayers().find((ps) => unusedRevival(ps));
+      if (owner) {
+        const effect = consumeRevival(owner, owner.playerId);
+        this.teamLp = effect.lp;
+        this.toast(owner, 'success', `「时光之末」已自动使用，共享生命恢复 ${effect.lp} 点`);
+      }
+    }
     if (this._bossLazyPublic()) { this._bossPublic(); return; }
     this._syncTeamLp();
     this.markPublic();

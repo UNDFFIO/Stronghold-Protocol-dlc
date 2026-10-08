@@ -280,6 +280,7 @@ export const C2S = {
   'g.destroy': { uid: isUid },
   'g.reward': { idx: (v) => isInt(v, 0, 5) },
   'g.relic': { offerId: isId, idx: (v) => isInt(v, 0, 2) },
+  'g.relicRevive': { relicId: isId, playerId: isId },
   'g.choice': { idx: (v) => isInt(v, 0, 5) },
   'g.ready': { ready: isBool },
   'g.emote': { id: (v) => EMOTES.includes(v) },

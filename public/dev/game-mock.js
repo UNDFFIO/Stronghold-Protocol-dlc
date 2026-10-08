@@ -544,6 +544,15 @@ async function mockRequest(t, f = {}) {
       refreshPrivate();
       return {};
     }
+    case 'g.relicRevive': {
+      if (pub.phase !== PHASE.PREP) fail('WRONG_PHASE');
+      const relic = (p.relics || []).find((r) => r.id === f.relicId && !r.used && getRelic(r.id)?.reviveOnce);
+      const target = pub.players.find((x) => x.playerId === f.playerId && x.playerId !== ME && !x.alive && x.canRevive);
+      if (!relic || !target) fail('BAD_TARGET');
+      relic.used = true;
+      target.alive = true; target.lp = 11; target.canRevive = false; target.status = 'prep';
+      refreshPrivate(); return {};
+    }
     case 'g.infoReady': { const me = pub.players.find((x) => x.playerId === ME); me.ready = true; me.status = 'ready'; pushPublic(); return {}; }
     case 'g.band': {
       p.bandId = f.bandId; const me = pub.players.find((x) => x.playerId === ME); me.bandId = f.bandId;

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { RELICS } from '../../shared/relics.js';
-import { RelicList, relicEntries, relicOdds, ownerRelics } from '../../public/js/ui/relicPanel.js';
+import { RelicList, relicEntries, relicOdds, ownerRelics, revivalTargets } from '../../public/js/ui/relicPanel.js';
 import { liveLp } from '../../public/js/ui/hud.js';
 import { rowLp } from '../../public/js/ui/teamPanel.js';
 import { PHASE } from '../../shared/constants.js';
@@ -63,6 +63,21 @@ test('displayed odds sum to 100% and lock high-strength tiers until their unlock
     assert.ok(Math.abs(odds.reduce((sum, o) => sum + o.percent, 0) - 100) < 1e-8);
     for (const o of odds) if (round < o.unlock) assert.equal(o.percent, 0);
   }
+});
+
+test('时光之末：一次性使用状态、历史图鉴与可复活队友分别使用可信状态', () => {
+  const records = [{ id: 'relic_233', round: 7, used: true }];
+  assert.equal(relicEntries(records)[0].used, true);
+  assert.match(textOf(RelicList({ relics: records })), /已使用 · 复活机会已消耗/);
+  assert.ok(!textOf(RelicList({ relics: records, history: true })).includes('机会已消耗'));
+  assert.match(textOf(RelicList({ relics: [{ id: 'relic_233', round: 7 }] })), /剩余 1 次/);
+  const players = [
+    { playerId: 'me', alive: false, canRevive: true },
+    { playerId: 'dead', alive: false, canRevive: true },
+    { playerId: 'left', alive: false, canRevive: false },
+    { playerId: 'alive', alive: true, canRevive: true },
+  ];
+  assert.deepEqual(revivalTargets({ players }, 'me').map((p) => p.playerId), ['dead']);
 });
 
 test('live LP previews include shields, keep uncapped survivor counts and avoid subtracting a server preview twice', () => {
