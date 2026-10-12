@@ -2,7 +2,7 @@
 
 基于 [sganggs/Stronghold-Protocol](https://github.com/sganggs/Stronghold-Protocol) 的非官方玩法扩展 fork，在原有浏览器自走棋塔防与单人 / 1–4 人合作玩法上，加入**收藏品、超限模拟和后期商店扩展**。DLC 是本 fork 的扩展标识，非鹰角官方 DLC。
 
-![base version](https://img.shields.io/badge/upstream%20base-0.2.1-2ea44f)
+![base version](https://img.shields.io/badge/upstream%20base-0.2.4-2ea44f)
 ![license](https://img.shields.io/badge/code%20license-GPL--3.0--or--later-blue)
 ![node](https://img.shields.io/badge/node-22%20%7C%2024-339933)
 
@@ -26,9 +26,9 @@ English summary: [below](#english).
 
 ## 与原项目的差异
 
-本 fork 以原项目 **0.2.1** 为基础，当前保留上游至 `c2a2ef7` 的更新。以下比较针对这一基线；`package.json` 中的 0.2.1 是沿用的基础版本号，不表示这些扩展已属于上游发布内容。
+本 fork 以原项目 **0.2.4** 为基础，当前保留上游至 `bc50cac0` 的更新。以下比较针对这一基线；`package.json` 中的 0.2.4 是沿用的基础版本号，不表示这些扩展已属于上游发布内容。
 
-| 项目 | 原项目（0.2.1 基线） | 本 fork |
+| 项目 | 原项目（0.2.4 基线） | 本 fork |
 |---|---|---|
 | 难度 | 标准 / 险境 / 绝境 / 终极四种模拟 | 保留四种基础难度，新增以终极为基础的「超限模拟」0–20 级，逐级累积战场协议 |
 | 作战奖励 | 无本局收藏品选择流程 | 无漏怪作战后藏品三选一，46 件藏品按回合进度分档掉落，增益整局保留 |
@@ -36,7 +36,7 @@ English summary: [below](#english).
 | 后期招募 | 干员招募位数量由调度中心等级决定 | 第 9 回合起，在原有数量上增加两个干员招募位，装备位不变 |
 | 界面 | 原有难度选择、效果栏与结算展示 | 增加超限等级轮盘与规则预览、个人收藏图标和详情、奖励选择及结算收藏展示 |
 
-原项目的招募与晋升、盟约、装备、联防、最终攻势、隐秘核心、AI 队友及断线重连仍作为基础玩法保留；同盟观战席、补位干员、自选编队、多语言、自定义快捷键、满潜能数据、调配导入 / 导出、战斗语音、分回合音乐，以及干员技能、敌人规则、渲染、启动器和诊断等上游更新也继续保留。基础玩法见 [玩法指南](docs/PLAYING.md)，上游版本记录见 [CHANGELOG.md](CHANGELOG.md)。
+原项目的招募与晋升、盟约、装备、联防、最终攻势、隐秘核心、AI 队友及断线重连仍作为基础玩法保留；同盟观战席、补位干员、自选编队、多语言、自定义快捷键、满潜能数据、调配导入 / 导出、战斗语音、分回合音乐，以及干员技能、敌人规则、渲染、启动器和诊断等上游更新也继续保留。共享卡池与装备库存、潜能与练度设置、AI 队友最后选择、重新生成开局和渲染性能等 0.2.2–0.2.4 更新也已同步。基础玩法见 [玩法指南](docs/PLAYING.md)，上游版本记录见 [CHANGELOG.md](CHANGELOG.md)。
 
 这些扩展会改变成长与战斗平衡：**选择四种基础难度仍会启用收藏品与后期商店扩展**，并不等于回到原项目规则。藏品名称与图标参考明日方舟其他玩法，但档位、数值与效果经过本 fork 适配，不代表官方「卫戍协议」规则。
 
@@ -89,12 +89,13 @@ npm start
 | 环境变量 | 默认 | 说明 |
 |---|---|---|
 | `PORT` | `3000` | 监听端口 |
-| `HOST` | `0.0.0.0` | 监听地址，`127.0.0.1` 仅允许本机访问 |
+| `HOST` | `::` | 默认双栈，接受 IPv6 和 IPv4；`0.0.0.0` 仅 IPv4，`127.0.0.1` 仅本机访问 |
 | `SP_COMBAT` | `client` | `client` 在玩家浏览器模拟；`server` 在服务器模拟并推流 |
 | `SP_VERIFY` | `off` | 服务端复算：`off` / `sample` / `all` |
 | `TRUST_PROXY` | `auto` | 转发头信任设置：`auto` / `1` / `0` |
 | `DEBUG` | 空 | 启用详细日志 |
 | `SP_NO_BROWSER` | 空 | 设为 `1` 时启动脚本不自动打开浏览器 |
+| `SP_BOT_EMOTES` | 空 | AI 队友的对局表情回应（战斗、整备、合成、联防、收礼时即刻的 `m.emote` 广播）；设为 `0` 时整体关闭 |
 
 PowerShell 更换端口：`$env:PORT=8080; npm start`。健康检查：`GET /healthz`。
 
@@ -105,7 +106,7 @@ PowerShell 更换端口：`$env:PORT=8080; npm start`。健康检查：`GET /hea
 | 操作 | 方法 |
 |---|---|
 | 购买 / 升级调度中心 / 机变选卡 | 点一次选中，再点一次确认（`D` 升级） |
-| 部署 / 移动干员 | 从整备区拖到棋盘格 → 出现方向轮盘 → 往上 / 右 / 下 / 左滑动选择朝向后松手；松在中心或点「✕ 点击取消」取消。拖动时模型在指针 / 手指下，指针所在的格子就是落点 |
+| 部署 / 移动干员 | 从整备区拖到棋盘格 → 出现方向轮盘 → 往上 / 右 / 下 / 左滑动选择朝向后松手；松在中心或点「✕ 点击取消」取消。拖动时指针 / 手指所在的格子就是落点，能放下时模型直接站在这一格上（不能放下时跟在指针下） |
 | 调整朝向 | 把干员拖回它自己的格子，再选方向 |
 | 出售 / 撤退 / 销毁装备 | 点击单位所在的格子 → 底部按钮「出售 +1」「撤退」；也可以把棋盘上的干员拖回整备区撤退。整备区里的装备与法术只能「销毁」，已配发的装备锁定在干员身上（干员出售或合成精锐时退回整备区） |
 | 装备 | 把装备拖到干员所在的格子上（每人 2 件；满了会弹出替换窗口，被替换的一件会被销毁）；法术拖到地块上并选方向 |
@@ -115,6 +116,7 @@ PowerShell 更换端口：`$env:PORT=8080; npm start`。健康检查：`GET /hea
 | 暂停（独立模拟） | 作战中（含最终攻势 / 隐秘核心）点顶栏的「暂停」或按 `Space`，再点「继续作战」（或 `Space`）继续；同盟模拟的作战不能暂停 |
 | 表情 | 左下角「交流」，左右滑动（或方向键）换主题，冷却 1 秒 |
 | 观战 | 自己的作战结束后（或休整期）点左侧队友头像 →「前往查看」；不参战的朋友可以在大厅输入同盟密钥点「观战」（每个同盟最多 2 名观战者，本作新增） |
+| 统计（本机） | 标题画面右上角、大厅、等待室的「统计」：胜率、策略通过率、称号、战斗累计和对局记录（点一行回看结算页）；只存在本机浏览器里，可以导出 / 导入，没清完第一个回合就退出的对局不计入统计（[玩法指南 §12](docs/PLAYING.md#13-统计本机)） |
 
 完整的规则、数值和小技巧见 **[docs/PLAYING.md](docs/PLAYING.md)**（游戏内左下角也有「玩法说明」）。
 
@@ -138,16 +140,20 @@ PowerShell 更换端口：`$env:PORT=8080; npm start`。健康检查：`GET /hea
 ## 开发与测试
 
 ```bash
-npm run dev       # 监听服务器代码修改并自动重启
-node --test       # 单元与集成测试
-npm run lint
-npm run check:imports
-npm run typecheck
-npm run golden    # 固定种子战斗与对局回归
-node --test test/content/relics.test.js test/match/relics.test.js test/sim/ascension.test.js test/difficulty-level.test.js test/ui/relics.test.js
+npm run dev                 # node --watch：改动服务器代码后自动重启
+node --test                 # 单元 + 集成测试（约 3170 项；缺少素材 / 浏览器的用例会自动跳过）
+SP_E2E=1 node --test test/ui/mock.e2e.test.js        # 浏览器端到端测试，需要本机 Chrome（CHROME_PATH 可指定路径）
+SP_REAL_E2E=1 node --test test/ui/real.e2e.test.js   # 需要 Chrome + 已下载的素材
+RENDER_E2E=1 node --test 'test/render/*.browser.test.js'   # 渲染测试，部分需要本地提取的棋盘贴图
+GOLDEN_FULL=1 node --test test/golden.test.js           # 黄金结果：固定种子的整套战斗与人机对局摘要（默认只跑快速子集）
+node tools/perfbench.mjs --cpu 1,4,6 --profile             # 真实战斗的帧耗时基准（Chrome 降速 CPU 近似中低端手机），需要 Chrome + 已下载的素材
 ```
 
-浏览器测试需要 Chrome（可用 `CHROME_PATH` 指定）及对应素材，按测试文件启用环境开关。Fork 新增用例见 `test/ui/difficulty-level.e2e.test.js` 和 `test/ui/relics.e2e.test.js`。
+- 游戏数据由 `npm run build-data`（`tools/build-data.mjs`）从官方数据表生成，不要手工修改 `data/*.json`。
+- 性能测试：`/dev/battle-perf.html` 在浏览器里跑一场真实战斗（对局用的战斗运行器、模拟和渲染），实时显示帧率与逐帧耗时；在手机上打开后点击「开始测量（10 秒）」，生成的报告可以复制后附在反馈中。用到的战斗来自 `node tools/capture-specs.mjs` 从固定种子的机器人对局里截取的数据（`public/dev/perf/`）。
+- 只重构、不改玩法的提交不能改变 `test/golden/*.json`；有意改变玩法时运行 `npm run golden:update`，检查差异后随改动一起提交（见 [test/golden/README.md](test/golden/README.md)）。
+- GitHub Actions（[.github/workflows/ci.yml](.github/workflows/ci.yml)）在 Ubuntu 与 Windows、Node 22 / 24 上运行 `npm ci`、`node --test` 和服务器冒烟测试。
+- 代码怎么分层、改某个规则该从哪个文件入手，见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)。
 
 代码主要分布在 `server/`（大厅、对局与共用战斗模拟）、`shared/`（协议、难度与藏品定义）、`public/`（浏览器客户端）。素材工具在 `tools/`，启动脚本在 `scripts/`。官方游戏数据通过 `npm run build-data` 生成，不要手工修改生成的数据文件；扩展定义维护在 `shared/difficulty.js` 与 `shared/relics.js`。
 
@@ -181,7 +187,7 @@ node --test test/content/relics.test.js test/match/relics.test.js test/sim/ascen
 
 ## English
 
-**Stronghold-Protocol-dlc** is an unofficial gameplay-expansion fork of [sganggs/Stronghold-Protocol](https://github.com/sganggs/Stronghold-Protocol) for Arknights' mode *Stronghold Protocol: Alliance*, based on upstream 0.2.1. It adds 46 match-scoped collectibles, comeback rewards and a next-round shield after three consecutive leaking rounds, cumulative Ascension levels 0–20, and two extra operator offers from round 9. Collectibles and the shop expansion also apply to the four base difficulties. DLC is this fork's label, not an official Arknights release.
+**Stronghold-Protocol-dlc** is an unofficial gameplay-expansion fork of [sganggs/Stronghold-Protocol](https://github.com/sganggs/Stronghold-Protocol) for Arknights' mode *Stronghold Protocol: Alliance*, based on upstream 0.2.4. It adds 46 match-scoped collectibles, comeback rewards and a next-round shield after three consecutive leaking rounds, cumulative Ascension levels 0–20, and two extra operator offers from round 9. Collectibles and the shop expansion also apply to the four base difficulties. DLC is this fork's label, not an official Arknights release.
 
 - **Run:** clone this fork, install Node.js 22 or 24, then run `npm install`, `npm run setup` and `npm start`. Open [http://localhost:3000](http://localhost:3000). Upstream bundles do not include this fork's extensions.
 - **Rules:** see [PLAYING.md](docs/PLAYING.md) and [COLLECTIBLES.md](docs/COLLECTIBLES.md); hosting details are in [DEPLOY.md](docs/DEPLOY.md).

@@ -209,9 +209,13 @@ test('14: every fourth normal spawn creates one counted echo on death, keeps rem
   assert.equal(echo.base.atk, fourth.base.atk);
   assert.equal(echo.bounty, null);
   assert.deepEqual(echo.route.legs, fourth.route.legs.slice(1));
-  assert.equal(b.total, 5);
+  assert.equal(b.total, 0, "runtime spawns stay outside the scheduled-enemy HUD counter");
+  assert.equal(echo.counted, true, "the echo still counts for LP loss and perfect-round eligibility");
+  assert.equal(echo.inTotal, false);
   b.kill(echo, a);
-  assert.equal(b.total, 5);
+  assert.equal(b.total, 0);
+  assert.equal(b.killed, 2);
+  assert.equal(b.resolved, 0);
   assert.equal(b.enemies.filter(u => u.tag === 'asc_echo').length, 1);
 });
 

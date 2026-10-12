@@ -37,6 +37,26 @@ test('revival restores a DIY operator from the player stock without touching the
   } finally { h.m.dispose(); }
 });
 
+test('revival keeps shared-stock accounting when teammates took the returned copies', () => {
+  const h = setup();
+  try {
+    const owner = h.ps('p_0'), target = h.ps('p_1');
+    grantRelic(owner, ID);
+    const base = [...h.m.pool.entries.keys()].find((id) => h.m.gd.tierOf(id) === 6);
+    assert.ok(base);
+    const original = target.acquireChess(base);
+    kill(target);
+    while (h.m.pool.left(base) > 0) assert.ok(owner.acquireChess(base));
+    assert.equal(h.m.handle(owner.playerId, request()).ok, true);
+    assert.equal(target.find(original.uid).piece.poolCopies, 1);
+    assert.ok(h.m.pool.entries.get(base).left < 0);
+    assert.equal(h.m.pool.left(base), 0);
+    h.invariants();
+    kill(target);
+    h.invariants();
+  } finally { h.m.dispose(); }
+});
+
 test('时光之末：真实候选及合法领取；使用后仍排除同名，协议拒绝伪造字段', () => {
   const h = setup();
   try {
@@ -162,14 +182,19 @@ test('时光之末：并列最高选择单个盟约，空池仍直接发四名�
     for (const b of bonds) target.layers[b] = 50;
     const expected = revivalOperators(target, owner, 4);
     assert.ok(bonds.includes(expected.bondId));
-    // 模拟候选副本全部耗尽，效果发放仍可创建不占池副本的干员。
+    // 模拟候选副本全部耗尽；效果仍发放干员，并按上游共享卡池规则记录透支。
     for (const id of new Set(expected.ids)) {
       const e = h.m.pool.entries.get(id);
       e.left = 0;
     }
     assert.equal(h.m.handle(owner.playerId, request()).ok, true);
     assert.equal(target.round.gainedChess, 4);
-    assert.ok(target.allChess().every((p) => p.poolCopies === 0));
+    assert.equal(target.allChess().reduce((n, p) => n + p.poolCopies, 0), 4);
+    for (const id of new Set(expected.ids)) {
+      const copies = expected.ids.filter((x) => x === id).length;
+      assert.equal(h.m.pool.entries.get(id).left, -copies);
+      assert.equal(h.m.pool.left(id), 0);
+    }
   } finally { h.m.dispose(); }
   const fresh = setup();
   try { assert.deepEqual(fresh.ps('p_0').relics, []); assert.deepEqual(fresh.ps('p_0').relicChessQueue, []); }

@@ -90,7 +90,11 @@ test('level wheel and effects render, scroll, synchronize and fit solo / co-op a
     });
     assert.equal(overlaps, false, 'seat cards do not overlap the level panel');
     await c.shot('coop-20-small');
-    await c.page.setViewport({ width: 844, height: 390, isMobile: true, hasTouch: true }); await sleep(400);
+    await c.page.setViewport({ width: 844, height: 390, isMobile: true, hasTouch: true });
+    // Device detection may briefly remount the screen when switching from mouse to touch.
+    await c.page.waitForSelector('.room-bar');
+    await c.page.waitForSelector('.room-level .level-picker');
+    await sleep(400);
     r = await layout(c);
     assert.ok(r.panel.bottom <= r.footer.y, `touch panel fits ${JSON.stringify(r)}`);
     assert.ok(r.effects.right <= r.w, 'effects remain visible on landscape touch screens');
