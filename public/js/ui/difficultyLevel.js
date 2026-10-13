@@ -6,7 +6,7 @@ import { t } from '../../../shared/i18n.js';
 const LEVELS = Array.from({ length: MAX_DIFFICULTY_LEVEL + 1 }, (_, i) => MAX_DIFFICULTY_LEVEL - i);
 
 /** Scroll-snap wheel: mouse wheel, touch scrolling, row clicks and keyboard all select the centered level. */
-export function DifficultyLevelPicker({ value = 0, onChange, disabled = false, readOnly = false }) {
+export function DifficultyLevelPicker({ value = 0, onChange, disabled = false, readOnly = false, minimal = false }) {
   const level = normalizeDifficultyLevel(value);
   const [preview, setPreview] = useState(level);
   const [showAll, setShowAll] = useState(false);
@@ -29,10 +29,13 @@ export function DifficultyLevelPicker({ value = 0, onChange, disabled = false, r
     if (!disabled) { setPreview(level); scrollTo(level); }
   }, [disabled, readOnly]);
   useEffect(() => {
-    const resize = new ResizeObserver(() => scrollTo(latest.current.level));
+    const resize = new ResizeObserver(() => {
+      if (minimal && wheel.current) wheel.current.style.setProperty('--level-row-height', `${wheel.current.clientHeight / 3}px`);
+      scrollTo(latest.current.level);
+    });
     if (wheel.current) resize.observe(wheel.current);
     return () => { clearTimeout(timer.current); resize.disconnect(); };
-  }, []);
+  }, [minimal]);
   const choose = (n) => {
     if (disabled || readOnly) return;
     const next = normalizeDifficultyLevel(n);
@@ -84,21 +87,37 @@ export function DifficultyLevelPicker({ value = 0, onChange, disabled = false, r
   };
   const current = DIFFICULTY_RULES[preview - 1];
   const shown = showAll ? DIFFICULTY_RULES : DIFFICULTY_RULES.slice(0, preview).reverse();
-  return html`<section class=${`level-picker brackets${readOnly ? ' is-readonly' : ''}`} aria-label=${t('超限难度等级与效果')}>
-    <div class="level-picker__selector">
-      <${MicroLabel}>ASCENSION LEVEL<//>
-      <div class="level-wheel__frame">
-        <span class="level-wheel__marker" aria-hidden="true"></span>
-        <div ref=${wheel} class="level-wheel" role="spinbutton" tabindex=${disabled || readOnly ? -1 : 0}
+  const wheelControl = html`<div ref=${wheel} class="level-wheel" role="spinbutton" tabindex=${disabled || readOnly ? -1 : 0}
           aria-label=${t('超限难度等级')} aria-valuemin="0" aria-valuemax=${MAX_DIFFICULTY_LEVEL} aria-valuenow=${preview}
           aria-valuetext=${t('{preview}级，{1}，累计启用{preview}项协议', { preview, 1: t(current?.name) || t('终极基准') })}
           aria-disabled=${disabled} aria-readonly=${readOnly} onScroll=${onScroll} onKeyDown=${onKeyDown}
           onPointerDown=${onPointerDown} onPointerMove=${onPointerMove} onPointerUp=${onPointerUp} onPointerCancel=${onPointerUp}
           onClickCapture=${(e) => { if (suppressClick.current) { suppressClick.current = false; e.preventDefault(); e.stopPropagation(); } }}
           style=${disabled || readOnly ? 'overflow-y:hidden' : ''}>
-          ${LEVELS.map((n) => html`<button key=${n} type="button" tabindex="-1" disabled=${disabled || readOnly}
-            aria-hidden="true" class=${`level-wheel__row num${n === preview ? ' is-selected' : ''}`} onClick=${() => choose(n)}>${String(n).padStart(2, '0')}</button>`)}
-        </div>
+          ${LEVELS.map((n) => {
+            const rule = DIFFICULTY_RULES[n - 1];
+            return html`<button key=${n} type="button" tabindex="-1" disabled=${disabled || readOnly}
+              aria-hidden="true" class=${`level-wheel__row${minimal ? '' : ' num'}${n === preview ? ' is-selected' : n < preview ? ' is-active' : ''}`} onClick=${() => choose(n)}>
+              ${minimal ? html`<span class="level-wheel__number num">${String(n).padStart(2, '0')}</span>
+                <span class="level-wheel__effect"><strong>${t(rule?.name) || t('原始模拟')}</strong>
+                  <span>${rule?.description ?? t('沿用终极模拟基础参数，不附加超限协议；第 4 回合额外抽奖一次。')}</span>
+                </span>` : String(n).padStart(2, '0')}
+            </button>`;
+          })}
+        </div>`;
+  if (minimal) return html`<section class=${`level-picker level-picker--integrated${readOnly ? ' is-readonly' : ''}`} aria-label=${t('超限难度等级与效果')}>
+    <div class="level-effects__head"><b class="num">LEVEL ${String(preview).padStart(2, '0')}</b></div>
+    <div class="level-wheel__frame">
+      <span class="level-wheel__marker" aria-hidden="true"></span>
+      ${wheelControl}
+    </div>
+  </section>`;
+  return html`<section class=${`level-picker brackets${readOnly ? ' is-readonly' : ''}`} aria-label=${t('超限难度等级与效果')}>
+    <div class="level-picker__selector">
+      <${MicroLabel}>ASCENSION LEVEL<//>
+      <div class="level-wheel__frame">
+        <span class="level-wheel__marker" aria-hidden="true"></span>
+        ${wheelControl}
       </div>
       <span class="level-picker__hint">${readOnly ? t('由创建者选择') : t('滚动 / 拖动选择 · 0–20')}</span>
     </div>
