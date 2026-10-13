@@ -54,6 +54,8 @@
 .level-wheel__effect { min-width: 0; display: flex; flex-direction: column; gap: .05rem; }
 .level-wheel__effect strong { font-size: calc(.22 * var(--t)); font-weight: 700; }
 .level-wheel__effect > span { font-size: calc(.15 * var(--t)); }
+.level-rule__help { display: inline; margin-left: .04rem; color: var(--amber); cursor: help; white-space: nowrap; }
+.level-rule__help:focus-visible { outline: 1px solid var(--amber); outline-offset: 2px; }
 .level-picker--integrated .level-wheel__row.is-active { color: #995d68; }
 .level-picker--integrated .level-wheel__row.is-selected { color: #ff3156; }
 .level-picker--integrated .is-selected .level-wheel__number { text-shadow: 0 0 .2rem rgba(255, 49, 86, .2); }

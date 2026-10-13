@@ -211,6 +211,7 @@
 /* ---- spectator seats (观战席, community report #26) -------------------------------------------------------------- */
 .specbar {
   flex: none;
+  margin-top: auto;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -241,6 +242,8 @@
 .room-bar {
   position: relative;
   flex: none;
+  /* Capped co-op seats can leave free space in tall windows. Keep the actions at the bottom. */
+  margin-top: auto;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
@@ -250,6 +253,7 @@
   background: linear-gradient(0deg, rgba(7, 9, 8, .96), rgba(10, 13, 12, .7));
   border-top: 1px solid var(--line);
 }
+.specbar + .room-bar { margin-top: 0; }
 .room-bar::before {
   content: '';
   position: absolute;

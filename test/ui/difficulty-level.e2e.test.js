@@ -66,11 +66,16 @@ test('lobby shows tactical tips for ascension; room level controls render, synch
     await c.page.focus('.level-wheel'); await c.page.keyboard.press('Home');
     await sleep(300);
     assert.equal(await currentLevel(c), 0);
+    assert.match(await c.page.$eval('.level-wheel__row.is-selected', el => el.textContent), /无附加协议.*第4回合开始时额外获得1次【超限补给】/s);
+    await c.page.hover('.level-wheel__row.is-selected .level-rule__help');
+    await c.page.waitForSelector('.tooltip.is-shown');
+    assert.match(await c.page.$eval('.tooltip', el => el.textContent), /等概率.*15金币.*恢复8点目标生命值/s);
     await c.page.focus('.level-wheel'); await c.page.keyboard.press('End');
     await sleep(350);
     assert.equal(await currentLevel(c), 20);
     assert.match(await c.page.$eval('.level-wheel__row.is-selected', (el) => el.textContent), /终极协同/);
     assert.match(await c.page.$eval('.level-wheel__row.is-selected', (el) => el.textContent), /另一名干员/);
+    assert.equal(await c.page.$eval('.level-effects__head', el => el.textContent.trim()), 'LEVEL 20');
     assert.equal(await c.page.$$eval('.level-wheel__row.is-active', (els) => els.length), 20);
     assert.equal(await c.page.$('.solo-brief .level-rule, .solo-brief .level-effects'), null, 'solo has no separate effect panel');
     assert.equal(await c.page.$eval('.level-wheel', (el) => el.scrollHeight > el.clientHeight), true);
@@ -110,6 +115,8 @@ test('lobby shows tactical tips for ascension; room level controls render, synch
     assert.equal(await currentLevel(c), 5);
     assert.equal(await c.page.$$eval('.level-wheel__row.is-active', (els) => els.length), 5);
     assert.match(await c.page.$eval('.level-wheel__row.is-selected', (el) => el.textContent), /首击屏障/);
+    await c.page.hover('.level-wheel__row.is-selected .level-rule__help');
+    await c.page.waitForFunction(() => document.querySelector('.tooltip.is-shown')?.textContent.includes('元素损伤累积不消耗该屏障'));
     assert.equal(await c.page.$$eval('.level-wheel__row', (els) => els.length), 21);
     const colors = await c.page.evaluate(() => {
       const rows = [...document.querySelectorAll('.level-wheel__row')];

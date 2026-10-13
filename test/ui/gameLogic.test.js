@@ -739,6 +739,23 @@ describe('keyboard & settings', () => {
 });
 
 describe('result', () => {
+  test('normalizeResult preserves the ascension level and falls back only when it is missing or invalid', () => {
+    const pub = { difficulty: 'ASCENSION', difficultyLevel: 20 };
+    for (const level of [0, 1, 10, 20]) {
+      const res = { difficulty: 'ASCENSION', difficultyLevel: level };
+      assert.equal(normalizeResult(res, pub).difficultyLevel, level, 'settlement overrides the public level, even at 0');
+      assert.equal(normalizeResult(res, null).difficultyLevel, level, 'settlement does not need public state');
+    }
+    for (const level of [undefined, null, NaN, Infinity, '10', 1.5]) {
+      assert.equal(normalizeResult({ difficultyLevel: level }, pub).difficultyLevel, 20);
+      assert.equal(normalizeResult({ difficultyLevel: level }, null).difficultyLevel, 0);
+    }
+    assert.equal(normalizeResult(null, pub).difficultyLevel, 20);
+    assert.equal(normalizeResult(null, null).difficultyLevel, 0);
+    assert.equal(normalizeResult({ difficultyLevel: 99 }, pub).difficultyLevel, 20);
+    assert.equal(normalizeResult({ difficultyLevel: -1 }, pub).difficultyLevel, 0);
+  });
+
   test('normalizeResult fills from m.public and sorts by seat', () => {
     const pub = { lastRound: 14, difficulty: 'HARD', players: [{ playerId: 'b', seat: 1, name: 'B', lp: 4, bandId: 'band_x' }, { playerId: 'a', seat: 0, name: 'A' }] };
     const r = normalizeResult({ victory: true, roundsPassed: 14, players: [{ playerId: 'b', title: 'comment_2', lineup: [{ id: 'c1' }], stats: { kills: 3 } }, { playerId: 'a', title: { id: 'comment_1', name: '卫戍之星' } }, null] }, pub);
