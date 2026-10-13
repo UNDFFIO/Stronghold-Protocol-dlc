@@ -1520,5 +1520,8 @@
   "{names}只能部署在召唤者相邻四格，已退回整备区": "{names} can only be deployed on the four tiles adjacent to the summoner and returned to the Bench",
   "{names}只能部署在召唤者相邻四格，整备区已满，下回合返还": "{names} can only be deployed on the four tiles adjacent to the summoner; the Bench is full, so they come back next round",
   "装备库存不足，未获得该装备": "Equipment stock is insufficient; no equipment was received",
-  "库存不足": "Out of stock"
+  "库存不足": "Out of stock",
+  "护愈之手": "Healing Hand",
+  "医疗干员攻击范围内的我方干员免疫异常状态，溢出的治疗量转化为等量屏障，最多为受治疗者最大生命值的 100%。": "Allied operators within your Medics’ attack range are immune to abnormal statuses. Excess healing becomes an equal barrier, capped at 100% of the healed operator’s maximum HP.",
+  "疗养师、行医、护佑者范围内免疫异常状态；拥有医者-地缘策略时溢出治疗转化为屏障。": "Therapists, Wandering Medics and Abjurers grant abnormal-status immunity in range; excess healing becomes a barrier with the required Medic relic."
 }

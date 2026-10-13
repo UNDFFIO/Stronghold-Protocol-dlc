@@ -26,6 +26,7 @@ export async function prepareCustomRelicIcons(assetsRoot) {
 }
 
 export const RELIC_ICON_FILES = Object.freeze({
+  "relic_172": "rogue_6_relic_hand_6.png", // 护愈之手，No.172，核对于 2026-10-13
   "relic_233": "rogue_6_relic_legacy_94.png", // “时光之末”，No.233，核对于 2026-10-05
   "relic_003": "rogue_6_relic_legacy_24.png", // 橙味风暴
   "relic_002": "rogue_6_relic_legacy_23.png", // 凉拌海草

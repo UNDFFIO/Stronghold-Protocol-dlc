@@ -1,9 +1,40 @@
 // Collection bonuses are resolved from shared, trusted definitions. A single persistent buff contains the
 // collection modifiers, so death, redeployment and re-installation never multiply the same bonuses.
 import { getRelic, relicModifiers } from '../../../shared/relics.js';
-import { passiveBuff, playerOps } from './support/index.js';
+import { passiveBuff, playerOps, onField, inRange } from './support/index.js';
+import { RESIST_STATUSES } from '../buffs.js';
 
 const KEY = 'relic:collection';
+const healingHandInstalled = new WeakSet();
+// [ASSUMED] Use the engine's control-status catalogue plus stack-based palsy. Attribute debuffs,
+// elemental buildup and HP loss are not abnormal statuses. PRTS 护愈之手 (No.172), adapted by maintainer:
+// every MEDIC, no prerequisite relic; both benefits apply to the owner's operators inside a medic's range.
+const HAND_ABNORMAL = new Set([...RESIST_STATUSES, 'palsy']);
+
+function installHealingHand(battle, owners) {
+  if (!owners.size || healingHandInstalled.has(battle)) return;
+  healingHandInstalled.add(battle);
+  const covered = (target) => target?.kind === 'op' && onField(target) && !target.removed && owners.has(target.ownerId)
+    && battle.allyUnits.some((u) => u.kind === 'op' && u.ownerId === target.ownerId && u.def?.profession === 'MEDIC'
+      && onField(u) && !u.removed && inRange(u, target));
+  battle.on('beforeStatus', (ctx) => {
+    if (HAND_ABNORMAL.has(ctx.status) && covered(ctx.target)) ctx.cancel = true;
+  });
+  // [ASSUMED] Existing control statuses are removed when entering coverage. Passive coverage survives
+  // a medic's inability to act; range, death and redeployment are checked live, without lingering aura buffs.
+  const cleanse = () => {
+    for (const u of battle.allyUnits) {
+      if (!covered(u)) continue;
+      for (const buff of u.buffs.slice()) if (HAND_ABNORMAL.has(buff.status)) battle.removeStatus(u, buff.status);
+    }
+  };
+  battle.on('tick', cleanse);
+  battle.on('deploy', cleanse);
+  battle.on('heal', ({ target, opts }) => {
+    // Ordinary targeting is unchanged. Regeneration is not a healing action; blocked heals never reach this hook.
+    if (!opts.regen && covered(target)) opts.overheal = true;
+  });
+}
 
 export function install(battle) {
   const byPlayer = new Map();
@@ -13,6 +44,7 @@ export function install(battle) {
     if (ids.length) byPlayer.set(ps.playerId, ids);
   }
   if (!byPlayer.size) return;
+  installHealingHand(battle, new Set([...byPlayer].filter(([, ids]) => ids.includes('relic_172')).map(([pid]) => pid)));
 
   const apply = (unit) => {
     if (!unit || unit.kind !== 'op') return;
