@@ -6,6 +6,23 @@ import { RESIST_STATUSES } from '../buffs.js';
 
 const KEY = 'relic:collection';
 const healingHandInstalled = new WeakSet();
+const fertilizerInstalled = new WeakSet();
+
+function installFertilizer(battle, owners) {
+  if (!owners.size || fertilizerInstalled.has(battle)) return;
+  fertilizerInstalled.add(battle);
+  // One proc per completed attack action (including healing attacks), never per target or hit.
+  // [ASSUMED] Follow the engine's attack event, after the attack resolves; direct skill damage is not an attack.
+  battle.on('attack', ({ attacker: u }) => {
+    if (u?.kind !== 'op' || !onField(u) || u.removed || !owners.has(u.ownerId)) return;
+    battle.loseHp(u, Math.min(50, Math.max(0, u.hp - 1)), { tags: ['relic:125'] });
+    if (!onField(u) || u.removed) return;
+    const key = 'relic:125:barrier';
+    const cap = u.s.maxHp * 1.4;
+    const shield = Math.min(cap, (u.findBuff(key)?.shield ?? 0) + 100);
+    battle.addBuff(u, { key, shield, duration: Infinity });
+  });
+}
 // [ASSUMED] Use the engine's control-status catalogue plus stack-based palsy. Attribute debuffs,
 // elemental buildup and HP loss are not abnormal statuses. PRTS 护愈之手 (No.172), adapted by maintainer:
 // every MEDIC, no prerequisite relic; both benefits apply to the owner's operators inside a medic's range.
@@ -45,6 +62,7 @@ export function install(battle) {
   }
   if (!byPlayer.size) return;
   installHealingHand(battle, new Set([...byPlayer].filter(([, ids]) => ids.includes('relic_172')).map(([pid]) => pid)));
+  installFertilizer(battle, new Set([...byPlayer].filter(([, ids]) => ids.includes('relic_125')).map(([pid]) => pid)));
 
   const apply = (unit) => {
     if (!unit || unit.kind !== 'op') return;

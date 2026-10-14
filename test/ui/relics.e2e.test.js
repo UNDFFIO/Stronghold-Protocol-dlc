@@ -108,6 +108,9 @@ test('时光之末：自己的列表按钮复活队友、显示已使用，观�
 });
 
 for (const item of [
+  { id: 'relic_125', name: '液体化肥', tier: '精良', phrases: ['50 点生命', '100 点屏障', '140%'], shot: 'fertilizer' },
+  { id: 'relic_126', name: '热辣可可', tier: '稀有', phrases: ['30%', '+150%', '线性'], shot: 'cocoa' },
+  { id: 'relic_127', name: '止痛片', tier: '精良', phrases: ['30%', '2 点', '自然回复'], shot: 'painkillers' },
   { id: 'relic_172', name: '护愈之手', tier: '史诗', phrases: ['免疫异常状态', '等量屏障', '100%'], shot: 'healing-hand' },
   { id: 'relic_233', name: '“时光之末”', tier: '史诗', phrases: ['11 点', '4 名', '死亡时自动复活', '保留原有干员'], shot: 'time-end' },
   { id: 'relic_158', name: '时间机器', tier: '普通', phrases: ['目标生命值', '等量增加', '仅生效一场'], shot: 'time-machine' },
