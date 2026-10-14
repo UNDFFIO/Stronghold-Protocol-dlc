@@ -1007,6 +1007,10 @@ flag alters movement or 失衡.
   deployment initialization (`reason: 'init'`) and explicitly documented bypasses.
   `gainSp(n, reason, silent, { ignoreLock: true })` bypasses both locks while retaining the source reason, charge cap
   and `spGain` hook; used by 黄沙罗盘 (PRTS says all its SP ignores 阻回), including its caster's +3 SP.
+  DLC 黄金平原 / 第一法则 (No.139 / 140) also use this explicit bypass on `skillEnd`: +2 / +4 SP,
+  summed across distinct owned IDs, on the owner's operators only (`content/relics.js`). Timed, ammo and instant
+  completion use the same hook. [ASSUMED] Death/retreat and off-field units get no refund; passive/no-skill units
+  follow `gainSp`'s rejection, and redeployment restores init SP without an extra refund. See COLLECTIBLES.md.
 - Kinds: `duration` (mods for `duration` s), `ammo` (mods until `ammo` attacks were made, optional duration cap),
   `instant` (onStart + optional one-shot attack override applied to the next attack), `charges` (instant with charges),
   `passive` (always on from deployment, no SP), `toggle` (stays on until death once activated).

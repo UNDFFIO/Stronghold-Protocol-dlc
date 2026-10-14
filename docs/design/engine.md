@@ -76,6 +76,14 @@ Base stats (from data): `maxHp, atk, def, res` (0–100), `aspd` (100 base), `ba
 
 **Elite (精锐) chess** have their own stats in data (golden chess id). The module bonus is already folded into data stats by build-data.
 
+DLC collection skill-end SP (2026-10-14): 黄金平原 (No.139, tier III) / 第一法则 (No.140, tier IV)
+grant the owner's operator +2 / +4 SP on each `skillEnd`, including duration expiry, ammo exhaustion and instant
+completion. Distinct IDs add, duplicate IDs do not. PRTS 第一法则 explicitly documents forced recovery through 阻回;
+`gainSp(amount, 'relic', false, { ignoreLock: true })` preserves charge/cost caps and the ordinary `spGain` hook.
+[ASSUMED] Only a living, deployed operator receives the refund; death/retreat is excluded. Teammates and summons
+get no effect; passive/no-skill units gain no SP. Redeployment follows init SP without an extra grant.
+Definitions, icons, drop unlocks and the complete source notes: [COLLECTIBLES.md](../COLLECTIBLES.md).
+
 ### 5.3 Buffs & statuses
 
 `Buff = { key, source, duration /*s, Infinity*/, stacks=1, maxStacks=1, refresh: 'replace'|'extend'|'stack', mods, flags, onTick?, onExpire?, tags[] }`
