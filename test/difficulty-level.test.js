@@ -43,6 +43,13 @@ test('all 21 levels inherit ultimate stats and unlock exactly one unique cumulat
   for (const r of DIFFICULTY_RULES) assert.ok(r.description && r.counter);
 });
 
+test('level 10 armor parameters and picker description use a 12-second rotation', () => {
+  const armor = DIFFICULTY_RULES.find(r => r.key === 'rotatingArmor');
+  assert.equal(armor.level, 10);
+  assert.deepEqual(armor.params, { period: 12, taken: 0.9 });
+  assert.equal(armor.description, '所有敌人受到的物理或法术伤害-10%，减伤类型每12秒轮转一次（初始为物理减伤）');
+});
+
 test('immunity starts at 5, does not consume zero damage or element fills, and applies independently per enemy', () => {
   for (const n of [0, 4, 5, 9]) {
     const { b, a, e } = battle(n);

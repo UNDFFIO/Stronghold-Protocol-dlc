@@ -103,6 +103,22 @@ export { copyText };
 
 function SeatCard({ seat, index, room, facts, myId, busy, onAddBot, onRemoveBot, onKick }) {
   const coop = room.mode !== 'solo';
+  const art = useRef(null);
+  useEffect(() => {
+    const el = art.current;
+    if (!el || !coop || room.difficulty !== 'ASCENSION') return;
+    // Keep the avatar and all of its glyphs/badges proportional when the level wheel leaves less seat space.
+    const fit = () => el.style.setProperty('--seat-art-height', `${el.clientHeight}px`);
+    const resize = typeof ResizeObserver === 'function' ? new ResizeObserver(fit) : null;
+    resize?.observe(el);
+    window.addEventListener('resize', fit);
+    fit();
+    return () => {
+      resize?.disconnect();
+      window.removeEventListener('resize', fit);
+      el.style.removeProperty('--seat-art-height');
+    };
+  }, [coop, !!seat, room.difficulty]);
   if (!seat) {
     const canAdd = coop && facts.isHost;
     return html`<article class="seat seat--empty" style=${`--seat-i:${index}`}>
@@ -131,7 +147,7 @@ function SeatCard({ seat, index, room, facts, myId, busy, onAddBot, onRemoveBot,
       <${MicroLabel}>SEAT ${String(index + 1).padStart(2, '0')}<//>
       ${isHostSeat ? html`<span class="seat__host"><${Icon} name="crown" />${t('创建者')}</span>` : null}
     </header>
-    <div class="seat__art">
+    <div ref=${art} class="seat__art">
       <div class="seat__stripes" aria-hidden="true"></div>
       <${AvatarFrame} size="xl" name=${seat.name} seat=${index} bot=${seat.isBot} self=${isMe} ready=${state === 'ready'} offline=${offline} />
       ${seat.isBot ? html`<span class="seat__bot-label"><${Icon} name="robot" />${t('AI 队友')}</span>` : null}

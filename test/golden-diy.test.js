@@ -11,8 +11,10 @@ const MATCHES = read('./golden/matches.json');
 const BACKUPS = read('../data/backups.json');
 
 test('matches: the 自选 match\'s human seat draws its 自选 pieces in its shop and fields 推进之王 in battle', () => {
-  const [id, dg] = Object.entries(MATCHES.scenarios).find(([k]) => /-coverage-diy$/.test(k)) || [];
-  assert.ok(dg, 'scenario present');
+  const id = 'coop2-NORMAL-68-coverage-diy';
+  const dg = MATCHES.scenarios[id];
+  assert.ok(dg, 'DLC coverage scenario present');
+  assert.equal(dg.fast, true, 'the deployment path is recomputed by the default golden suite');
   assert.deepEqual(dg.errors, { engine: 0, logged: 0, sim: 0, dispatcher: 0 }, id);
   assert.deepEqual(Object.keys(dg.diy.picks).sort(), Object.keys(BACKUPS.diy.slots).sort(), 'all four slots filled');
   assert.equal(dg.diy.picks.chess_char_5_diy1_a.charId, 'char_112_siege');

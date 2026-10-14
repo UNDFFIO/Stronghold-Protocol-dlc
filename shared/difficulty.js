@@ -24,7 +24,7 @@ export const DIFFICULTY_RULES = Object.freeze([
     () => t('所有敌人生命值首次降至50%以下时，立即清除自身所有控制状态'), N_('先压低血线，再接续关键控制。')),
   rule(9, 'lastGift', N_('临终馈赠'), { radius: 1.5, duration: 4 },
     p => t('所有普通敌人倒下时，使周围{radius}格内的其他敌人获得1层持续{duration}秒的护盾', { radius: p.radius, duration: p.duration }), N_('先处理威胁目标，再清理杂兵。'), N_('该护盾可抵挡一次伤害，不可叠加')),
-  rule(10, 'rotatingArmor', N_('甲壳轮转'), { period: 4, taken: 0.9 },
+  rule(10, 'rotatingArmor', N_('甲壳轮转'), { period: 12, taken: 0.9 },
     p => t('所有敌人受到的物理或法术伤害-{percent}%，减伤类型每{period}秒轮转一次（初始为物理减伤）', { percent: Math.round((1 - p.taken) * 100), period: p.period }), N_('搭配物理与法术输出，真实伤害可穿透。')),
   rule(11, 'spStorm', N_('静默脉冲'), { period: 12, duration: 3 },
     p => t('每{period}秒释放一次全场脉冲，使所有在场干员在{duration}秒内无法回复技力', { period: p.period, duration: p.duration }), N_('利用脉冲间隙蓄能，配置初始技力。'), N_('已就绪的技能仍可正常释放')),

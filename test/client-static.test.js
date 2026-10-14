@@ -1282,6 +1282,7 @@ describe('multi-device & browser compatibility (static)', () => {
       const src = readFileSync(file, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
       assert.doesNotMatch(src, /:has\(/, `${rel}: :has() (Firefox ESR 115, Safari < 15.4)`);
       assert.doesNotMatch(src, /@container|container-type|@layer/, `${rel}: container queries / cascade layers`);
+      assert.doesNotMatch(src, /\b\d*\.?\d+cq(?:w|h|i|b|min|max)\b/i, `${rel}: container query units (Safari 15 / Firefox ESR)`);
       for (const r of cssRules(src)) {
         assert.ok(!/(^|[\s,])&/.test(r.selector), `${rel}: CSS nesting in '${r.selector}'`);
         const decls = r.body.split(';').map((d) => d.trim()).filter(Boolean);

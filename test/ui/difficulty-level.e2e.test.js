@@ -200,7 +200,9 @@ test('lobby shows tactical tips for ascension; room level controls render, synch
       const panel = document.querySelector('.room-level').getBoundingClientRect();
       const avatarsFit = [...document.querySelectorAll('.seats .avatar')].every(el => {
         const avatar = el.getBoundingClientRect(), art = el.closest('.seat__art').getBoundingClientRect();
-        return avatar.top >= art.top && avatar.bottom <= art.bottom;
+        const measured = parseFloat(getComputedStyle(el.closest('.seat__art')).getPropertyValue('--seat-art-height'));
+        return Number.isFinite(measured) && Math.abs(measured - el.closest('.seat__art').clientHeight) < 1 &&
+          avatar.top >= art.top && avatar.bottom <= art.bottom && Math.abs(avatar.width - avatar.height) < 1;
       });
       return effect.top >= row.top && effect.bottom <= row.bottom && avatarsFit && [...document.querySelectorAll('.seat')].every(el => el.getBoundingClientRect().bottom <= panel.top + 1);
     }), 'the co-op effect fits its row and the panel does not overlap seats on touch screens');

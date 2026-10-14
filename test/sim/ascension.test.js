@@ -234,18 +234,30 @@ test('09: temporary ember and regeneration forms are excluded only while their h
   }
 });
 
-test('10: armor rotates on the game clock; late spawns inherit the current phase', () => {
+test('10: armor rotates every 12 game seconds; late spawns inherit the current phase', () => {
   const { b, e, a } = field(10);
   a.x = 8; a.y = 9;
   hit(b, a, e);
   assert.equal(hit(b, a, e, 'phys'), 90);
   assert.equal(hit(b, a, e, 'arts'), 100);
   run(b, 4.1);
+  assert.equal(e.s.physTakenMul, 0.9, 'the old four-second interval no longer switches armor');
+  run(b, 7.8);
+  assert.equal(e.s.physTakenMul, 0.9, 'physical reduction lasts until 12 seconds');
+  run(b, 0.2);
   assert.equal(hit(b, a, e, 'phys'), 100);
   assert.equal(hit(b, a, e, 'arts'), 90);
   const late = b.spawnEnemy('enemy_test', { pos: [12, 10] });
   assert.equal(late.s.artsTakenMul, 0.9);
   assert.equal(late.s.physTakenMul, 1);
+  assert.equal(hit(b, a, e), 100, 'true damage remains unaffected');
+  run(b, 11.8);
+  assert.equal(e.s.artsTakenMul, 0.9, 'arts reduction lasts until 24 seconds');
+  run(b, 0.2);
+  for (const enemy of [e, late]) {
+    assert.equal(enemy.s.physTakenMul, 0.9, 'all enemies return to physical reduction together');
+    assert.equal(enemy.s.artsTakenMul, 1);
+  }
 });
 
 test('11: SP storm blocks time / attack / gifted SP only inside its timed window, ready skills still activate', () => {

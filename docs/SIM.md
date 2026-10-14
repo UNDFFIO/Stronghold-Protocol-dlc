@@ -46,6 +46,8 @@ DLC `difficultyLevel` enables cumulative Ascension rules (`shared/difficulty.js`
 From level 2, a killed ordinary enemy leaves Death Embers for 5 game seconds: five one-second Arts damage pulses
 at its fixed death position, each dealing 15% of its base ATK to allies within 1.1 tiles. The ground FX uses the
 same duration and radius as the damage checks (DESIGN §29.18).
+From level 10, Rotating Armor alternates 10% Physical / Arts damage reduction every 12 game seconds on the
+battle clock, starting with Physical; late spawns inherit the current phase (DESIGN §29.19).
 
 ```js
 import { Battle } from './sim/Battle.js';

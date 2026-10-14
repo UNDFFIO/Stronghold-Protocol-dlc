@@ -7,6 +7,9 @@ Part of [DESIGN.md](../DESIGN.md) (the index; section numbers are global).
 DLC Ascension protocols are cumulative and defined in `shared/difficulty.js`. Level 2, Death Embers, leaves a
 5-second hazard at each killed ordinary enemy's position: every second, allies within 1.1 tiles take Arts damage
 of 15% of that enemy's base ATK. Higher levels inherit it (maintainer-requested balance change, §29.18).
+Level 10, Rotating Armor, reduces either Physical or Arts damage taken by all enemies by 10%, alternating every
+12 game seconds on the shared battle clock, starting with Physical. Late spawns inherit the current phase;
+levels 11–20 inherit the rule (§29.19).
 
 ### 6.1 State machine (Match.js)
 
