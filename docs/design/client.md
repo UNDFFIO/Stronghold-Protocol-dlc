@@ -2,6 +2,20 @@
 
 Part of [DESIGN.md](../DESIGN.md) (the index; section numbers are global).
 
+Public discovery (maintainer request, 2026-10-14; §29.15): the lobby's 大厅 panel lists all public co-op rooms,
+with the host, difficulty, occupied player/spectator seats and waiting/running state. It updates through `room.list`
+subscriptions and supports loading, empty, offline and retry states. Join is disabled for a full or running room;
+spectate is disabled only when spectator seats are full. Password rooms open a masked password dialog for either
+action; private codes and invite links use the same dialog after the server requests a password.
+The co-op waiting room's bottom-right 房间设置 opens the shared modal UI: public/private toggle, masked password
+replacement and explicit removal. Only the host can save; teammates and spectators see the access state read-only.
+Cancel/Escape discard unsaved changes. Existing global 设置 remains in the top bar. All text uses the language packs;
+the hall and bottom-right controls adapt to small screens. The public list is the last section, below the mode,
+difficulty, code-entry and creation controls. The setup and hall each fill at least the available scrollport height;
+native `scroll-snap-type: y proximity` gently settles near either section's start. Continued downward scrolling reaches
+the hall. Taller content, touch, keyboard and scrollbar navigation keep their native scrolling; reduced-motion users
+get ordinary scrolling without snap animation. No wheel interception or fixed-duration input lock is used.
+
 ## 9. Client rendering contract (public/js/render)
 
 `import { createFieldView } from './render/app.js'`

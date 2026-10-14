@@ -1,7 +1,7 @@
 // Normative message catalogue (DESIGN §8). Used by server (validation) and client (building requests).
 // Every client→server message is `{ t, rid?, ...fields }`. Unknown `t` or invalid fields ⇒ ERR.BAD_MSG.
 
-import { DIFFICULTIES, MAX_DIFFICULTY_LEVEL, NAME_MAX_LEN, ROOM_CODE_LEN, MAX_SEATS, EMOTES, GEO } from './constants.js';
+import { DIFFICULTIES, MAX_DIFFICULTY_LEVEL, NAME_MAX_LEN, ROOM_CODE_LEN, ROOM_PASSWORD_MAX_LEN, MAX_SEATS, EMOTES, GEO } from './constants.js';
 import { isDroppableChess } from './standIn.js';
 import { diySlotIds, validateDiyPicks } from './diy.js';
 import { cultivatedStats, isPotential, isCultivate, POTENTIAL_DEFAULT, CULTIVATE_DEFAULT } from './potential.js';
@@ -382,7 +382,9 @@ export const C2S = {
     noReplace: isBool, claimAt: (v) => isNum(v, 0, Number.MAX_SAFE_INTEGER), $optional: ['token', 'version', 'noReplace', 'claimAt'] },
   ping: { c: (v) => typeof v === 'number' && Number.isFinite(v) },
   'room.create': { mode: (v) => v === 'solo' || v === 'coop', difficulty: (v) => DIFFICULTIES.includes(v), difficultyLevel: (v) => isInt(v, 0, MAX_DIFFICULTY_LEVEL), $optional: ['difficultyLevel'] },
-  'room.join': { code: (v) => isStr(v, ROOM_CODE_LEN + 2) && /^[A-Za-z0-9]+$/.test(v) },
+  'room.list': { subscribe: isBool, $optional: ['subscribe'] },
+  'room.setSettings': { isPublic: isBool, password: (v) => isStr(v, ROOM_PASSWORD_MAX_LEN), $optional: ['password'] },
+  'room.join': { code: (v) => isStr(v, ROOM_CODE_LEN + 2) && /^[A-Za-z0-9]+$/.test(v), password: (v) => isStr(v, ROOM_PASSWORD_MAX_LEN), $optional: ['password'] },
   'room.leave': {},
   'room.ready': { ready: isBool },
   'room.setDifficulty': { difficulty: (v) => DIFFICULTIES.includes(v), difficultyLevel: (v) => isInt(v, 0, MAX_DIFFICULTY_LEVEL), $optional: ['difficultyLevel'] },
@@ -409,7 +411,7 @@ export const C2S = {
   // spectator seats (remake feature, community report #26; MAX_SPECTATORS): take one of a co-op room's spectator seats —
   // in its lobby or while its match runs — never a player seat; the host frees one by playerId (the spectator gets
   // room.closed { reason: 'kicked' }). room.leave / g.leave leave a spectator seat like a player seat.
-  'room.spectate': { code: (v) => isStr(v, ROOM_CODE_LEN + 2) && /^[A-Za-z0-9]+$/.test(v) },
+  'room.spectate': { code: (v) => isStr(v, ROOM_CODE_LEN + 2) && /^[A-Za-z0-9]+$/.test(v), password: (v) => isStr(v, ROOM_PASSWORD_MAX_LEN), $optional: ['password'] },
   'room.removeSpectator': { playerId: isId },
 
   // match
@@ -472,7 +474,7 @@ export const C2S = {
 // Server → client message types (documentation + client dispatch table keys).
 export const S2C = [
   'welcome', 'ok', 'error', 'pong',
-  'room.state', 'room.closed',
+  'room.state', 'room.closed', 'room.list',
   'm.public', 'm.private', 'm.field', 'm.toast', 'm.ticker', 'm.emote', 'm.result',
   // m.unitStats { seq, round, units: [unitStatsEntry] } — the answer to g.unitStats (the requester only)
   'm.unitStats',

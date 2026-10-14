@@ -14,6 +14,24 @@ Platform additions (implemented): `welcome.{resumed, version}`, `welcome.diyKitt
 
 **Spectator seats** (a remake feature — the official room has none; community report #26, owner's decision 2026-10-04; the spectator-seat subsection of §23): `room.spectate {code}` takes one of a co-op room's `MAX_SPECTATORS` (2) spectator seats, in its lobby or during its match; `room.removeSpectator {playerId}` (host, at any time — the room screen's strip and, once the match runs, the game screen's 观战席 capsule in the top bar, GitHub #120) frees one (`room.closed {reason:'kicked'}` to it, no match frame after it); `room.state.spectators: [{playerId, name, connected}]` (still pushed while the match runs). A spectator is never a player (not in `seats`, not counted for the start, never host, keeps no room alive — `room.closed {empty}` when the last human leaves), receives the room's broadcasts and watches like an eliminated player (`Match.addSpectator`: `b.start` watch / `m.field`, never `m.private`); it may only `g.watch`, leave, and store a `room.loadout` — anything else answers `error SPECTATOR`. Its seat is kept and given back on reconnect like a player's.
 
+**Public lobby and room access** (maintainer request, 2026-10-14; remake feature, §29.15):
+`room.list {subscribe?:boolean}` returns an `ok` and a `room.list {rooms:[…]}` snapshot of all public co-op rooms.
+`subscribe:true` additionally receives coalesced updates while connected and outside a room; `false` (the default)
+unsubscribes and requests one snapshot. Summaries contain `code`, `hostName`, `difficulty`, `difficultyLevel`,
+`players` / `maxPlayers` (AI and reserved offline seats included), `spectators` / `maxSpectators`, `inMatch`, and
+`hasPassword`. Solo and private rooms are excluded. A running public room stays listed: players cannot join it,
+but free spectator seats can still be taken. Empty rooms disappear; host migration and match start/end update the list.
+`room.setSettings {isPublic:boolean, password?:string}` is host-only, co-op-only and accepted before the match.
+An omitted password preserves the current one; an empty string removes it; a nonempty string sets/replaces it
+(at most `ROOM_PASSWORD_MAX_LEN`, 32 characters, case-sensitive, no trimming). New rooms are private without a
+password [ASSUMED: retain the existing invitation-only default]. `room.state` includes `isPublic` and `hasPassword`.
+`room.join` and `room.spectate` accept the same optional `password`; codes and invite links also require it.
+Missing/wrong passwords return `PASSWORD_REQUIRED` / `PASSWORD_INCORRECT` before leaving the current room.
+Existing membership and token-based reconnects keep access, including a spectator taking a player seat in its room.
+Passwords are salted scrypt verifiers in server memory, never broadcast, included in URLs, or stored by the browser.
+List/settings requests use the heavy bucket; password verification has per-session and process-wide limits.
+Changing access settings leaves existing members and their ready states intact.
+
 Local recovery arbitration (0.2.3, §28.27): `hello` also accepts optional `noReplace:boolean` and
 `claimAt:number` (finite, nonnegative ms). A shared-token candidate sends `noReplace:true`; a tab with a saved
 welcome stamp sends `claimAt`. When that session is already connected to a different socket, `noReplace` or a later

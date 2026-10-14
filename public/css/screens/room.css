@@ -317,3 +317,17 @@
 .ready-count__icons .icon.is-on { color: var(--mint-400); filter: drop-shadow(0 0 4px var(--mint-glow)); }
 
 .room-bar .btn--xl { min-width: 3.2rem; letter-spacing: .2em; }
+
+.room-config-btn { flex: none; }
+.room-config__row { display: flex; justify-content: space-between; align-items: center; gap: .2rem; }
+.room-config__row strong { font-size: calc(.2 * var(--t)); }
+.room-config__row p, .room-config__hint { color: var(--text-lo); font-size: calc(.15 * var(--t)); line-height: 1.6; margin: .08rem 0 0; }
+.room-config__password { margin-top: .28rem; padding-top: .22rem; border-top: 1px solid var(--line); }
+.room-config__password-status { display: flex; justify-content: space-between; align-items: center; gap: .14rem; min-height: .42rem; margin-top: .1rem; color: var(--text-lo); font-size: calc(.15 * var(--t)); }
+.room-config__password-status > span { display: flex; align-items: center; gap: .06rem; }
+.room-config__password-status .icon { width: .18rem; height: .18rem; color: var(--mint-500); }
+@media (max-width: 1200px) {
+  .room-bar__right { gap: .12rem; }
+  .room-config-btn__label { display: none; }
+  .room-bar__right .room-config-btn { width: 44px; min-width: 44px; height: 44px; padding: 0; }
+}

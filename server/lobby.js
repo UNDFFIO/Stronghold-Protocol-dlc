@@ -9,6 +9,9 @@
 //   * ▸ Being in a LOBBY room and sending room.create / room.join implicitly leaves it. While your room is
 //     in a match, create/join of another room fails with ROOM_STARTED (send g.leave or room.leave first).
 //   * Host-only: room.setDifficulty, room.setAiPicksLast, room.addBot, room.removeBot, room.kick, room.start.
+//   * Public room discovery / access (DESIGN §29.15): room.list subscribes roomless clients to public co-op summaries;
+//     room.setSettings is host-only before the match. Join/spectate enforce passwords before moving a member.
+//     Public/password flags persist across matches and host migration; verifiers never leave the server.
 //     ▸ Changing the difficulty or the AI-picks-last option (co-op only) un-readies the other humans.
 //     ▸ room.start requires every other human to be connected and ready; the host's start counts as the host's
 //     ready (the host may still toggle room.ready for display).
@@ -98,10 +101,10 @@
 //     code; a player never switches to spectating in place (ALREADY). Disconnect / grace / reconnect / expiry work as for
 //     a player seat (the seat is kept and given back on resume).
 
-import { randomBytes, randomInt } from 'node:crypto';
+import { randomBytes, randomInt, scryptSync, timingSafeEqual } from 'node:crypto';
 import { ERR, MAX_SEATS, MAX_SPECTATORS, ROOM_CODE_LEN, modeIdFor, normalizeDifficultyLevel } from '../shared/constants.js';
 import { checkLoadout, checkLoadoutOps, cultivationCharIds, checkNotOwned, checkDiyPicks } from '../shared/protocol.js';
-import { encode, isDroppable, isErrCode, sendRaw, sendSession } from './net.js';
+import { encode, isDroppable, isErrCode, sendRaw, sendSession, TokenBucket } from './net.js';
 import { getData as defaultGetData, lookup } from './data.js';
 import { Match as DefaultMatch } from './match/Match.js';
 import { KITTED_CHARS } from './sim/content/kits/index.js';
@@ -180,6 +183,11 @@ export class Room {
      * put every human seat before every AI seat (Match opts.aiPicksLast). Kept across the room's matches.
      */
     this.aiPicksLast = false;
+    // Public discovery and password access are remake features requested by the maintainer (2026-10-14).
+    // [ASSUMED] Existing invitation-only rooms stay private until the host publishes them.
+    this.isPublic = false;
+    /** @type {{ salt: Buffer, hash: Buffer } | null} never sent to clients */
+    this.password = null;
     /** @type {string | null} */
     this.hostId = null;
     /** @type {(Seat | null)[]} */
@@ -231,6 +239,8 @@ export class Room {
       difficulty: this.difficulty,
       difficultyLevel: this.difficultyLevel,
       aiPicksLast: this.aiPicksLast,
+      isPublic: this.isPublic,
+      hasPassword: !!this.password,
       inMatch: !!this.match,
       seats: this.seats.map((s) => (s
         ? { seat: s.seat, playerId: s.playerId, name: s.name, isBot: s.isBot, ready: s.ready, connected: s.connected && !s.left }
@@ -263,6 +273,12 @@ export class Lobby {
     this.opts = { ...LOBBY_DEFAULTS, ...options };
     /** @type {Map<string, Room>} */
     this.rooms = new Map();
+    /** @type {Set<string>} room.list subscriptions of connected, roomless sessions */
+    this.listSubscribers = new Set();
+    this.listTimer = null;
+    this.lastListFrame = null;
+    // Bound password work across connections as well as per session; scrypt stays outside the sim.
+    this.passwordWork = new TokenBucket(8, 8, this.now());
     /** @type {Map<string, NodeJS.Timeout>} lobby grace timers by playerId */
     this.graceTimers = new Map();
     /** @type {Map<string, NodeJS.Timeout>} deferred (coalesced) resyncs by playerId */
@@ -335,6 +351,8 @@ export class Lobby {
    */
   onMessage(session, msg) {
     switch (msg.t) {
+      case 'room.list': return this.list(session, msg);
+      case 'room.setSettings': return this.setSettings(session, msg);
       case 'room.create': return this.create(session, msg);
       case 'room.join': return this.join(session, msg);
       case 'room.leave': return this.leave(session);
@@ -360,6 +378,7 @@ export class Lobby {
 
   /** The session's socket closed. @param {import('./net.js').Session} session */
   onDisconnect(session) {
+    this.listSubscribers.delete(session.playerId);
     this.clearResync(session.playerId); // the next resume resyncs immediately
     const room = this.roomOf(session);
     // a solo run may be resumed within singleReconnectTime (24 h); everything else keeps the registry's window
@@ -375,6 +394,7 @@ export class Lobby {
 
   /** The session's reconnect window elapsed (already removed from the registry). */
   onExpire(session) {
+    this.listSubscribers.delete(session.playerId);
     session.notice = null;
     session.pendingResult = null;
     this.clearResync(session.playerId);
@@ -389,6 +409,9 @@ export class Lobby {
    * @param {string} [reason]
    */
   shutdown(reason = 'shutdown') {
+    this.listSubscribers.clear();
+    clearTimeout(this.listTimer);
+    this.listTimer = null;
     for (const room of [...this.rooms.values()]) this.disposeRoom(room, reason);
     for (const t of this.graceTimers.values()) clearTimeout(t);
     this.graceTimers.clear();
@@ -399,6 +422,73 @@ export class Lobby {
   // ---------------------------------------------------------------------------------------------------
   // room.* handlers
   // ---------------------------------------------------------------------------------------------------
+
+  /** Public summaries only: no seat identities, loadouts, reconnect tokens or password material. */
+  roomList() {
+    return { t: 'room.list', rooms: [...this.rooms.values()]
+      .filter((r) => !r.disposed && r.mode === 'coop' && r.isPublic)
+      .sort((a, b) => b.createdAt - a.createdAt || a.code.localeCompare(b.code))
+      .map((r) => ({
+        code: r.code, hostName: r.seatOf(r.hostId)?.name || '',
+        difficulty: r.difficulty, difficultyLevel: r.difficultyLevel,
+        players: r.seats.filter(Boolean).length, maxPlayers: MAX_SEATS,
+        spectators: r.spectators.length, maxSpectators: MAX_SPECTATORS,
+        inMatch: !!r.match, hasPassword: !!r.password,
+      })) };
+  }
+
+  list(session, { subscribe = false }) {
+    if (subscribe && !this.roomOf(session)) {
+      if (!this.listSubscribers.size) this.lastListFrame = null;
+      this.listSubscribers.add(session.playerId);
+    }
+    else this.listSubscribers.delete(session.playerId);
+    sendSession(session, this.roomList());
+    return OK;
+  }
+
+  /** Coalesce changes and skip unchanged summaries (e.g. room.ready); never push to room members. */
+  scheduleRoomList() {
+    if (!this.listSubscribers.size || this.listTimer) return;
+    this.listTimer = setTimeout(() => {
+      this.listTimer = null;
+      const frame = encode(this.roomList());
+      if (frame === this.lastListFrame) return;
+      this.lastListFrame = frame;
+      for (const id of this.listSubscribers) {
+        const session = this.registry.byId(id);
+        if (!session?.connected || session.roomCode) this.listSubscribers.delete(id);
+        else sendRaw(session.ws, frame);
+      }
+    }, 0);
+  }
+
+  /** Host-only, co-op, before the match; absent password preserves it, empty password clears it. */
+  setSettings(session, { isPublic, password }) {
+    const room = this.roomOf(session);
+    if (!room) return fail(ERR.NOT_IN_ROOM);
+    if (room.hostId !== session.playerId) return fail(ERR.NOT_HOST);
+    if (room.match) return fail(ERR.ROOM_STARTED);
+    if (room.mode !== 'coop') return fail(ERR.BAD_TARGET, 'solo room');
+    if (password) {
+      if (!this.passwordWork.take(this.now())) return fail(ERR.RATE);
+      const salt = randomBytes(16);
+      room.password = { salt, hash: scryptSync(password, salt, 32) };
+    } else if (password === '') room.password = null;
+    room.isPublic = isPublic;
+    this.broadcastState(room);
+    return OK;
+  }
+
+  /** Check before removing the current membership. Existing members and reconnects keep their access. */
+  checkPassword(session, room, password) {
+    if (!room.password || room.seatOf(session.playerId) || room.spectatorOf(session.playerId)) return null;
+    if (!password) return fail(ERR.PASSWORD_REQUIRED);
+    session.passwordAttempts ||= new TokenBucket(1, 5, this.now());
+    if (!session.passwordAttempts.take(this.now()) || !this.passwordWork.take(this.now())) return fail(ERR.RATE);
+    const hash = scryptSync(password, room.password.salt, 32);
+    return timingSafeEqual(hash, room.password.hash) ? null : fail(ERR.PASSWORD_INCORRECT);
+  }
 
   create(session, { mode, difficulty, difficultyLevel = 0 }) {
     const cur = this.roomOf(session);
@@ -422,6 +512,7 @@ export class Lobby {
     room.hostId = session.playerId;
     this.rooms.set(code, room);
     session.roomCode = code;
+    this.listSubscribers.delete(session.playerId);
     session.notice = null;
     session.pendingResult = null;
     this.log.info(`[lobby] ${code} created (${mode}/${difficulty}) by ${session.name}`);
@@ -429,7 +520,7 @@ export class Lobby {
     return OK;
   }
 
-  join(session, { code }) {
+  join(session, { code, password }) {
     const norm = String(code).trim().toUpperCase();
     const room = norm.length === ROOM_CODE_LEN ? this.rooms.get(norm) : undefined;
     if (!room) return fail(ERR.ROOM_NOT_FOUND);
@@ -441,9 +532,12 @@ export class Lobby {
     if (room.mode === 'solo') return fail(ERR.ROOM_FULL, 'solo room');
     const idx = room.freeSeat();
     if (idx < 0) return fail(ERR.ROOM_FULL);
+    const denied = this.checkPassword(session, room, password);
+    if (denied) return denied;
     if (cur) this.removeMember(cur, session.playerId);
     room.seats[idx] = this.humanSeat(idx, session);
     session.roomCode = room.code;
+    this.listSubscribers.delete(session.playerId);
     session.notice = null;
     session.pendingResult = null;
     if (!room.hostId) room.hostId = session.playerId;
@@ -462,7 +556,7 @@ export class Lobby {
    * room.spectate: one of a co-op room's MAX_SPECTATORS spectator seats, in its lobby or during its match (header). In a
    * running match the match registers the spectator and resends what it may see (Match.addSpectator).
    */
-  spectate(session, { code }) {
+  spectate(session, { code, password }) {
     const norm = String(code).trim().toUpperCase();
     const room = norm.length === ROOM_CODE_LEN ? this.rooms.get(norm) : undefined;
     if (!room) return fail(ERR.ROOM_NOT_FOUND);
@@ -475,9 +569,12 @@ export class Lobby {
     if (cur && cur.match) return fail(ERR.ROOM_STARTED, 'leave your running match first');
     if (room.mode === 'solo') return fail(ERR.ROOM_FULL, 'solo room');
     if (room.spectators.length >= MAX_SPECTATORS) return fail(ERR.ROOM_FULL, 'no free spectator seat');
+    const denied = this.checkPassword(session, room, password);
+    if (denied) return denied;
     if (cur) this.removeMember(cur, session.playerId);
     room.spectators.push({ playerId: session.playerId, name: session.name, connected: session.connected });
     session.roomCode = room.code;
+    this.listSubscribers.delete(session.playerId);
     session.notice = null;
     session.pendingResult = null;
     this.broadcastState(room);
@@ -1103,6 +1200,7 @@ export class Lobby {
       else session.notice = reason;
     }
     if (ctx) this.disposeMatchCtx(ctx);
+    this.scheduleRoomList();
     this.log.info(`[lobby] ${room.code} disposed (${reason})`);
   }
 
@@ -1132,6 +1230,7 @@ export class Lobby {
     if (room.disposed) return;
     const data = encode(room.toState());
     for (const session of this.memberSessions(room)) sendRaw(session.ws, data);
+    this.scheduleRoomList();
   }
 
   sendState(room, session) {

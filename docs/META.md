@@ -41,6 +41,15 @@ server/match/
 
 ## 1. Match flow
 
+### Room discovery and access
+
+`server/lobby.js` owns public room discovery and access settings (DESIGN §8.1 / §29.15). New rooms are private
+without a password; the co-op host can publish them and set, preserve or clear a password before the match.
+`room.list` snapshots/subscriptions expose only public co-op summaries, including running matches. Both joining
+and spectating verify the password before changing membership; existing members and reconnect tokens keep access.
+The password verifier remains server-only. Publication, seat changes, host migration, match start/end and room
+disposal update subscribers. These settings persist across the room's matches and do not change readiness or battle rules.
+
 ```
 LOBBY → INFO_CHECK (co-op 25 s; solo and single-human matches untimed; all humans confirmed ⇒ next) → BAND_DRAFT → BATTLE_CHECK (3 s)
 → for r = 1..lastRound (+ hidden):

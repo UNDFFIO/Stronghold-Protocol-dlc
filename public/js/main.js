@@ -50,6 +50,7 @@ import { GuideHost } from './ui/guide.js';
 import { installDeviceSupport } from './ui/device.js';
 import { LoadoutHost } from './screens/loadout.js';
 import { StatsHost } from './screens/stats.js';
+import { RoomAccessHost, requestRoomEntry } from './ui/roomAccess.js';
 import { recordResult, installStatsRecorder } from './ui/stats.js';
 import { installLoadoutSync, installOwnershipSync, installDiySync } from './ui/loadoutSync.js';
 import { startBuildGuard } from './ui/buildGuard.js';
@@ -108,7 +109,7 @@ function schedulePendingJoin() {
     }
     joinInFlight = true;
     try {
-      await net.request('room.join', { code });
+      await requestRoomEntry('room.join', code);
     } catch (err) {
       toastError(err);
     } finally {
@@ -305,6 +306,7 @@ function App() {
     <${GuideHost} />
     <${LoadoutHost} />
     <${StatsHost} />
+    <${RoomAccessHost} />
   </div>`;
 }
 

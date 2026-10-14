@@ -21,6 +21,7 @@ import { copyText } from '../ui/clipboard.js';
 import { GuideButton } from '../ui/guide.js';
 import { openStats } from './stats.js';
 import { SettingsButton } from '../ui/settings.js';
+import { RoomSettingsButton } from '../ui/roomSettings.js';
 import { LoadoutButton } from './loadout.js';
 import { net } from '../net.js';
 import { store, useStore, shallowEqual, emptyMatch, isSpectating } from '../store.js';
@@ -361,6 +362,7 @@ export function RoomScreen() {
         <div class="room-bar__status">${statusLine}</div>
       </div>
       <div class="room-bar__right">
+        ${coop ? html`<${RoomSettingsButton} room=${room} isHost=${facts.isHost} online=${online} disabled=${!!busy} />` : null}
         <${LoadoutButton} from="room" size="lg" class="room-loadout" label=${t('干员调配')} />
         ${facts.isHost
           ? html`<${Tooltip} text=${facts.canStart ? null : t('仍有博士未准备就绪')}>
