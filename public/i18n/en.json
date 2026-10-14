@@ -1521,7 +1521,7 @@
   "所有非领袖单位登场后{duration}秒内移动速度+{percent}%，被阻挡时失去该效果": "All non-leader units gain +{percent}% movement speed for {duration}s after appearing; blocking removes this effect.",
   "所有普通敌人倒下后留下持续{duration}秒的余烬，每秒对周围{radius}格内的我方单位造成{percent}%基础攻击力的法术伤害": "All normal enemies leave embers lasting {duration}s when defeated, dealing Arts damage equal to {percent}% of their base ATK each second to allied units within {radius} tiles.",
   "所有敌人周围{radius}格内存在其他敌人时，受到的物理、法术与真实伤害-{percent}%": "All enemies take {percent}% less Physical, Arts and True damage while another enemy is within {radius} tiles.",
-  "所有我方干员治疗其他单位后，{duration}秒内嘲讽等级提升（更容易成为敌方远程攻击目标）": "After healing another unit, all allied Operators gain increased taunt priority for {duration}s (more likely to be targeted by enemy ranged attacks).",
+  "所有我方干员治疗其他单位后，{duration}秒内更容易成为敌方远程攻击目标": "After healing another unit, all allied Operators are more likely to be targeted by enemy ranged attacks for {duration}s.",
   "所有敌人登场时获得1层可抵挡一次伤害的屏障": "All enemies gain one barrier that blocks a single instance of damage when appearing.",
   "所有敌人受到来自{distance}格以外的物理与法术伤害-{percent}%": "All enemies take {percent}% less Physical and Arts damage from beyond {distance} tiles.",
   "所有敌人首次普通攻击造成伤害时，使目标干员沉默{duration}秒": "When an enemy first deals damage with a normal attack, it Silences the target Operator for {duration}s.",

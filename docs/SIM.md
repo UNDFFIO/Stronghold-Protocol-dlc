@@ -42,6 +42,11 @@ server/sim/
 
 ## 1. Driving a battle (match owner)
 
+DLC `difficultyLevel` enables cumulative Ascension rules (`shared/difficulty.js`, `server/sim/difficulty.js`).
+From level 2, a killed ordinary enemy leaves Death Embers for 5 game seconds: five one-second Arts damage pulses
+at its fixed death position, each dealing 15% of its base ATK to allies within 1.1 tiles. The ground FX uses the
+same duration and radius as the damage checks (DESIGN §29.18).
+
 ```js
 import { Battle } from './sim/Battle.js';
 const b = new Battle({

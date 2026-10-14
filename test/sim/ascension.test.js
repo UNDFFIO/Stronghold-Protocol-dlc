@@ -45,14 +45,34 @@ test('01: opening rush expires and real blocking cuts it short; leaders are excl
 test('02: death embers damage only allies in the fixed death area, with visible ground FX', () => {
   const { b, e, a, other } = field(2);
   e.x = a.x; e.y = a.y;
+  other.x = a.x + 1.11;
   const before = a.hp, outside = other.hp;
   b.kill(e, a);
-  assert.ok(b.drainEvents().some(ev => ev[0] === 'fx' && ev[1] === 'ascEmbers'));
-  run(b, 3.1);
-  assert.equal(before - a.hp, 75);
+  const emberFx = b.drainEvents().find(ev => ev[0] === 'fx' && ev[1] === 'ascEmbers');
+  assert.ok(emberFx);
+  assert.equal(emberFx[4].r, 1.1);
+  assert.equal(emberFx[4].dur, 5);
+  run(b, 1.1);
+  assert.equal(before - a.hp, 15, 'each pulse deals 15% of the enemy base ATK');
+  run(b, 2);
+  assert.equal(before - a.hp, 45);
+  run(b, 2);
+  assert.equal(before - a.hp, 75, 'five one-second pulses');
   assert.equal(other.hp, outside);
   run(b, 1);
   assert.equal(before - a.hp, 75, 'hazard has stopped');
+});
+
+test('02: death embers reach allies beyond the old radius up to 1.1 tiles', () => {
+  const { b, e, a, other } = field(2);
+  e.x = a.x; e.y = a.y;
+  a.x = e.x - 1.09;
+  other.x = e.x + 1.11;
+  const before = a.hp, outside = other.hp;
+  b.kill(e, a);
+  run(b, 5.1);
+  assert.equal(before - a.hp, 75);
+  assert.equal(other.hp, outside);
 });
 
 test('03: escort protection depends on living neighbors and ends as the group breaks up', () => {
