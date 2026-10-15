@@ -44,7 +44,7 @@ test('m.private shape in PREP matches DESIGN §8.3 (pieces, slots, bonds, effect
   h.flushAll();
   const priv = h.lastTo('p_0', 'm.private');
   assert.equal(priv.funds, 4);
-  assert.equal(priv.shop.slots.length, 4);
+  assert.equal(priv.shop.slots.length, 5);
   for (const s of priv.shop.slots) {
     assert.deepEqual(Object.keys(s).sort(), ['basePrice', 'frozen', 'id', 'kind', 'price', 'sold']);
     assert.equal(s.frozen, false);

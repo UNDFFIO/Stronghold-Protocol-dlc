@@ -76,7 +76,7 @@ test('shop slots per level (+ the item slot), buy prices by tier, SOLD_OUT, NO_F
   h.toPrep(1);
   const m = h.m;
   const ps = h.ps('p_0');
-  const counts = { 1: 3, 2: 4, 3: 4, 4: 5, 5: 5, 6: 5 };
+  const counts = { 1: 4, 2: 5, 3: 5, 4: 6, 5: 6, 6: 6 };
   for (let lv = 1; lv <= 6; lv++) {
     ps.shop.level = lv;
     ps.rollShop();
@@ -120,52 +120,55 @@ test('shop slots per level (+ the item slot), buy prices by tier, SOLD_OUT, NO_F
   m.dispose();
 });
 
-test('two extra operator slots unlock in R9, keep frozen offers, and support purchases and refreshes', () => {
-  for (const modeId of ['mode_single_funny', 'mode_multi_normal', 'mode_multi_abyss']) {
+test('every mode gains one operator slot initially, another in R4, and another in R9; item slots stay unchanged', () => {
+  for (const [modeId, mode] of Object.entries(DATA.config.modes)) {
     const gd = new GameData(DATA, modeId);
     for (let level = 1; level <= 6; level++) {
-      const base = gd.shopSlots(level, 1);
-      assert.deepEqual(gd.shopSlots(level, 8), base);
-      for (const round of [9, 10, 15]) {
-        assert.deepEqual(gd.shopSlots(level, round), { chess: base.chess + 2, item: base.item });
+      const base = mode.shopSlots[level];
+      assert.deepEqual(gd.shopSlots(level), { chess: base.chess + 1, item: base.item });
+      for (const [round, extra] of [[1, 1], [3, 1], [4, 2], [8, 2], [9, 3], [10, 3], [15, 3]]) {
+        assert.deepEqual(gd.shopSlots(level, round), { chess: base.chess + extra, item: base.item }, `${modeId} L${level} R${round}`);
       }
     }
   }
+});
+
+for (const round of [4, 9]) test(`R${round} adds one operator slot, keeps frozen offers, and supports purchases and refreshes`, () => {
   const h = makeMatch({ mode: 'solo', seed: 8 }).start();
   h.toPrep(1);
   const m = h.m;
   const ps = h.ps('p_0');
   try {
-    m.round = 8;
-    ps.startRound(8);
+    assert.deepEqual(ps.shop.layout, { chess: 4, item: 1 }, 'the initial bonus is already filled');
+    m.round = round - 1;
+    ps.startRound(round - 1);
     const before = { ...ps.shop.layout };
     assert.deepEqual(m.handle('p_0', { t: 'g.freeze' }), { ok: true });
     const kept = ps.shop.slots.map((s) => s.id);
     ps.clearUnfrozenShop();
-    m.round = 9;
-    ps.startRound(9);
-    assert.deepEqual(ps.shop.layout, { chess: before.chess + 2, item: before.item });
+    m.round = round;
+    ps.startRound(round);
+    assert.deepEqual(ps.shop.layout, { chess: before.chess + 1, item: before.item });
     assert.deepEqual(ps.shop.slots.slice(0, before.chess).map((s) => s.id), kept.slice(0, before.chess));
-    assert.deepEqual(ps.shop.slots.slice(before.chess + 2).map((s) => s.id), kept.slice(before.chess));
+    assert.deepEqual(ps.shop.slots.slice(before.chess + 1).map((s) => s.id), kept.slice(before.chess));
     assert.ok(ps.shop.slots.every((s) => s && !s.frozen));
-    assert.equal(ps.privateView().shop.slots.length, before.chess + before.item + 2);
+    assert.equal(ps.privateView().shop.slots.length, before.chess + before.item + 1);
     ps.funds = 100;
-    for (const slot of [before.chess, before.chess + 1]) {
-      const funds = ps.funds;
-      const price = ps.privateView().shop.slots[slot].price;
-      assert.deepEqual(m.handle('p_0', { t: 'g.buy', slot }), { ok: true });
-      assert.equal(ps.funds, funds - price);
-      assert.equal(ps.shop.slots[slot].sold, true);
-    }
+    const slot = before.chess;
+    const funds = ps.funds;
+    const price = ps.privateView().shop.slots[slot].price;
+    assert.deepEqual(m.handle('p_0', { t: 'g.buy', slot }), { ok: true });
+    assert.equal(ps.funds, funds - price);
+    assert.equal(ps.shop.slots[slot].sold, true);
     assert.deepEqual(m.handle('p_0', { t: 'g.refresh' }), { ok: true });
-    assert.equal(ps.shop.slots.length, before.chess + before.item + 2);
+    assert.equal(ps.shop.slots.length, before.chess + before.item + 1);
     assert.ok(ps.shop.slots.every((s) => s && !s.sold));
     assert.deepEqual(m.handle('p_0', { t: 'g.levelUp' }), { ok: true });
     assert.deepEqual(m.handle('p_0', { t: 'g.refresh' }), { ok: true });
-    assert.deepEqual(ps.shop.layout, m.gd.shopSlots(ps.shop.level, 9));
-    m.round = 10;
-    ps.startRound(10);
-    assert.deepEqual(ps.shop.layout, m.gd.shopSlots(ps.shop.level, 10));
+    assert.deepEqual(ps.shop.layout, m.gd.shopSlots(ps.shop.level, round));
+    m.round = round + 1;
+    ps.startRound(round + 1);
+    assert.deepEqual(ps.shop.layout, m.gd.shopSlots(ps.shop.level, round + 1));
     checkInvariants(m);
   } finally {
     m.dispose();

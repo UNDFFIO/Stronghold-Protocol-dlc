@@ -341,9 +341,12 @@ test('bench management: stale low-tier singles are sold at a high shop level; pa
   const junk = [];
   for (const c of t1) if (freeIdx() >= 0) junk.push(give(m, ps, c.chessId, 'hand', freeIdx()));
   assert.ok(junk.length >= 2, 'the bench is crowded with tier-I singles');
+  const beforePrep = new Set(ps.allChess().map((p) => p.uid));
   h.run(() => m.phase === PHASE.COMBAT && m.round === 7);
-  const bench = ps.hand.filter((p) => p && p.kind === 'chess');
-  assert.ok(bench.length <= 6, `bench trimmed to ${bench.length}`);
+  // The six-piece budget applies to the old bench at prep start; later purchases can add fresh pieces.
+  const oldBench = ps.hand.filter((p) => p && p.kind === 'chess' && beforePrep.has(p.uid));
+  assert.ok(oldBench.length <= 6, `old bench trimmed to ${oldBench.length}`);
+  assert.ok(ps.hand.some((p) => p == null), 'the bot still leaves room for a merge');
   const stillOwned = junk.filter((p) => ps.find(p.uid)).length;
   assert.ok(stillOwned < junk.length, `sold stale singles (${junk.length - stillOwned}/${junk.length})`);
   const kept = ps.allChess().filter((p) => m.gd.baseIdOf(p.id) === t5.chessId);

@@ -360,13 +360,14 @@ export class GameData {
     return arr[level - 1] ?? 99;
   }
 
-  /** Two additional operator offers unlock after round 8, independently of shop level. */
+  /** DLC rule (maintainer): +1 operator offer initially, +1 at round 4, +1 at round 9, independently of shop level. */
   shopSlots(level, round = 1) {
     const s = this.mode.shopSlots && this.mode.shopSlots[String(level)];
     const d = DEFAULTS.shopSlots[level] || DEFAULTS.shopSlots[6];
     const chess = Number.isInteger(s?.chess) && s.chess >= 0 ? s.chess : d.chess;
     const item = Number.isInteger(s?.item) && s.item >= 0 ? s.item : d.item;
-    return { chess: Math.min(chess, 8) + (round > 8 ? 2 : 0), item: Math.min(item, 4) };
+    const extraChess = 1 + (round >= 4 ? 1 : 0) + (round >= 9 ? 1 : 0);
+    return { chess: Math.min(chess, 8) + extraChess, item: Math.min(item, 4) };
   }
 
   /** Real-second prep timer for round r (null = untimed). */

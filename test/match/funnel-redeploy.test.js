@@ -1,4 +1,4 @@
-// Real production Match + Battle, legal normal intents from an empty board. Seed 8 fixes the shop/wave route.
+// Real production Match + Battle, legal normal intents from an empty board. Seed 8 fixes the wave route.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Battle } from '../../server/sim/Battle.js';
@@ -49,8 +49,11 @@ test('Rockrock killed by a real enemy and automatically revived by Ermengard sta
     h.toPrep(2, { band: 'band_ermengard' });
     act({ t: 'g.levelUp' });
     h.toPrep(5, { band: 'band_ermengard' });
-    assert.equal(p.shop.slots[3].id, 'chess_char_2_10_a');
-    act({ t: 'g.buy', slot: 3 });
+    // The DLC's staged shop expansion changes the draws; two paid refreshes on this seed offer Rockrock in R5.
+    const rockrockSlot = () => p.shop.slots.findIndex(s => s?.id === 'chess_char_2_10_a');
+    while (rockrockSlot() < 0 && p.funds > p.gd.chessPrice('chess_char_2_10_a')) act({ t: 'g.refresh' });
+    assert.ok(rockrockSlot() >= 0, 'Rockrock is offered within the round\'s refresh budget');
+    act({ t: 'g.buy', slot: rockrockSlot() });
     act({ t: 'g.move', uid: p.hand.find(x => x?.id === 'chess_char_2_10_a').uid,
       to: { area: 'board', row: 12, col: 8 }, dir: 'RIGHT' });
     h.toPrep(7, { band: 'band_ermengard' });
