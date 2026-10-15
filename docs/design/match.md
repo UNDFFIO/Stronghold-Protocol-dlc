@@ -10,6 +10,16 @@ of 15% of that enemy's base ATK. Higher levels inherit it (maintainer-requested 
 Level 10, Rotating Armor, reduces either Physical or Arts damage taken by all enemies by 10%, alternating every
 12 game seconds on the shared battle clock, starting with Physical. Late spawns inherit the current phase;
 levels 11–20 inherit the rule (§29.19).
+Level 15, Overload Aftermath, replaces the skill-end SP lock with a 10-game-second ATK reduction on the
+operator whose skill ended: 8% per stack through round 10, 15% from round 11, stacking up to twice (16% / 30%).
+Levels 16–20 inherit it. Death endings, dead operators, enemies and summons do not trigger it; SP recovery is
+unchanged. [ASSUMED] Stacks use additive `atkPct` and every repeat trigger refreshes all stacks to 10 seconds,
+including at the two-stack cap (maintainer-requested DLC adjustment, §29.22).
+Level 19, Stealth Run, grants ordinary ground enemies Invisibility within 2 tiles of the goal, but excludes
+currently unblockable enemies (including levitated, feared or sleeping enemies, matching the blocking checks).
+If an affected enemy becomes unblockable, only this protocol's Invisibility is removed; it can qualify again
+once blockable. Level 20 inherits this exclusion. The main effect text stays unchanged; the hover detail
+explains the exclusion and that blocking removes Invisibility (maintainer-requested DLC adjustment, §29.21).
 Level 20, Ultimate Synergy, replaces the periodic Relay Barrier: each actual damage instance on an enemy
 multiplies its timed debuffs' remaining durations by 0.65 (§29.20). Controls, stat debuffs, tagged DoTs and
 finite elemental burst states are included; waiting weaker applications shorten too. Positive buffs and permanent

@@ -48,6 +48,13 @@ at its fixed death position, each dealing 15% of its base ATK to allies within 1
 same duration and radius as the damage checks (DESIGN §29.18).
 From level 10, Rotating Armor alternates 10% Physical / Arts damage reduction every 12 game seconds on the
 battle clock, starting with Physical; late spawns inherit the current phase (DESIGN §29.19).
+From level 15, Overload Aftermath's `skillEnd` hook applies `asc:fatigue` to a living allied operator unless
+`reason === 'death'`: 10 game seconds, `atkPct: -0.08` through round 10 or `-0.15` when `b.round > 10`,
+`maxStacks: 2`, `refresh: 'stack'`. It no longer sets `noSp`. [ASSUMED] Stacks add linearly and every trigger
+refreshes their shared timer, even at the cap (DESIGN §29.22).
+From level 19, Stealth Run's 0.25-second check excludes enemies with `unblockable`, `levitate`, `fear` or `sleep`,
+matching `_checkBlock`. It removes any existing `asc:goal` buff while those flags are active without touching
+other Invisibility sources; blockable ordinary ground enemies near the goal can qualify again (DESIGN §29.21).
 At level 20, Ultimate Synergy replaces Relay Barrier: a late `damaged` hook multiplies timed enemy debuffs'
 `timeLeft` by 0.65 after every positive HP-damage instance (DESIGN §29.20). Controls, negative stat modifiers,
 tagged DoTs and finite elemental burst states count; strongest-value `data.tail.until` deadlines shorten too.

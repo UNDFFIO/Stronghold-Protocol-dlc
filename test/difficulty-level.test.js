@@ -50,6 +50,39 @@ test('level 10 armor parameters and picker description use a 12-second rotation'
   assert.equal(armor.description, '所有敌人受到的物理或法术伤害-10%，减伤类型每12秒轮转一次（初始为物理减伤）');
 });
 
+test('level 15 fatigue parameters and description specify ATK loss, round scaling and two stacks', () => {
+  const fatigue = DIFFICULTY_RULES.find(r => r.key === 'skillFatigue');
+  assert.equal(fatigue.level, 15);
+  assert.deepEqual(fatigue.params, { duration: 10, reduction: 0.08, lateReduction: 0.15, afterRound: 10, maxStacks: 2 });
+  assert.equal(fatigue.description, '所有我方干员技能结束后的10秒内攻击力降低8%（第10回合后改为15%），最多叠加2层');
+  assert.equal(fatigue.detail, '重复触发时刷新持续时间，叠层按加算结算');
+  assert.equal(difficultyEffects(14).skillFatigue, false);
+  assert.equal(difficultyEffects(15).skillFatigue, true);
+});
+
+test('serialized battle round preserves level 15 fatigue scaling in both runtimes', () => {
+  for (const round of [10, 11]) {
+    const { spec } = battle(15, { round });
+    for (const input of [spec, JSON.parse(JSON.stringify(spec))]) {
+      const b = createBattleFromSpec(input, data, { quiet: true });
+      b.start();
+      const a = b.allyUnits[0], atk = a.s.atk;
+      b.emit('skillEnd', { unit: a, reason: 'duration' });
+      assert.equal(b.round, round);
+      assert.equal(a.s.atk, atk * (1 - (round > 10 ? 0.15 : 0.08)));
+      assert.equal(a.findBuff('asc:fatigue').duration, 10);
+      assert.equal(!!a.s.flags.noSp, false);
+      assert.deepEqual(b.errors, []);
+    }
+  }
+});
+
+test('level 19 keeps its effect description and explains unblockable exclusion only in the tooltip', () => {
+  const stealth = DIFFICULTY_RULES.find(r => r.key === 'goalStealth');
+  assert.equal(stealth.description, '所有普通地面敌人距离目标点不足2格时获得【隐匿】');
+  assert.equal(stealth.detail, '对不可被阻挡的敌人不生效；被我方单位阻挡时【隐匿】效果解除');
+});
+
 test('level 20 debuff decay parameters and picker description use 35% per damage instance', () => {
   const decay = DIFFICULTY_RULES.find(r => r.level === 20);
   assert.equal(decay.key, 'debuffDecay');

@@ -15,7 +15,7 @@ const data = new DataSource({ chess: { test_chess_a: chessRec({ skill: null }) }
   enemy_boss: enemyRec({ hp: 1001, atk: 100, speed: 0, rank: 'BOSS' }),
 } });
 function field(level, key = 'enemy_test', options = {}) {
-  const b = new Battle({ difficultyLevel: level, stage, data: options.data ?? data, content: options.content ?? 'none', autoFinish: false,
+  const b = new Battle({ difficultyLevel: level, round: options.round ?? 1, stage, data: options.data ?? data, content: options.content ?? 'none', autoFinish: false,
     flags: { startOpCooldown: 0 }, timeLimit: 90, seed: 31, logger: { warn() {}, error() {} },
     players: [{ playerId: 'p1', units: [2, 3].map((col, i) => ({ chessId: 'test_chess_a', row: 10, col, uid: i + 1 })) }] });
   b.start();
@@ -319,17 +319,69 @@ test('14: every fourth normal spawn creates one counted echo on death, keeps rem
   assert.equal(b.enemies.filter(u => u.tag === 'asc_echo').length, 1);
 });
 
-test('15: natural skill end creates an SP recovery gap, initial SP and normal rate stay intact', () => {
-  const { b, a } = field(15);
+test('15: skill end reduces ATK for 10 seconds, strengthens after round 10, and no longer blocks SP', () => {
+  for (const level of [14, 15, 20]) for (const round of [1, 9, 10, 11, 15]) {
+    const { b, a, other } = field(level, 'enemy_test', { round });
+    const sk = skill(b, a), atk = a.s.atk;
+    const reduction = level < 15 ? 0 : round > 10 ? 0.15 : 0.08;
+    assert.equal(sk.sp, 7);
+    sk.activate('manual', { free: true });
+    assert.equal(a.findBuff('asc:fatigue'), null, 'skill start alone does not trigger fatigue');
+    sk.end('end');
+    assert.equal(a.s.atk, atk * (1 - reduction), `level ${level}, round ${round}`);
+    assert.equal(other.findBuff('asc:fatigue'), null, 'only the skill owner is affected');
+    assert.equal(!!a.s.flags.noSp, false);
+    assert.equal(sk.gainSp(5, 'gift'), 5);
+    assert.equal(sk.gainSp(1, 'attack'), 1);
+    const sp = sk.sp;
+    run(b, 2.1);
+    assert.ok(sk.sp > sp, 'time-based SP recovery remains enabled');
+    assert.equal(a.s.atk, atk * (1 - reduction), 'the old two-second window no longer applies');
+    run(b, 7.8);
+    assert.equal(a.s.atk, atk * (1 - reduction), 'fatigue lasts the full ten seconds');
+    run(b, 0.2);
+    assert.equal(a.findBuff('asc:fatigue'), null);
+    assert.equal(a.s.atk, atk);
+    assert.equal(a.s.spRecovery, 1);
+  }
+});
+
+test('15: fatigue stacks additively twice and repeat skill ends refresh the shared ten-second timer', () => {
+  for (const level of [15, 20]) for (const round of [10, 11]) {
+    const { b, a } = field(level, 'enemy_test', { round });
+    const sk = skill(b, a), atk = a.s.atk, reduction = round > 10 ? 0.15 : 0.08;
+    const cast = () => { sk.activate('manual', { free: true }); sk.end('end'); };
+    cast();
+    assert.equal(a.findBuff('asc:fatigue').stacks, 1);
+    run(b, 4);
+    cast();
+    assert.equal(a.findBuff('asc:fatigue').stacks, 2);
+    assert.equal(a.s.atk, atk * (1 - 2 * reduction));
+    run(b, 4);
+    cast();
+    assert.equal(a.findBuff('asc:fatigue').stacks, 2, 'third trigger cannot add a third layer');
+    assert.equal(a.findBuff('asc:fatigue').timeLeft, 10);
+    run(b, 9.9);
+    assert.equal(a.s.atk, atk * (1 - 2 * reduction), 'both layers last from the latest trigger');
+    run(b, 0.2);
+    assert.equal(a.findBuff('asc:fatigue'), null);
+    assert.equal(a.s.atk, atk);
+  }
+});
+
+test('15: death-ended skills and non-operators do not receive fatigue', () => {
+  const { b, a, other, e } = field(15);
   const sk = skill(b, a);
-  assert.equal(sk.sp, 7);
   sk.activate('manual', { free: true });
-  sk.end('end');
-  assert.equal(a.s.flags.noSp, true);
-  assert.equal(sk.gainSp(5, 'gift'), 0);
-  run(b, 2.1);
-  assert.equal(sk.gainSp(5, 'gift'), 5);
-  assert.equal(a.s.spRecovery, 1);
+  sk.end('death');
+  assert.equal(a.findBuff('asc:fatigue'), null);
+  other.kind = 'token';
+  for (const unit of [other, e]) b.emit('skillEnd', { unit, reason: 'end' });
+  assert.equal(other.findBuff('asc:fatigue'), null);
+  assert.equal(e.findBuff('asc:fatigue'), null);
+  b.kill(a, e);
+  b.emit('skillEnd', { unit: a, reason: 'end' });
+  assert.equal(a.findBuff('asc:fatigue'), null);
 });
 
 test('16: every third attack telegraphs then hits a fixed position, excluding allies outside its radius', () => {
@@ -377,6 +429,56 @@ test('19: ordinary ground enemies near the goal become stealthed; blockers can s
   assert.equal(canTargetEnemy(a, e, {}), false);
   e.blockedBy = a;
   assert.equal(canTargetEnemy(a, e, {}), true);
+});
+
+test('19: unblockable enemies never receive goal stealth, including at level 20', () => {
+  for (const level of [19, 20]) {
+    const { b, e, a } = field(level);
+    e.x = 3; e.y = 9;
+    b.addBuff(e, { key: 'test:unblockable', flags: { unblockable: true }, persist: true });
+    run(b, 0.3);
+    assert.equal(e.findBuff('asc:goal'), null);
+    assert.equal(!!e.s.flags.stealth, false);
+    assert.equal(canTargetEnemy(a, e, {}), true);
+  }
+});
+
+test('19: becoming unblockable removes only protocol stealth; becoming blockable restores eligibility', () => {
+  for (const level of [19, 20]) for (const flag of ['unblockable', 'levitate', 'fear', 'sleep']) {
+    const { b, e, a } = field(level);
+    e.x = 3; e.y = 9;
+    run(b, 0.3);
+    assert.ok(e.findBuff('asc:goal'));
+    b.addBuff(e, { key: 'test:blockFree', flags: { [flag]: true } });
+    run(b, 0.3);
+    assert.equal(e.findBuff('asc:goal'), null, `${flag} at level ${level}`);
+    assert.equal(!!e.s.flags.stealth, false);
+    const profile = { canHitFly: true, hitSleep: true };
+    assert.equal(canTargetEnemy(a, e, profile), true);
+    b.addBuff(e, { key: 'test:nativeStealth', flags: { stealth: true } });
+    run(b, 0.3);
+    assert.ok(e.findBuff('test:nativeStealth'), 'the enemy\'s own stealth is preserved');
+    assert.equal(canTargetEnemy(a, e, profile), false);
+    b.removeBuff(e, 'test:nativeStealth');
+    b.removeBuff(e, 'test:blockFree');
+    run(b, 0.3);
+    assert.ok(e.findBuff('asc:goal'), 'blockable enemies near the goal qualify again');
+  }
+});
+
+test('19: real unblockable ghost leaders remain targetable near the goal', () => {
+  const fullData = new DataSource(data.raw, getDefaultSource());
+  for (const level of [19, 20]) {
+    const { b, e, a } = field(level, 'enemy_1026_aghost', { data: fullData, content: 'full' });
+    e.x = 3; e.y = 9;
+    e.base.moveSpeed = 0;
+    e.markDirty();
+    assert.equal(e.s.flags.unblockable, true);
+    assert.equal(e.def.rank, 'NORMAL');
+    run(b, 0.3);
+    assert.equal(e.findBuff('asc:goal'), null);
+    assert.equal(canTargetEnemy(a, e, {}), true);
+  }
 });
 
 test('20: each actual damage instance shortens remaining debuff durations by 35%, only at level 20', () => {

@@ -158,7 +158,11 @@ export function installDifficulty(b) {
     }
   });
   if (rules.skillFatigue) b.on('skillEnd', ({ unit: u, reason }) => {
-    if (op(u) && u.alive && reason !== 'death') buff(b, u, 'fatigue', null, P.skillFatigue.duration, { noSp: true });
+    if (!op(u) || !u.alive || reason === 'death') return;
+    const p = P.skillFatigue, reduction = b.round > p.afterRound ? p.lateReduction : p.reduction;
+    // [ASSUMED] Repeated triggers refresh all stacks together, using the engine's additive stacking convention.
+    b.addBuff(u, { key: 'asc:fatigue', mods: { atkPct: -reduction }, duration: p.duration,
+      refresh: 'stack', maxStacks: p.maxStacks, visible: true });
   });
   if (rules.skillDebt) b.on('skillStart', ({ unit: u }) => {
     if (op(u)) buff(b, u, 'debt', { healingTakenMul: 0 }, P.skillDebt.duration);
@@ -176,9 +180,16 @@ export function installDifficulty(b) {
     });
   });
   if (rules.goalStealth) b.every(0.25, () => {
-    for (const e of b.aliveEnemies()) if (ordinary(e) && e.motion !== 'FLY' && !e.hidden
-        && b.remainingDistance(e) < P.goalStealth.distance) {
-      if (!e.findBuff('asc:goal')) buff(b, e, 'goal', null, Infinity, { stealth: true });
+    for (const e of b.aliveEnemies()) {
+      // Match the enemy-side exclusions in _checkBlock, including temporary unblockable states.
+      const f = e.s.flags;
+      if (f.unblockable || f.levitate || f.fear || f.sleep) {
+        b.removeBuff(e, 'asc:goal');
+        continue;
+      }
+      if (ordinary(e) && e.motion !== 'FLY' && !e.hidden && b.remainingDistance(e) < P.goalStealth.distance) {
+        if (!e.findBuff('asc:goal')) buff(b, e, 'goal', null, Infinity, { stealth: true });
+      }
     }
   });
   if (rules.debuffDecay) b.on('damaged', ({ target, amount, type, dmg }) => {
