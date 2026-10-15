@@ -50,6 +50,15 @@ test('level 10 armor parameters and picker description use a 12-second rotation'
   assert.equal(armor.description, '所有敌人受到的物理或法术伤害-10%，减伤类型每12秒轮转一次（初始为物理减伤）');
 });
 
+test('level 20 debuff decay parameters and picker description use 35% per damage instance', () => {
+  const decay = DIFFICULTY_RULES.find(r => r.level === 20);
+  assert.equal(decay.key, 'debuffDecay');
+  assert.deepEqual(decay.params, { reduction: 0.35 });
+  assert.equal(decay.description, '所有敌方单位每受到一次伤害后，自身负面效果的剩余持续时间减少35%');
+  assert.equal(difficultyEffects(19).debuffDecay, false);
+  assert.equal(difficultyEffects(20).debuffDecay, true);
+});
+
 test('immunity starts at 5, does not consume zero damage or element fills, and applies independently per enemy', () => {
   for (const n of [0, 4, 5, 9]) {
     const { b, a, e } = battle(n);

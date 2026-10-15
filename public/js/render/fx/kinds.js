@@ -6,11 +6,11 @@
  * kinds fall back to a keyword guess, then to a generic sparkle (fxSpec).
  */
 export const FX_KINDS = Object.freeze({
-  // DLC ascension: ground hazards, bombard warnings and distinct armor / relay colours.
+  // DLC ascension: ground hazards, bombard warnings and distinct armor colours.
   ascEmbers: { a: 'zone', c: 0xff632f, dur: 3, r: 0.75, pt: true },
   ascBombMark: { a: 'telegraph', c: 0xff3156, dur: 1, r: 0.75, pt: true },
   ascPhysicalArmor: { a: 'shield', c: 0xffb35c }, ascArtsArmor: { a: 'shield', c: 0xbb91ff },
-  ascSpStorm: { a: 'buff', c: 0x8299c8 }, ascRelay: { a: 'shield', c: 0x53e0b4 },
+  ascSpStorm: { a: 'buff', c: 0x8299c8 },
   // blasts
   // [ASSUMED] Clementia's S3 uses the shared blast placeholder until her official effect is ported.
   blast: { a: 'blast', c: 0xffb35c },

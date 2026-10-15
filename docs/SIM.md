@@ -48,6 +48,12 @@ at its fixed death position, each dealing 15% of its base ATK to allies within 1
 same duration and radius as the damage checks (DESIGN §29.18).
 From level 10, Rotating Armor alternates 10% Physical / Arts damage reduction every 12 game seconds on the
 battle clock, starting with Physical; late spawns inherit the current phase (DESIGN §29.19).
+At level 20, Ultimate Synergy replaces Relay Barrier: a late `damaged` hook multiplies timed enemy debuffs'
+`timeLeft` by 0.65 after every positive HP-damage instance (DESIGN §29.20). Controls, negative stat modifiers,
+tagged DoTs and finite elemental burst states count; strongest-value `data.tail.until` deadlines shorten too.
+Zero/cancelled/dodged/fully absorbed damage, element gauge fills and `hpLoss` do not trigger it. Positive buffs,
+infinite-duration effects and stack-only palsy remain unchanged. [ASSUMED] Enemy-authored forms/passives and
+terrain buffs are excluded; elemental burst duration and its lock shorten together, preserving normal expiry resets.
 
 ```js
 import { Battle } from './sim/Battle.js';

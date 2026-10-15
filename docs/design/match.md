@@ -10,6 +10,12 @@ of 15% of that enemy's base ATK. Higher levels inherit it (maintainer-requested 
 Level 10, Rotating Armor, reduces either Physical or Arts damage taken by all enemies by 10%, alternating every
 12 game seconds on the shared battle clock, starting with Physical. Late spawns inherit the current phase;
 levels 11–20 inherit the rule (§29.19).
+Level 20, Ultimate Synergy, replaces the periodic Relay Barrier: each actual damage instance on an enemy
+multiplies its timed debuffs' remaining durations by 0.65 (§29.20). Controls, stat debuffs, tagged DoTs and
+finite elemental burst states are included; waiting weaker applications shorten too. Positive buffs and permanent
+or stack-only effects are unchanged. Zero/cancelled/dodged/fully absorbed hits, element gauge fills and HP loss
+are not triggers. [ASSUMED] Enemy-authored forms/passives and terrain state are not debuffs; burst states shorten
+with their associated cooldown and retain normal expiry/reset callbacks.
 
 ### 6.1 State machine (Match.js)
 
