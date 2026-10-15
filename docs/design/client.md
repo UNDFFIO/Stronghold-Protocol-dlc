@@ -242,3 +242,17 @@ maintainer's decision of 2026-10-13). On, an operator's ammo bar carries `left/m
 the exact b.snap `ammo` counts, extra rounds and refills included), centred in the bar's yellow; the rows under the bars
 move down by its height. It hides with the magazine, in the prep view and after death. The simplified board has no ammo
 bar and so no count.
+
+### DLC: fourth-round lottery presentation
+
+The Ascension round-four result opens under the title 「超限补给」 with three vertical reels. They decelerate and stop
+from left to right over 2.5 seconds. Coins and operators show matching category symbols. The three-collectible reward
+shows each of the three actual awarded items with its original art, localized name and tier. The 「稀有藏品」 reward
+repeats the same awarded Legendary item on all three reels, with its art and name, but grants / applies only one item.
+The localized result appears after the last reel stops. Both collectible categories show only the awarded names
+after 「本次抽中：」, without the 「收藏品：」 / 「稀有藏品：」 prefixes. There is no duplicate collectible details list
+below the result. Probability cards and explanatory paragraphs are omitted. A skip action reveals
+the result immediately; confirmation, Escape or the backdrop dismisses it without reopening on private updates.
+System reduced-motion preference reveals the result immediately, including when enabled during the animation.
+Timers are cleared when the modal leaves the screen. The server still draws and grants before sending the result;
+the animation changes no odds, rewards, game timing or protocol fields.

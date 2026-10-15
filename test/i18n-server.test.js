@@ -23,7 +23,7 @@ test('DLC lottery, collectible and self-revival messages localize after Chinese 
   for (const code of ['en', 'ja', 'ko', 'zh-TW']) {
     const pack = JSON.parse(readFileSync(path.join(ROOT, `public/i18n/${code}.json`), 'utf8'));
     addMessages(code, pack);
-    for (const [kind, seed] of Object.entries({ coins: 1, operators: 4, relics: 7, heal: 10 })) {
+    for (const [kind, seed] of Object.entries({ coins: 1, operators: 4, relics: 7, legendary: 10 })) {
       setLang('zh');
       const h = makeMatch({ mode: 'solo', difficulty: 'ASCENSION', seed, fake: true }).start();
       try {
@@ -45,8 +45,7 @@ test('DLC lottery, collectible and self-revival messages localize after Chinese 
         assert.ok(translateWire(notice).startsWith(pack['超限模拟 · 第 4 回合抽奖']), `${code}/${kind}`);
         assert.ok(!/\{(?:0|1|bondName)\}/.test(local), `${code}/${kind}: ${local}`);
         if (kind === 'coins') assert.equal(local, pack['15 金币']);
-        if (kind === 'heal') assert.equal(local, pack['恢复 8 点目标生命值']);
-        if (kind === 'relics') for (const id of reward.ids) assert.ok(local.includes(pack[getRelic(id).name]), `${code}: ${local}`);
+        if (kind === 'relics' || kind === 'legendary') for (const id of reward.ids) assert.ok(local.includes(pack[getRelic(id).name]), `${code}: ${local}`);
         if (kind === 'operators') for (const id of reward.ids) assert.ok(local.includes(data.lookup('chess', id).name), `${code}: ${local}`);
       } finally { h.m.dispose(); setLang('zh'); await data.setLocale('zh'); }
     }

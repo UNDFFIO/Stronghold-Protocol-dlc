@@ -156,9 +156,9 @@ export function comebackWeights(round) {
   return [0, 0, 55, 30, 15];
 }
 
-export function pickRelic(round, owned, rng, { comeback = false, multiplayer = false } = {}) {
+export function pickRelic(round, owned, rng, { comeback = false, multiplayer = false, tierWeights = null } = {}) {
   const ids = idsOf(owned);
-  const weights = comeback ? comebackWeights(round) : dropWeights(round);
+  const weights = tierWeights ?? (comeback ? comebackWeights(round) : dropWeights(round));
   const pools = RELIC_TIERS.map(({ tier }) => RELICS.filter((r) => r.tier === tier && !ids.has(r.id) && (!r.multiplayerOnly || multiplayer)));
   const total = weights.reduce((sum, w, i) => sum + (pools[i].length ? w : 0), 0);
   if (!total) return null;

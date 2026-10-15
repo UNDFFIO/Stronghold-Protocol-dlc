@@ -93,3 +93,7 @@ The other four match digests are unchanged from the previous DLC baseline.
 `coop2-NORMAL-5-coverage-diy`, `coop2-NORMAL-68-coverage-diy`.
 
 保留全部原有场景和种子，新增 `coop2-NORMAL-24-coverage-diy` 并加入快速检查：种子 68 在新规则下仍覆盖原型干员上场，但不再部署推进之王；种子 24 覆盖推进之王第 6、7、9–13 回合的商店→部署→战斗路径，保持自选干员完整流程的检查。当前共 289 个场景，其中对局 22 个。
+
+## DLC 超限补给奖池调整（2026-10-15）
+
+将三件收藏品奖池改为普通 5%、精良 65%、稀有 30%，并用一件传说藏品替换回血奖项后，运行 `npm run golden:update` 重算全部 289 个场景，六个家族的 JSON 均无变动，故没有移动的场景。当前固定对局场景未包含 ASCENSION；新增行为由 `test/match/ascension-lottery.test.js` 的精确概率边界、排重、单件发放、耗尽池和实际回合推进用例，以及浏览器停轮检查覆盖。普通作战的掉落概率与既有对局结果保持一致。

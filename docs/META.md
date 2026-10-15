@@ -41,6 +41,18 @@ server/match/
 
 ## 1. Match flow
 
+### DLC: Ascension supplies
+
+`server/match/ascensionLottery.js` grants once at the start of round 4 to each surviving, present Ascension player
+(including level 0). The four equally likely categories are 15 coins, two operators from the highest accumulated-layer
+bond, three distinct collectibles, and one 「稀有藏品」. The three-collectible pool uses tier weights `[5, 65, 30, 0, 0]`;
+the category named 「稀有藏品」 uses `[0, 0, 0, 0, 100]`, so its single item is always Legendary and it no longer heals LP.
+`pickRelic` accepts the server's explicit `tierWeights`; ordinary and comeback draws retain their own tables. Owned and
+mode-ineligible items are excluded, exhausted tiers are removed and the remaining weights normalized, with no fallback
+outside the specified tiers. `grantRelic` applies every item exactly once, including acquisition hooks for the round-4
+battle. The private view contains actual awarded IDs: three different IDs for the three-item prize, one ID for the
+Legendary prize. The three identical Legendary reel images are presentation only.
+
 ### Room discovery and access
 
 `server/lobby.js` owns public room discovery and access settings (DESIGN §8.1 / §29.15). New rooms are private
