@@ -12,7 +12,7 @@ through.
 
 The DLC fork's match digests include its collectible rewards, LP shields and round-9 shop expansion. These alter
 the bot lineups and random draws, so `matches.json` has a fork baseline. The battle families retain the upstream
-0.2.4 digests; DLC mechanics have separate tests under `test/match/relic*.test.js` and `test/sim/ascension.test.js`.
+0.2.6 digests; DLC mechanics have separate tests under `test/match/relic*.test.js` and `test/sim/ascension.test.js`.
 
 ## The corpus
 
@@ -64,3 +64,18 @@ node tools/golden.mjs --twice                   # determinism: the corpus twice 
   the corpus there (the roster family enumerates `data/chess.json`).
 
 After the measured shared-stock update (DESIGN §29.8), the original stand-in / DIY seeds remain as outcome regressions even when they field no such operator. Companion seeds `coop2-NORMAL-1-coverage-standins` and `coop2-NORMAL-5-coverage-diy` were added to exercise those full paths. The DLC rewards changed the DIY bot lineup again, so seed 5 is retained as an outcome regression and `coop2-NORMAL-68-coverage-diy` covers the shop → deployment → battle path (推进之王 in rounds 3–5). It is included in the fast subset; no existing scenario digest changed. The corpus now contains 288 scenarios.
+
+## Upstream 0.2.6 sync (2026-10-15)
+
+The five battle families match upstream `488db49f` byte-for-byte. Recomputed `matches.json` on the merged DLC tree:
+17 of 21 match digests moved. These incorporate the upstream 0.2.5 gameplay fixes (funnel/body attacks and redeploy
+state, half-even hit tiles, Touch aggro, item gift/stock handling and weighted gift pools, and bot faction reservations)
+while retaining DLC collectible rewards, LP rules and the expanded shop. No new gameplay rule or corpus seed was added
+by the merge; the existing DIY coverage seed 68 still fields Siege in rounds 3–5.
+
+Changed scenarios (all due to those upstream gameplay fixes interacting with the existing DLC match progression):
+`solo-FUNNY-1`, `solo-FUNNY-2`, `solo-NORMAL-1`, `solo-HARD-1`, `solo-ABYSS-1`,
+`coop2-NORMAL-3`, `coop2-HARD-4`, `coop3-ABYSS-5`, `coop4-FUNNY-6`, `coop4-ABYSS-7`,
+`coop2-NORMAL-8-serverrun`, `coop2-ABYSS-10-boosted`, `coop2-NORMAL-14-standins`, `coop2-NORMAL-70-diy`,
+`coop2-NORMAL-1-coverage-standins`, `coop2-NORMAL-5-coverage-diy`, `coop2-NORMAL-68-coverage-diy`.
+The other four match digests are unchanged from the previous DLC baseline.

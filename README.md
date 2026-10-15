@@ -2,7 +2,7 @@
 
 基于 [sganggs/Stronghold-Protocol](https://github.com/sganggs/Stronghold-Protocol) 的非官方玩法扩展 fork，在原有浏览器自走棋塔防与单人 / 1–4 人合作玩法上，加入**收藏品、超限模拟和后期商店扩展**。DLC 是本 fork 的扩展标识，非鹰角官方 DLC。
 
-![base version](https://img.shields.io/badge/upstream%20base-0.2.4-2ea44f)
+![base version](https://img.shields.io/badge/upstream%20base-0.2.6-2ea44f)
 ![license](https://img.shields.io/badge/code%20license-GPL--3.0--or--later-blue)
 ![node](https://img.shields.io/badge/node-22%20%7C%2024-339933)
 
@@ -26,9 +26,9 @@ English summary: [below](#english).
 
 ## 与原项目的差异
 
-本 fork 以原项目 **0.2.4** 为基础，当前保留上游至 `bc50cac0` 的更新。以下比较针对这一基线；`package.json` 中的 0.2.4 是沿用的基础版本号，不表示这些扩展已属于上游发布内容。
+本 fork 以原项目 **0.2.6** 为基础，当前保留上游至 `488db49f` 的更新。以下比较针对这一基线；`package.json` 中的 0.2.6 是沿用的基础版本号，不表示这些扩展已属于上游发布内容。
 
-| 项目 | 原项目（0.2.4 基线） | 本 fork |
+| 项目 | 原项目（0.2.6 基线） | 本 fork |
 |---|---|---|
 | 难度 | 标准 / 险境 / 绝境 / 终极四种模拟 | 保留四种基础难度，新增以终极为基础的「超限模拟」0–20 级，逐级累积战场协议 |
 | 作战奖励 | 无本局收藏品选择流程 | 无漏怪作战后藏品三选一，46 件藏品按回合进度分档掉落，增益整局保留 |
@@ -36,7 +36,7 @@ English summary: [below](#english).
 | 后期招募 | 干员招募位数量由调度中心等级决定 | 第 9 回合起，在原有数量上增加两个干员招募位，装备位不变 |
 | 界面 | 原有难度选择、效果栏与结算展示 | 增加超限等级轮盘与规则预览、个人收藏图标和详情、奖励选择及结算收藏展示 |
 
-原项目的招募与晋升、盟约、装备、联防、最终攻势、隐秘核心、AI 队友及断线重连仍作为基础玩法保留；同盟观战席、补位干员、自选编队、多语言、自定义快捷键、满潜能数据、调配导入 / 导出、战斗语音、分回合音乐，以及干员技能、敌人规则、渲染、启动器和诊断等上游更新也继续保留。共享卡池与装备库存、潜能与练度设置、AI 队友最后选择、重新生成开局和渲染性能等 0.2.2–0.2.4 更新也已同步。基础玩法见 [玩法指南](docs/PLAYING.md)，上游版本记录见 [CHANGELOG.md](CHANGELOG.md)。
+原项目的招募与晋升、盟约、装备、联防、最终攻势、隐秘核心、AI 队友及断线重连仍作为基础玩法保留；同盟观战席、补位干员、自选编队、多语言、自定义快捷键、满潜能数据、调配导入 / 导出、战斗语音、分回合音乐，以及干员技能、敌人规则、渲染、启动器和诊断等上游更新也继续保留。共享卡池与装备库存、潜能与练度设置、AI 队友最后选择、重新生成开局和渲染性能等 0.2.2–0.2.4 更新也已同步。0.2.5–0.2.6 的官方战场场景、驭械术师与索敌修正、带宽优化（WebSocket / brotli 压缩、素材内容哈希缓存、教程图 WebP）、入场动画、「官方伤害数字」与「弹药数量」选项及模型裁切修复也已同步。基础玩法见 [玩法指南](docs/PLAYING.md)，上游版本记录见 [CHANGELOG.md](CHANGELOG.md)。
 
 这些扩展会改变成长与战斗平衡：**选择四种基础难度仍会启用收藏品与后期商店扩展**，并不等于回到原项目规则。藏品名称与图标参考明日方舟其他玩法，但档位、数值与效果经过本 fork 适配，不代表官方「卫戍协议」规则。
 
@@ -79,6 +79,7 @@ npm start
 
 - **运行条件**：服务器使用 Windows / macOS / Linux + Node.js；玩家使用支持 WebGL 的现代浏览器，手机建议横屏。
 - **素材**：表情和「玩法说明」的教程图随上面的素材一起从公开镜像下载。3D 棋盘、部分界面图标、灼热 / 炽焰源石虫模型和部分自选干员召唤物模型需要从本机《明日方舟》客户端提取；未提取时使用替代样式。服务器也可从**同一版本**的整合包复制 `public/assets/local/` 和 `data/local-assets.json`，详见 [docs/DEPLOY.md 第 6 节](docs/DEPLOY.md#6-本地客户端素材) 和 [docs/ASSETS.md](docs/ASSETS.md)。
+- **官方战场场景（可选）**：`node tools/setup.mjs --scenes` 下载并提取各战场的官方场景（需要 Python 和提取依赖）；没有场景时保留金属棋盘，没有棋盘贴图时回退到 2D。详见 [docs/ASSETS.md](docs/ASSETS.md)。
 - **诊断**：`npm run doctor` 检查 Node 版本、素材、端口、局域网地址和防火墙。
 - **整合包**：如使用整合包，请确认包含本 fork 的扩展代码与收藏品图标；上游整合包不包含这些扩展。
 
@@ -96,6 +97,7 @@ npm start
 | `DEBUG` | 空 | 启用详细日志 |
 | `SP_NO_BROWSER` | 空 | 设为 `1` 时启动脚本不自动打开浏览器 |
 | `SP_BOT_EMOTES` | 空 | AI 队友的对局表情回应（战斗、整备、合成、联防、收礼时即刻的 `m.emote` 广播）；设为 `0` 时整体关闭 |
+| `SP_ASSET_INDEX` | 空 | 素材地址带内容哈希、浏览器长期缓存（0.2.6 起默认开启，哈希存在 `.cache/asset-hashes.json`）；设为 `0` 时关闭，素材清单原样下发 |
 
 PowerShell 更换端口：`$env:PORT=8080; npm start`。健康检查：`GET /healthz`。
 
@@ -120,7 +122,7 @@ PowerShell 更换端口：`$env:PORT=8080; npm start`。健康检查：`GET /hea
 
 完整的规则、数值和小技巧见 **[docs/PLAYING.md](docs/PLAYING.md)**（游戏内左下角也有「玩法说明」）。
 
-选择单位按地上的方格；漏怪时顶栏的目标生命值实时减少，藏品护盾抵消扣血，时间机器则显示本场结算的回血预览。
+选择单位按地上的方格；漏怪时顶栏用红字 + 「−N」标记待扣的目标生命值，主数值保持当前生命值，结算时再扣除。藏品护盾抵消扣血，时间机器则以「+N」标记本场结算待恢复的生命值。
 
 ## 文档
 
@@ -187,7 +189,7 @@ node tools/perfbench.mjs --cpu 1,4,6 --profile             # 真实战斗的帧�
 
 ## English
 
-**Stronghold-Protocol-dlc** is an unofficial gameplay-expansion fork of [sganggs/Stronghold-Protocol](https://github.com/sganggs/Stronghold-Protocol) for Arknights' mode *Stronghold Protocol: Alliance*, based on upstream 0.2.4. It adds 46 match-scoped collectibles, comeback rewards and a next-round shield after three consecutive leaking rounds, cumulative Ascension levels 0–20, and two extra operator offers from round 9. Collectibles and the shop expansion also apply to the four base difficulties. DLC is this fork's label, not an official Arknights release.
+**Stronghold-Protocol-dlc** is an unofficial gameplay-expansion fork of [sganggs/Stronghold-Protocol](https://github.com/sganggs/Stronghold-Protocol) for Arknights' mode *Stronghold Protocol: Alliance*, based on upstream 0.2.6. It adds 46 match-scoped collectibles, comeback rewards and a next-round shield after three consecutive leaking rounds, cumulative Ascension levels 0–20, and two extra operator offers from round 9. Collectibles and the shop expansion also apply to the four base difficulties. DLC is this fork's label, not an official Arknights release.
 
 - **Run:** clone this fork, install Node.js 22 or 24, then run `npm install`, `npm run setup` and `npm start`. Open [http://localhost:3000](http://localhost:3000). Upstream bundles do not include this fork's extensions.
 - **Rules:** see [PLAYING.md](docs/PLAYING.md) and [COLLECTIBLES.md](docs/COLLECTIBLES.md); hosting details are in [DEPLOY.md](docs/DEPLOY.md).
