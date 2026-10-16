@@ -2,7 +2,7 @@
 
 基于 [sganggs/Stronghold-Protocol](https://github.com/sganggs/Stronghold-Protocol) 的非官方玩法扩展 fork，在原有浏览器自走棋塔防与单人 / 1–4 人合作玩法上，加入**收藏品、超限模拟和后期商店扩展**。DLC 是本 fork 的扩展标识，非鹰角官方 DLC。
 
-![base version](https://img.shields.io/badge/upstream%20base-0.2.6-2ea44f)
+![base version](https://img.shields.io/badge/upstream%20base-0.3.0-2ea44f)
 ![license](https://img.shields.io/badge/code%20license-GPL--3.0--or--later-blue)
 ![node](https://img.shields.io/badge/node-22%20%7C%2024-339933)
 
@@ -21,14 +21,14 @@ English summary: [below](#english).
 ## 目录
 
 - [与原项目的差异](#与原项目的差异) · [Fork 扩展玩法](#fork-扩展玩法)
-- [快速开始](#快速开始) · [配置与联机](#配置与联机) · [操作](#操作) · [文档](#文档) · [开发与测试](#开发与测试)
+- [快速开始](#快速开始) · [配置与联机](#配置与联机) · [插件](#插件) · [操作](#操作) · [文档](#文档) · [开发与测试](#开发与测试)
 - [声明](#声明) · [许可证](#许可证) · [致谢与数据来源](#致谢与数据来源) · [贡献](#贡献)
 
 ## 与原项目的差异
 
-本 fork 以原项目 **0.2.6** 为基础，当前保留上游至 `488db49f` 的更新。以下比较针对这一基线；`package.json` 中的 0.2.6 是沿用的基础版本号，不表示这些扩展已属于上游发布内容。
+本 fork 以原项目 **0.3.0** 为基础，当前保留上游至 `c24e17ee` 的更新。以下比较针对这一基线；`package.json` 中的 0.3.0 是沿用的基础版本号，不表示这些扩展已属于上游发布内容。
 
-| 项目 | 原项目（0.2.6 基线） | 本 fork |
+| 项目 | 原项目（0.3.0 基线） | 本 fork |
 |---|---|---|
 | 难度 | 标准 / 险境 / 绝境 / 终极四种模拟 | 保留四种基础难度，新增以终极为基础的「超限模拟」0–20 级，逐级累积战场协议 |
 | 作战奖励 | 无本局收藏品选择流程 | 无漏怪作战后藏品三选一，46 件藏品按回合进度分档掉落，增益整局保留 |
@@ -36,7 +36,7 @@ English summary: [below](#english).
 | 招募扩展 | 干员招募位数量由调度中心等级决定 | 初始额外增加 1 个干员招募位，第 4、第 9 回合开始时各再增加 1 个，装备位不变 |
 | 界面 | 原有难度选择、效果栏与结算展示 | 增加超限等级轮盘与规则预览、个人收藏图标和详情、奖励选择及结算收藏展示 |
 
-原项目的招募与晋升、盟约、装备、联防、最终攻势、隐秘核心、AI 队友及断线重连仍作为基础玩法保留；同盟观战席、补位干员、自选编队、多语言、自定义快捷键、满潜能数据、调配导入 / 导出、战斗语音、分回合音乐，以及干员技能、敌人规则、渲染、启动器和诊断等上游更新也继续保留。共享卡池与装备库存、潜能与练度设置、AI 队友最后选择、重新生成开局和渲染性能等 0.2.2–0.2.4 更新也已同步。0.2.5–0.2.6 的官方战场场景、驭械术师与索敌修正、带宽优化（WebSocket / brotli 压缩、素材内容哈希缓存、教程图 WebP）、入场动画、「官方伤害数字」与「弹药数量」选项及模型裁切修复也已同步。基础玩法见 [玩法指南](docs/PLAYING.md)，上游版本记录见 [CHANGELOG.md](CHANGELOG.md)。
+原项目的招募与晋升、盟约、装备、联防、最终攻势、隐秘核心、AI 队友及断线重连仍作为基础玩法保留；同盟观战席、补位干员、自选编队、多语言、自定义快捷键、满潜能数据、调配导入 / 导出、战斗语音、分回合音乐，以及干员技能、敌人规则、渲染、启动器和诊断等上游更新也继续保留。共享卡池与装备库存、潜能与练度设置、AI 队友最后选择、重新生成开局和渲染性能等 0.2.2–0.2.4 更新也已同步。0.2.5–0.2.6 的官方战场场景、驭械术师与索敌修正、带宽优化（WebSocket / brotli 压缩、素材内容哈希缓存、教程图 WebP）、入场动画、「官方伤害数字」与「弹药数量」选项及模型裁切修复也已同步。0.3.0 的插件系统与浏览器工作台、官方战斗特效与场景打光、水面、更多语音语言、本地素材包导入、作战统计、AI 布阵与演习、扩展临时整备队列及玩法修复也已同步。基础玩法见 [玩法指南](docs/PLAYING.md)，上游版本记录见 [CHANGELOG.md](CHANGELOG.md)。
 
 这些扩展会改变成长与战斗平衡：**选择四种基础难度仍会启用收藏品与后期商店扩展**，并不等于回到原项目规则。藏品名称与图标参考明日方舟其他玩法，但档位、数值与效果经过本 fork 适配，不代表官方「卫戍协议」规则。
 
@@ -78,8 +78,9 @@ npm start
 也可使用启动脚本：Windows 双击 `scripts\start-windows.bat`；macOS / Linux 运行 `bash scripts/start.sh`。首次启动会自动安装依赖并下载素材。
 
 - **运行条件**：服务器使用 Windows / macOS / Linux + Node.js；玩家使用支持 WebGL 的现代浏览器，手机建议横屏。
-- **素材**：表情和「玩法说明」的教程图随上面的素材一起从公开镜像下载。3D 棋盘、部分界面图标、灼热 / 炽焰源石虫模型和部分自选干员召唤物模型需要从本机《明日方舟》客户端提取；未提取时使用替代样式。服务器也可从**同一版本**的整合包复制 `public/assets/local/` 和 `data/local-assets.json`，详见 [docs/DEPLOY.md 第 6 节](docs/DEPLOY.md#6-本地客户端素材) 和 [docs/ASSETS.md](docs/ASSETS.md)。
+- **素材**：表情和「玩法说明」的教程图随上面的素材一起从公开镜像下载。3D 棋盘、官方战斗特效、部分界面图标、灼热 / 炽焰源石虫模型和部分自选干员召唤物模型需要从本机《明日方舟》客户端提取；未提取时使用替代样式。服务器也可从**同一版本**的整合包复制 `public/assets/local/` 和 `data/local-assets.json`，详见 [docs/DEPLOY.md 第 6 节](docs/DEPLOY.md#6-本地客户端素材) 和 [docs/ASSETS.md](docs/ASSETS.md)。
 - **官方战场场景（可选）**：`node tools/setup.mjs --scenes` 下载并提取各战场的官方场景（需要 Python 和提取依赖）；没有场景时保留金属棋盘，没有棋盘贴图时回退到 2D。详见 [docs/ASSETS.md](docs/ASSETS.md)。
+- **本地素材导入**：标题画面的「导入素材包」可读取素材包 zip、完整包 zip 或自己的 `public/assets` 文件夹，仅接收与服务器清单哈希一致的素材，不上传文件；需要 HTTPS 或 localhost。未导入的素材仍按需从服务器加载，详见 [docs/DEPLOY.md](docs/DEPLOY.md)。
 - **诊断**：`npm run doctor` 检查 Node 版本、素材、端口、局域网地址和防火墙。
 - **整合包**：如使用整合包，请确认包含本 fork 的扩展代码与收藏品图标；上游整合包不包含这些扩展。
 
@@ -93,6 +94,7 @@ npm start
 | `HOST` | `::` | 默认双栈，接受 IPv6 和 IPv4；`0.0.0.0` 仅 IPv4，`127.0.0.1` 仅本机访问 |
 | `SP_COMBAT` | `client` | `client` 在玩家浏览器模拟；`server` 在服务器模拟并推流 |
 | `SP_VERIFY` | `off` | 服务端复算：`off` / `sample` / `all` |
+| `SP_BOT_REHEARSAL` | 不设（服务器试算） | `host` 让房主浏览器的 Worker 帮 AI 队友试算布阵；无法完成时服务器接手。玩法插件房间始终由服务器试算 |
 | `TRUST_PROXY` | `auto` | 转发头信任设置：`auto` / `1` / `0` |
 | `DEBUG` | 空 | 启用详细日志 |
 | `SP_NO_BROWSER` | 空 | 设为 `1` 时启动脚本不自动打开浏览器 |
@@ -102,6 +104,17 @@ npm start
 PowerShell 更换端口：`$env:PORT=8080; npm start`。健康检查：`GET /healthz`。
 
 刷新页面或断线后，同盟模拟 10 分钟内、独立模拟 24 小时内重新打开即可回到原座位。服务器使用常驻 Node.js 进程与 WebSocket（`/ws`），运行单实例，反向代理需转发 WebSocket 升级。游戏没有账号系统，请仅与熟人分享地址。对局保存在内存中，**重启服务器会结束所有对局**。
+
+## 插件
+
+0.3.0 的上游插件系统已同步；**不开插件时仍启用本 fork 的收藏品、商店扩展及所选超限协议**，不等于上游原版规则。
+
+- **服主安装**：将插件文件夹放进服务器的 `plugins/`，或用 `node tools/plugin.mjs install <zip路径或HTTPS地址>` 安装；远程地址需带 `--sha256`。工作台也支持从社区目录安装和导入 Forge 工坊包。服主可在 `plugins/config.json` 限定可用插件。
+- **房主开启**：在房间顶部的「原版 / 插件 ×N」面板里选外观或玩法插件、修改插件设置、选择插件模式。这里「原版」指未叠加插件的本 fork 内容。玩法插件由所有玩家下载并校验，房间标为「非官方」，统计总览默认不计入。
+- **玩家个人设置**：「设置 → 外观插件 / 界面插件」只影响自己的浏览器；个人不能另装玩法插件改变房间规则。外观插件只换画面与声音，界面插件只读允许的对局信息。
+- **自己制作**：打开启动窗口 `Studio:` 行的地址，在 `/studio/` 选模板、按官方名称选目标、拖放素材、实时预览、试一场并回放，最后打包分享。工作台限本机和局域网，修改需要钥匙。
+
+脚本执行默认关闭。服主可用 `SP_PLUGIN_SCRIPTS=sandbox` 开启沙箱脚本（或启动时加 `--scripts sandbox`；Windows 双击 `scripts\start-windows-sandbox.bat`）；原生受信任模式还需审查、固定锁文件哈希和玩家同意，公网部署需 `trusted-force`。开服设置见 [部署指南](docs/DEPLOY.md)，作者从[插件新手指南](docs/PLUGIN-GUIDE.md)开始，格式与限制见[插件参考](docs/PLUGINS.md)，接口列表见[插件 API 表](docs/PLUGIN-API.md)。
 
 ## 操作
 
@@ -113,7 +126,7 @@ PowerShell 更换端口：`$env:PORT=8080; npm start`。健康检查：`GET /hea
 | 出售 / 撤退 / 销毁装备 | 点击单位所在的格子 → 底部按钮「出售 +1」「撤退」；也可以把棋盘上的干员拖回整备区撤退。整备区里的装备与法术只能「销毁」，已配发的装备锁定在干员身上（干员出售或合成精锐时退回整备区） |
 | 装备 | 把装备拖到干员所在的格子上（每人 2 件；满了会弹出替换窗口，被替换的一件会被销毁）；法术拖到地块上并选方向 |
 | 查看详情 | 右键或长按单位 / 卡牌（属性为实时数值，高于基础值为绿色、低于为红色） |
-| 快捷键 | `R` 刷新 · `F` 冻结 · `D` 升级 · `Space` 准备就绪 · `Esc` 取消 / 关闭；可在设置中修改 |
+| 快捷键 | `W` 购买鼠标指向的商品 · `R` 刷新 · `F` 冻结 · `D` 升级 · `Q` 撤退 / `X` 出售鼠标指向的干员 · `Space` 准备就绪 · `Esc` 取消 / 关闭；除 `Esc` 外可在设置中修改 |
 | 方向轮盘键盘操作 | 方向键预览 · `Enter` 确认 · `Esc` 取消 |
 | 暂停（独立模拟） | 作战中（含最终攻势 / 隐秘核心）点顶栏的「暂停」或按 `Space`，再点「继续作战」（或 `Space`）继续；同盟模拟的作战不能暂停 |
 | 表情 | 左下角「交流」，左右滑动（或方向键）换主题，冷却 1 秒 |
@@ -129,6 +142,7 @@ PowerShell 更换端口：`$env:PORT=8080; npm start`。健康检查：`GET /hea
 | 文档 | 内容 |
 |---|---|
 | [docs/COLLECTIBLES.md](docs/COLLECTIBLES.md) | Fork 收藏品清单、奖励概率、增益与护盾规则 |
+| [docs/PLUGINS.md](docs/PLUGINS.md) · [docs/PLUGIN-GUIDE.md](docs/PLUGIN-GUIDE.md) · [docs/PLUGIN-API.md](docs/PLUGIN-API.md) | 插件格式、服主策略、工作台入门与接口 |
 | [docs/PLAYING.md](docs/PLAYING.md) | 基础玩法与扩展规则：操作、经济、难度、联防和领袖流程 |
 | [CHANGELOG.md](CHANGELOG.md) | 保留的上游版本更新记录 |
 | [docs/DEPLOY.md](docs/DEPLOY.md) | 开服、联机、部署与排错 |
@@ -143,7 +157,7 @@ PowerShell 更换端口：`$env:PORT=8080; npm start`。健康检查：`GET /hea
 
 ```bash
 npm run dev                 # node --watch：改动服务器代码后自动重启
-node --test                 # 单元 + 集成测试（约 3170 项；缺少素材 / 浏览器的用例会自动跳过）
+node --test                 # 单元 + 集成测试（缺少素材 / 浏览器的用例会自动跳过）
 SP_E2E=1 node --test test/ui/mock.e2e.test.js        # 浏览器端到端测试，需要本机 Chrome（CHROME_PATH 可指定路径）
 SP_REAL_E2E=1 node --test test/ui/real.e2e.test.js   # 需要 Chrome + 已下载的素材
 RENDER_E2E=1 node --test 'test/render/*.browser.test.js'   # 渲染测试，部分需要本地提取的棋盘贴图
@@ -189,9 +203,10 @@ node tools/perfbench.mjs --cpu 1,4,6 --profile             # 真实战斗的帧�
 
 ## English
 
-**Stronghold-Protocol-dlc** is an unofficial gameplay-expansion fork of [sganggs/Stronghold-Protocol](https://github.com/sganggs/Stronghold-Protocol) for Arknights' mode *Stronghold Protocol: Alliance*, based on upstream 0.2.6. It adds 46 match-scoped collectibles, comeback rewards and a next-round shield after three consecutive leaking rounds, cumulative Ascension levels 0–20, and two extra operator offers from round 9. Collectibles and the shop expansion also apply to the four base difficulties. DLC is this fork's label, not an official Arknights release.
+**Stronghold-Protocol-dlc** is an unofficial gameplay-expansion fork of [sganggs/Stronghold-Protocol](https://github.com/sganggs/Stronghold-Protocol) for Arknights' mode *Stronghold Protocol: Alliance*, based on upstream 0.3.0 (`c24e17ee`). It adds 46 match-scoped collectibles, comeback rewards and a next-round shield after three consecutive leaking rounds, cumulative Ascension levels 0–20, and one extra operator offer initially plus one more at rounds 4 and 9 (three extra from round 9). Collectibles and the shop expansion also apply to the four base difficulties. DLC is this fork's label, not an official Arknights release.
 
 - **Run:** clone this fork, install Node.js 22 or 24, then run `npm install`, `npm run setup` and `npm start`. Open [http://localhost:3000](http://localhost:3000). Upstream bundles do not include this fork's extensions.
+- **Plugins:** upstream 0.3.0 plugins, the browser studio, official battle effects, additional voice languages and local asset import are included. With no plugins selected, this fork's DLC rules still apply. See [PLUGINS.md](docs/PLUGINS.md) and [PLUGIN-GUIDE.md](docs/PLUGIN-GUIDE.md).
 - **Rules:** see [PLAYING.md](docs/PLAYING.md) and [COLLECTIBLES.md](docs/COLLECTIBLES.md); hosting details are in [DEPLOY.md](docs/DEPLOY.md).
 - **Disclaimer:** not affiliated with or endorsed by Hypergryph or Yostar. All Arknights names, art, audio, text and data are © their respective owners and are **not** covered by this project's GPL licence. For study and personal non-commercial use only — no selling, paid distribution, paid servers or monetisation of any kind. Content will be removed on request of the rights holders. Provided "as is", without warranty.
 - **License:** code GPL-3.0-or-later ([LICENSE](LICENSE)); game assets excluded.

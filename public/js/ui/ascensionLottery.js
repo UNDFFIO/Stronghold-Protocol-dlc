@@ -60,7 +60,7 @@ function LotteryReveal({ reward, onClose }) {
     return () => { timers.forEach(clearTimeout); motion.removeEventListener('change', finish); };
   }, [revealed]);
   return html`<${Modal} open=${true} title=${t('超限补给')} micro="ASCENSION LOTTERY"
-    width="min(8.4rem, 94vw)" tone="gold" class=${`ascension-lottery${revealed ? ' is-revealed' : ''}`}
+    width="min(8.4rem, 94vw)" tone="gold" overlayClass="modal--ascension-lottery" class=${`ascension-lottery${revealed ? ' is-revealed' : ''}`}
     onClose=${onClose}
     actions=${html`<${Button} variant=${revealed ? 'primary' : 'secondary'} icon=${revealed ? 'check' : 'chevrons'}
       onClick=${revealed ? onClose : () => setStopped(3)}>${revealed ? t('确认') : t('跳过动画')}<//>`}>

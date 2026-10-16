@@ -212,10 +212,13 @@ describe('public lobby and password rooms', () => {
     assert.equal((await subscribe(resumed)).rooms.length, 1);
   });
 
-  test('wrong password retries are bounded across reconnects', async () => {
+  test('wrong password retries are bounded across reconnects', async (t) => {
     const host = await player('Host');
     const room = await create(host);
     await publish(host, { password: 'right' });
+    // Compression and full-suite CPU load must not refill this deliberately instantaneous attack window.
+    const now = srv.lobby.now();
+    t.mock.method(srv.lobby, 'now', () => now);
     const guest = await player('Guest');
     for (let i = 0; i < 5; i++) await error(guest, { t: 'room.join', code: room.code, password: 'wrong' }, ERR.PASSWORD_INCORRECT);
     await guest.terminate();

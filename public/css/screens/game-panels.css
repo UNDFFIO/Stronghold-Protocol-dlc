@@ -739,7 +739,7 @@ button.bpop__harmony:hover { border-style: solid; color: #fff; }
 .relic-card__revive > .relic-panel__note { flex-basis: 100%; }
 
 /* Fourth-round lottery: three mechanical reels reveal one server-granted reward. */
-.modal:has(> .ascension-lottery) { z-index: calc(var(--z-toast) + 1); }
+.modal--ascension-lottery { z-index: calc(var(--z-toast) + 1); }
 .ascension-lottery { box-shadow: 0 .3rem .9rem #000a, 0 0 .5rem #ffc60012; }
 .ascension-lottery .modal__body { min-height: 0; overscroll-behavior: contain; touch-action: pan-y; }
 .ascension-lottery .modal__title { font-size: max(calc(.26 * var(--t)), 17px); }

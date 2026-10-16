@@ -13,7 +13,7 @@ through.
 The DLC fork's match digests include its collectible rewards, LP shields and staged shop expansion (+1 initially,
 another at round 4, another at round 9). These alter
 the bot lineups and random draws, so `matches.json` has a fork baseline. The battle families retain the upstream
-0.2.6 digests; DLC mechanics have separate tests under `test/match/relic*.test.js` and `test/sim/ascension.test.js`.
+0.3.0 digests; DLC mechanics have separate tests under `test/match/relic*.test.js` and `test/sim/ascension.test.js`.
 
 ## The corpus
 
@@ -22,7 +22,7 @@ the bot lineups and random draws, so `matches.json` has a fork baseline. The bat
 | `roster` | 49 battles: every visible chess record (normal and elite) with every selectable skill and module (DESIGN §16), 12 operators per battle on a real stage (all 11 in turn) against the round's real wave three times over, every non-leader enemy kind of `data/enemies.json` as extra spawns (half of them bounties), placeable summons on the board, every equipment item, band, battle-side 机变 card and stage map card in turn, bonds from the board |
 | `bonds` | 46 battles: every bond at its activation threshold (1 layer) and at its top tier (999 layers) |
 | `fields` | 22 battles: every Final Assault / Hidden Core leader on a pair and a solo template (shared pool, 200 s cap) and the 联防 field with 1 and 2 helpers on the round's stage, both halves (carried HP / SP, a knocked-out operator, two leakers' enemies) |
-| `matches` | 22 matches to the end in virtual time: 16 bot-only (solo 标准 / 险境 / 绝境 / 终极 × 2 seeds, co-op 2 / 3 / 4, one server-run combat match, two runs boosted to the Hidden Core), two co-op matches whose human seat (AI 托管, offline) does not own 9 NORMAL chess — they fight as their 补位 stand-ins (the digests list them per round, `standIns`) — and four whose human seat slots 自选 picks (推进之王 and prototypes) with its 调度中心 at level 5 from the first prep (the digests list per-round shop draws and fielded pieces, `diy`; seed 24 fields 推进之王) |
+| `matches` | Full matches in virtual time: bot-only solo and co-op, server-run combat, boosted Hidden Core runs, partially owned human rosters and a human with no NORMAL operators (AI 托管, offline; `standIns` records the fielded stand-ins per round), and human 自选 picks with 调度中心 level 5 from the first prep (`diy` records shop draws and deployed pieces). `matchScenarios()` lists every configuration. |
 | `standins` | 10 battles: every NORMAL chess record (normal and elite, 110) fielded as its 补位 stand-in (`standIn: true`: the stand-in's body, backup skill / module and kit — all 17 stand-ins, every skill a chess names for them), 12 per battle by strength band, laid out by the stand-in's position on a real stage, against the round's real wave three times over plus 8 ground enemy kinds (melee stand-ins always meet an enemy), an item each, bonds from the board |
 | `diy` | battles of 自选 pieces (a DIY slot with its `diy` pick, `shared/diy.js`): every owned 6★ with an operator kit (`kits/index.js OPERATOR_KITS`) in each form of tiers 5 and 6 (normal; elite with no module and with each module) under each skill, then every prototype pick with a kit at its locked selection, normal and elite, 12 per battle against the round's real wave; a new operator kit adds its scenarios (the battle count grows with the kits) |
 
@@ -36,8 +36,8 @@ within a tick (they are counted, not hashed) and wall-clock time. Damage / heali
 to 2 decimals.
 
 `npm test` runs the fast subset (the scenarios marked `"fast": true`: every chess record with its default loadout,
-every stage and every non-leader enemy kind, every bond at its top tier, six fields, eleven matches, the five stand-in
-battles of the normal records, the first 自选 battle of the operator kits and of the prototypes — 66 of the 289). `GOLDEN_FULL=1` checks everything.
+every stage and every non-leader enemy kind, every bond at its top tier, six fields, twelve matches, the five stand-in
+battles of the normal records, the first 自选 battle of the operator kits and of the prototypes — 67 of the 290). `GOLDEN_FULL=1` checks everything.
 
 ## Workflow
 
@@ -97,3 +97,13 @@ The other four match digests are unchanged from the previous DLC baseline.
 ## DLC 超限补给奖池调整（2026-10-15）
 
 将三件收藏品奖池改为普通 5%、精良 65%、稀有 30%，并用一件传说藏品替换回血奖项后，运行 `npm run golden:update` 重算全部 289 个场景，六个家族的 JSON 均无变动，故没有移动的场景。当前固定对局场景未包含 ASCENSION；新增行为由 `test/match/ascension-lottery.test.js` 的精确概率边界、排重、单件发放、耗尽池和实际回合推进用例，以及浏览器停轮检查覆盖。普通作战的掉落概率与既有对局结果保持一致。
+
+## Upstream 0.3.0 sync (2026-10-16)
+
+Merged upstream `c24e17ee`, preserving every existing DLC scenario and importing its
+`coop2-NORMAL-1-unowned-roster` coverage case. The corpus now has 290 scenarios, including 23 matches (12 fast).
+All five regenerated battle-family files match upstream byte-for-byte; all 22 existing match digests moved with the
+upstream combat, AI, persistent-offer, temp-queue and co-op DIY-stock changes on the DLC progression.
+[UPSTREAM-0.3.0.md](UPSTREAM-0.3.0.md) names every moved and added scenario and explains the baseline changes.
+The original partially unowned and DIY seeds remain as outcome regressions; the fully unowned scenario ensures
+stand-in coverage regardless of the AI's purchases, while seed 24 still deploys Siege in the merged rules.

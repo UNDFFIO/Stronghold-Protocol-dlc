@@ -177,6 +177,11 @@ test('room level changes are host-only, unready guests, survive resync, and reac
     assert.equal(state.seats.find((s) => s?.playerId === gw.playerId).ready, false);
     await guest.hello('Guest', gw.token);
     assert.equal((await guest.waitFor('room.state', (s) => s.difficultyLevel === 15)).difficultyLevel, 15);
+    await host.request({ t: 'room.setMode', modeId: 'mode_multi_normal' });
+    const normal = await guest.waitFor('room.state', (s) => s.difficulty === 'NORMAL');
+    assert.equal(normal.difficultyLevel, 0, 'selecting an upstream mode clears the Ascension-only level');
+    await host.request({ t: 'room.setDifficulty', difficulty: 'ASCENSION', difficultyLevel: 15 });
+    await guest.waitFor('room.state', (s) => s.difficultyLevel === 15);
     await guest.request({ t: 'room.ready', ready: true });
     await host.request({ t: 'room.start' });
     const m = srv.lobby.rooms.get(initial.code).match;

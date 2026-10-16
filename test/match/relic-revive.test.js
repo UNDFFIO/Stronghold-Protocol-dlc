@@ -21,7 +21,7 @@ test('revival restores a DIY operator from the player stock without touching the
     grantRelic(owner, ID);
     const before = target.diyStock.snapshot()[slot];
     const ownerStock = owner.diyStock.snapshot()[slot];
-    assert.equal(before, 8, 'the selected DIY slot is available for this seed');
+    assert.equal(before, h.m.gd.poolCopies(slot), 'the selected DIY slot uses the co-op stock cap');
     const piece = target.acquireChess(slot, { source: 'buy' });
     assert.ok(piece);
     assert.equal(target.diyStock.snapshot()[slot], before - 1);

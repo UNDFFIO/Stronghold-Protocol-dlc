@@ -10,15 +10,17 @@ import { withBounties } from '../waves.js';
 import { planUnite } from '../unite.js';
 import { FieldRunner, DeadBattle } from '../fields.js';
 import { DELAYS } from './common.js';
+import { previewPlayer } from '../preview.js';
 
 export class MatchCombat {
   /** Construct a battle; a constructor failure yields a finished stand-in (clean result) and is logged. */
-  newBattle(opts) {
-    const full = { data: this.ds, content: this.battleContent, logger: this.log, ...opts, difficultyLevel: this.difficultyLevel };
+  newBattle(opts, { preview = false } = {}) {
+    const full = { data: this.ds, content: this.battleContent, logger: this.log, ...opts, difficultyLevel: this.difficultyLevel,
+      ...(preview ? { logger: {}, quiet: true } : {}) };
     try {
       return new this.BattleClass(full);
     } catch (e) {
-      this.reportError(`battle ${opts.fieldId} construct`, e);
+      if (!preview) this.reportError(`battle ${opts.fieldId} construct`, e);
       return new DeadBattle(full, 'forced');
     }
   }
@@ -42,26 +44,30 @@ export class MatchCombat {
 
   _normalBattle(ps) { return this.newBattle(this._normalOpts(ps)); }
 
-  _normalRelicSpawns() {
+  _normalRelicSpawns(wave = this.wave) {
     const plans = this.alivePlayers().filter((ps) => !ps.left).map((ps) => ({
-      ps, routes: this.wave.routes,
-      spawns: withBounties(this.gd, this.round, this.wave, ps.bounties, ps.playerId).map((s) => ({ ...s, ownerPlayerId: ps.playerId })),
+      ps, routes: wave.routes,
+      spawns: withBounties(this.gd, this.round, wave, ps.bounties, ps.playerId).map((s) => ({ ...s, ownerPlayerId: ps.playerId })),
     }));
     return redistributeRelicWaves(plans, { solo: this.isSolo, round: this.round, seed: this.seed });
   }
 
   /** Battle options of a player's normal field (after the onBattleStart handlers). */
-  _normalOpts(ps) {
-    const wave = this.wave;
+  _normalOpts(ps, { preview = false, board = ps.board } = {}) {
+    const wave = preview ? structuredClone(this.wave) : this.wave;
+    if (preview) ps = previewPlayer(ps, board);
     const input = ps.battleInput({ side: 'L', colOffset: 0 });
     // the client's list: bounty units inserted among their host action's own units, which are re-timed around them
-    const spawns = this._normalRelicSpawns().get(ps.playerId) || [];
-    const ev = { input, kind: 'normal', round: this.round, spawns };
-    this.dispatch(ps, 'onBattleStart', ev);
+    const spawns = this._normalRelicSpawns(wave).get(ps.playerId) || [];
+    const ev = { input, kind: 'normal', round: this.round, spawns, ...(preview ? { preview: true } : {}) };
+    // Preview construction failures go to the rehearsal's discard path, never Match.dispatch's live error sink.
+    if (preview) this.dispatcher.dispatch(ps, 'onBattleStart', ev);
+    else this.dispatch(ps, 'onBattleStart', ev);
     return {
       seed: deriveSeed(this.seed, `n:${this.round}:${ps.seat}`),
       kind: 'normal',
       modeId: this.modeId,
+      difficultyLevel: this.difficultyLevel,
       round: this.round,
       stageId: this.stageId,
       rect: { ...GEO.NORMAL_RECT },
