@@ -595,6 +595,29 @@ describe('shared board / scene water (#549, port of #555 onto #571)', () => {
 describe('BoardScene with an official scene (stub renderer)', () => {
   const stage = stages.act2autochess_m02;
 
+  test('inactive scene objects stay hidden in normal, unite and boss areas, even without group bounds', () => {
+    const board = new BoardScene(THREE, fakePack(), { renderer: stubRenderer() });
+    const { doc, bin } = fakeScene([...PARTS, { material: 'M', x0: -0.5, y0: -0.5, group: 'inactive' }]);
+    const chunks = parseSceneChunks(doc, bin);
+    const groups = sceneGroupRects(chunks);
+    // The real sand scenes' disabled shadow planes share this centre: the boss rect includes it.
+    assert.equal(sceneGroupVisible(groups.inactive, AREAS.boss), true);
+    board.setStage(stage);
+    try {
+      for (const bounded of [true, false]) {
+        const visibleGroups = bounded ? groups : Object.fromEntries(Object.entries(groups).filter(([g]) => g !== 'inactive'));
+        board.setScenePack(stage.id, { key: `inactive-${bounded}`, doc, chunks, groups: visibleGroups, images: {} });
+        for (const [areas, indices] of [[AREAS.normal, 24], [AREAS.unite, 30], [AREAS.boss, 18], [AREAS.all, 36]]) {
+          board.setArea(areas);
+          assert.equal(sceneMeshes(board).reduce((n, m) => n + m.geometry.index.count, 0), indices);
+        }
+      }
+      assert.equal(chunks.length, PARTS.length + 1, 'filtering leaves the shared scene pack intact');
+    } finally {
+      board.destroy();
+    }
+  });
+
   test('the scene replaces the procedural tiles and background; devices, gates, edges and terrain stay', () => {
     const board = new BoardScene(THREE, fakePack(), { renderer: stubRenderer() });
     board.setStage(stage);
@@ -799,7 +822,7 @@ describe('extracted scenes (when scene bundles were extracted here)', { skip: !O
       board.setStage(stage);
       for (const [name, area] of views) {
         board.setArea(area);
-        const shown = chunks.filter((c) => !c.group || sceneGroupVisible(rects[c.group], area));
+        const shown = chunks.filter((c) => c.group !== 'inactive' && (!c.group || sceneGroupVisible(rects[c.group], area)));
         const keys = new Set(shown.map((c) => sceneMaterialKey(c, doc.materials[c.material])));
         const meshes = sceneMeshes(board);
         assert.equal(meshes.length, keys.size, `${doc.stage} ${name}: ${shown.length} chunks → ${keys.size} meshes`);

@@ -53,6 +53,12 @@ outside the specified tiers. `grantRelic` applies every item exactly once, inclu
 battle. The private view contains actual awarded IDs: three different IDs for the three-item prize, one ID for the
 Legendary prize. The three identical Legendary reel images are presentation only.
 
+### DLC: Boss-stage collectible choices
+
+`Match._finishFinal` generates and waits for collectible choices only when a victorious Final Assault unlocks
+Hidden Core. Without a next stage (including after Hidden Core), it retains the settlement presentation delay
+and proceeds to RESULT without creating offers or granting collectibles to bots.
+
 ### DLC integration with upstream 0.3.0
 
 Gameplay-plugin matches retain `difficultyLevel` across `server/match/host/proxy.js`'s JSON options boundary.

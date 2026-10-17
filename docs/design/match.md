@@ -89,6 +89,8 @@ Economy/shop/pool/merge/hand rules: exactly as research 00-INDEX §3–§4 (inco
 
 **DLC 商店扩展（维护者决定，2026-10-15）：** 所有模式、所有调度中心等级均在原始干员槽位数量上，初始增加 1 格，第 4 回合开始时再增加 1 格，第 9 回合开始时再增加 1 格；第 1–3 / 4–8 / 9 回合起分别累计额外 1 / 2 / 3 格。装备槽位不变。回合扩展时新槽位立即参与当次商店刷新，冻结干员保留原索引，冻结装备移动到全部干员槽位之后；升级扩展仍先开放空槽位，下一次刷新填充。
 
+**DLC 首领战收藏品结算：** 仅在最终攻势胜利且满足隐秘核心解锁条件、实际还有下一关时生成并等待收藏品选择；无后续关卡或隐秘核心结束（无论胜败）均保留结算展示延时后进入最终结果，不生成候选，也不为 AI 自动领取终局藏品。
+
 **DLC / upstream 0.3.0 compatibility:** gameplay-plugin match hosts forward the selected `difficultyLevel` to the match and its BattleSpecs; bot rehearsal specs carry it as well. Detached normal-field previews use the same collectible-redistributed wave as live combat without consuming the match RNG. The upstream expandable temp queue, persistent reward offers and doubled co-op DIY stock remain in force, including collectible grants and revival (META.md, "DLC integration with upstream 0.3.0").
 
 **DLC 超限补给（维护者决定，2026-10-15）：** 所有超限等级（含 0 级）在第 4 回合开始时，为每名存活且未离场玩家独立抽取并立即发放一次奖励，四类各 25%：15 金币、2 名累计层数最高盟约的随机干员、3 件不同收藏品、1 件「稀有藏品」。三件收藏品每件先按普通 5%、精良 65%、稀有 30% 抽品质，再在该品质可用藏品中均匀抽取；「稀有藏品」是奖励类别名称，只发放 1 件传说品质收藏品，不恢复目标生命值。两类藏品均排除已持有与单人不适用项；某品质耗尽时按剩余合格品质归一化，不补入指定范围外的品质，全部耗尽则不发放。三列滚轮在三件奖励时分别显示实际的三件藏品，在单件传说奖励时重复显示同一件，重复图案不增加发放数量或效果。普通作战与逆风补给掉落概率不变。

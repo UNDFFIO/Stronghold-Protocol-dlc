@@ -61,6 +61,10 @@ These are offline review renders, not evidence of browser or native OS installat
 
 ## Running
 
+Official scene extraction can retain disabled hierarchy meshes as `group: "inactive"` in `scene.json`.
+The renderer must skip those chunks in every camera area; they are not switchable `HIDDEN@n` field groups.
+In particular, sand scenes contain disabled shadow planes that would otherwise cover the boss field in white.
+
 ```bash
 npm install          # also vendors pixi / pixi-spine / preact / three (tools/vendor.mjs; three.js is fetched by
                      # browsers only when data/local-assets.json lists the board atlas — the 3D board, DESIGN §15)

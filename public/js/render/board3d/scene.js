@@ -394,7 +394,7 @@ export class BoardScene {
 
   /**
    * The official scene's meshes: the base plus the fields of the built areas, one mesh per material and lightmap
-   * page (`mergeSceneChunks`). A switched-off HIDDEN part is left out before the merge.
+   * page (`mergeSceneChunks`). Inactive hierarchy objects never draw; HIDDEN parts follow the built areas.
    */
   _buildScene(pack) {
     const T = this.THREE;
@@ -403,6 +403,7 @@ export class BoardScene {
     this.sceneWater = [];
     const buckets = new Map();
     for (const c of pack.chunks || []) {
+      if (c.group === 'inactive') continue;
       if (c.group && !sceneGroupVisible(pack.groups?.[c.group], this.area)) continue;
       const info = infos[c.material] || null;
       const mk = sceneMaterialKey(c, info);

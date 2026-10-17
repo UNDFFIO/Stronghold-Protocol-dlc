@@ -566,27 +566,27 @@ export class MatchBoss {
         if (pp && ps) this.dispatch(ps, 'onBattleResult', { result: pp, lpLoss: 0, perfect: !!pp.perfect, boss: true });
       }
     }
-    if (victory) for (const ps of this.alivePlayers()) settleRelics(ps, this.lastResults.get(ps.playerId), { completed: true });
+    const eligible = !hidden && victory && !!this.hiddenBossId
+      && hiddenEligible(this.gd, { layerSum: this.hiddenLayerSum, teamLp: this.teamLp });
+    // Collectibles are supplies for the next stage, never an extra choice before the final result.
+    if (eligible) for (const ps of this.alivePlayers()) settleRelics(ps, this.lastResults.get(ps.playerId), { completed: true });
     for (const ps of this.alivePlayers()) { ps.relicShield = 0; ps.dirty(); }
     this._syncTeamLp();
     this.deadline = 0;
     this.overtimeAt = 0;
     this.markPublic();
     this.runner = null;
-    if (!hidden) {
-      const eligible = victory && !!this.hiddenBossId && hiddenEligible(this.gd, { layerSum: this.hiddenLayerSum, teamLp: this.teamLp });
+    if (eligible) {
       this._waitRelicChoices(() => {
-        if (eligible) {
-          this.hiddenReached = true;
-          this.bossPool = null;
-          this.tickerText('隐秘核心已解锁', FLOW_TICKER_PRIORITY);
-          this.startRound(this.gd.hiddenRound);
-        } else {
-          this.finish({ victory, reason: victory ? 'victory' : 'defeat' });
-        }
+        this.hiddenReached = true;
+        this.bossPool = null;
+        this.tickerText('隐秘核心已解锁', FLOW_TICKER_PRIORITY);
+        this.startRound(this.gd.hiddenRound);
       });
     } else {
-      this._waitRelicChoices(() => this.finish({ victory: true, hiddenCleared: victory, reason: 'victory' }));
+      this.setDeadline(DELAYS.SETTLE / 1000, () => this.finish(hidden
+        ? { victory: true, hiddenCleared: victory, reason: 'victory' }
+        : { victory, reason: victory ? 'victory' : 'defeat' }), { silent: this.soloUntimed });
     }
   }
 }
