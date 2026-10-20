@@ -118,7 +118,7 @@ for (const item of [
   { id: 'relic_158', name: '时间机器', tier: '普通', phrases: ['目标生命值', '等量增加', '仅生效一场'], shot: 'time-machine' },
   { id: 'relic_159', name: '木棍', tier: '精良', phrases: ['2资金'], hiddenPhrases: ['数字', '■', '仅影响显示'], shot: 'stick' },
   { id: 'relic_156', name: '解压玩具', phrases: ['向下取整', '首领波次不生效', '10%', '未持有者各保留1个', '替代减半效果'], shot: 'toy' },
-  { id: 'relic_157', name: '鸭梨手机', phrases: ['全队累计难度-2级', '最低为0', '下一场战斗', '多名玩家获得时可叠加'], shot: 'phone' },
+  { id: 'relic_157', name: '鸭梨手机', phrases: ['全队累计难度-1级', '单人模式-2级', '最低为0', '下一场战斗', '多名玩家获得时可叠加'], shot: 'phone' },
 ]) test(`${item.name}：三选一名称、稀有度、说明及透明图片可用，领取后收藏栏展示`, {
   skip: !ENABLED && 'set SP_E2E=1 and provide system Chrome', timeout: 120000,
 }, async () => {

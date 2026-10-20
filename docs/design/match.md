@@ -89,6 +89,8 @@ Economy/shop/pool/merge/hand rules: exactly as research 00-INDEX §3–§4 (inco
 
 **DLC 商店扩展（维护者决定，2026-10-15）：** 所有模式、所有调度中心等级均在原始干员槽位数量上，初始增加 1 格，第 4 回合开始时再增加 1 格，第 9 回合开始时再增加 1 格；第 1–3 / 4–8 / 9 回合起分别累计额外 1 / 2 / 3 格。装备槽位不变。回合扩展时新槽位立即参与当次商店刷新，冻结干员保留原索引，冻结装备移动到全部干员槽位之后；升级扩展仍先开放空槽位，下一次刷新填充。
 
+**DLC 鸭梨手机（维护者平衡调整）：** 合法领取时，多人模式全队累计难度降低 1 级，单人模式保持降低 2 级，最低为 0；按对局模式判定，不随真人数或存活人数变化。多名玩家领取可叠加，直接发放与选择领取使用同一逻辑；只影响之后创建的战斗，降级本局保留，新局重置为房间所选等级（COLLECTIBLES.md）。
+
 **DLC 首领战收藏品结算：** 仅在最终攻势胜利且满足隐秘核心解锁条件、实际还有下一关时生成并等待收藏品选择；无后续关卡或隐秘核心结束（无论胜败）均保留结算展示延时后进入最终结果，不生成候选，也不为 AI 自动领取终局藏品。
 
 **DLC / upstream 0.3.0 compatibility:** gameplay-plugin match hosts forward the selected `difficultyLevel` to the match and its BattleSpecs; bot rehearsal specs carry it as well. Detached normal-field previews use the same collectible-redistributed wave as live combat without consuming the match RNG. The upstream expandable temp queue, persistent reward offers and doubled co-op DIY stock remain in force, including collectible grants and revival (META.md, "DLC integration with upstream 0.3.0").

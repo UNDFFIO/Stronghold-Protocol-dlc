@@ -48,7 +48,8 @@ export function grantRelic(ps, id, { round = ps.m.round, battleRound = round + 1
   ps.relics.push(reward);
   // 合法领取时一次性降低全队等级；既有战斗保留原规则，后续所有阵地共用新等级。
   if (r.difficultyReduction) {
-    ps.m.difficultyLevel = normalizeDifficultyLevel(ps.m.difficultyLevel - r.difficultyReduction);
+    const reduction = ps.m.isSolo ? (r.soloDifficultyReduction ?? r.difficultyReduction) : r.difficultyReduction;
+    ps.m.difficultyLevel = normalizeDifficultyLevel(ps.m.difficultyLevel - reduction);
     ps.m.markPublic();
   }
   if (r.reverseLpOnce) ps.relicReverseLpRound = battleRound;

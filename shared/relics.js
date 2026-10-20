@@ -20,6 +20,7 @@ export const RELIC_TIERS = Object.freeze([
  * @property {boolean} [hideNumbers]
  * @property {string} [previewDesc]
  * @property {number} [difficultyReduction]
+ * @property {number} [soloDifficultyReduction]
  * @property {boolean} [multiplayerOnly]
  * @property {boolean} [redistributeEnemies]
  * @property {number} [skillEndSp]
@@ -82,8 +83,8 @@ export const RELICS = Object.freeze([
   relic('150', N_('残弩-神速'), 3, N_('所有我方狙击干员的攻击速度+45'), N_('狙击攻速增加 70。'), { aspd: 45 }, { profession: 'SNIPER' }),
   relic('153', N_('医者-自医'), 3, N_('所有我方医疗干员的技力自然回复速度+0.35/秒'), N_('医疗自然技力回复每秒增加 0.3。'), { spRecoveryFlat: 0.35 }, { profession: 'MEDIC' }),
   relic('025', N_('至宝指环'), 3, N_('从下一回合休整期起，每回合额外获得1资金'), N_('战斗源石锭收益提高 50%。'), {}, { economy: Object.freeze({ income: 1 }) }),
-  relic('157', N_('鸭梨手机'), 3, N_('获得时，全队累计难度-2级（最低为0），从下一场战斗起生效，多名玩家获得时可叠加'),
-    N_('原创：全队累计难度降低 2 级。'), {}, { difficultyReduction: 2 }),
+  relic('157', N_('鸭梨手机'), 3, N_('获得时，全队累计难度-1级（单人模式-2级，最低为0），从下一场战斗起生效，多名玩家获得时可叠加'),
+    N_('原创：多人模式全队累计难度降低 1 级，单人模式降低 2 级。'), {}, { difficultyReduction: 1, soloDifficultyReduction: 2 }),
   relic('156', N_('解压玩具'), 3, N_('多人模式的普通作战中，自身阵地出现的敌人数量减半（向下取整），减少的敌人均分给其他存活且未离场的玩家；每名持有者各有10%概率改为集中敌人：随机一名触发者承受所有敌人，未持有者各保留1个，其他持有者不出现敌人（替代减半效果，首领波次不生效）'),
     N_('原创：普通作战敌人减半转移，10% 概率集中敌人。'), {}, { multiplayerOnly: true, redistributeEnemies: true }),
 

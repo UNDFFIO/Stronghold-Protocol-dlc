@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { RELICS, getRelic, pickRelicChoices } from '../../shared/relics.js';
 import { createRng } from '../../server/sim/rng.js';
-import { settleRelics, selectRelic, autoSelectRelic } from '../../server/match/relics.js';
+import { settleRelics, selectRelic, autoSelectRelic, grantRelic } from '../../server/match/relics.js';
 import { createBattleFromSpec, resultDigest } from '../../server/sim/spec.js';
 import { DataSource } from '../../server/sim/simdata.js';
 import { chessRec, enemyRec, flatStage } from '../helpers/battleHarness.js';
@@ -42,16 +42,16 @@ test('鸭梨手机：稀有档进度、正常抽取领取、全队降级及两�
     assert.equal(selectRelic(ps, 'forged', 0), null);
     assert.equal(h.m.difficultyLevel, 5);
     assert.equal(selectRelic(ps, offer.id, 0).id, id);
-    assert.equal(h.m.publicView().difficultyLevel, 3);
+    assert.equal(h.m.publicView().difficultyLevel, 4);
     assert.deepEqual(h.ps('p_1').relics, [], '队友无需持有即可共享降级');
     assert.equal(selectRelic(ps, offer.id, 0), null);
-    assert.equal(h.m.difficultyLevel, 3, '重复请求不再次降低难度');
+    assert.equal(h.m.difficultyLevel, 4, '重复请求不再次降低难度');
     assert.equal(firstHit(before), 0, '已经创建的五级战斗保留首击屏障');
     for (const kind of ['normal', 'unite', 'boss', 'hidden']) {
       for (const playerId of ['p_0', 'p_1']) {
         const server = h.m.newBattle({ ...opts, kind });
         const field = h.m._ccField({ fieldId: `${kind}:${playerId}`, kind, players: [playerId], opts });
-        assert.equal(field.spec.difficultyLevel, 3);
+        assert.equal(field.spec.difficultyLevel, 4);
         const client = createBattleFromSpec(JSON.parse(JSON.stringify(field.spec)), data, { quiet: true });
         assert.equal(firstHit(server), 100, '领取后实际移除首击屏障');
         assert.equal(firstHit(client), 100);
@@ -69,8 +69,29 @@ test('鸭梨手机：稀有档进度、正常抽取领取、全队降级及两�
   } finally { h.m.dispose(); }
 });
 
+test('鸭梨手机：单人保持降两级，同盟模式不按真人数或存活人数切换效果', () => {
+  for (const level of [5, 1, 0]) {
+    for (const [mode, humans, bots, reduction] of [
+      ['solo', 1, 0, 2], ['coop', 1, 0, 1], ['coop', 1, 2, 1], ['coop', 2, 0, 1],
+    ]) {
+      const h = makeMatch({ mode, humans, bots, difficulty: 'ASCENSION', difficultyLevel: level, fake: true });
+      try {
+        h.m.round = 4;
+        for (const ps of h.m.players.values()) if (ps.playerId !== 'p_0') {
+          ps.alive = false;
+          ps.left = true;
+        }
+        assert.equal(grantRelic(h.ps('p_0'), id).id, id);
+        assert.equal(h.m.publicView().difficultyLevel, Math.max(0, level - reduction), `${mode}, ${humans} human(s), ${bots} bot(s)`);
+        assert.equal(grantRelic(h.ps('p_0'), id), null, '直接发放也不得重复生效');
+        assert.equal(h.m.difficultyLevel, Math.max(0, level - reduction));
+      } finally { h.m.dispose(); }
+    }
+  }
+});
+
 test('鸭梨手机：多人领取叠加、自动领取、最低零级、本局持久且新局重置', () => {
-  for (const [difficulty, level] of [['ASCENSION', 5], ['ASCENSION', 1], ['NORMAL', 0]]) {
+  for (const [difficulty, level] of [['ASCENSION', 5], ['ASCENSION', 2], ['ASCENSION', 1], ['NORMAL', 0]]) {
     const h = makeMatch({ mode: 'coop', humans: 3, difficulty, difficultyLevel: level, fake: true });
     try {
       h.m.round = 4;
@@ -78,13 +99,13 @@ test('鸭梨手机：多人领取叠加、自动领取、最低零级、本局�
         const ps = h.ps(`p_${i}`);
         ps.relicOffer = { id: `phone:${i}`, round: 4, options: [id] };
         autoSelectRelic(ps);
-        assert.equal(h.m.difficultyLevel, Math.max(0, level - (i + 1) * 2));
+        assert.equal(h.m.difficultyLevel, Math.max(0, level - (i + 1)));
         assert.equal(ps.relics.at(-1).id, id);
       }
       h.ps('p_0').alive = false;
       h.ps('p_1').left = true;
       h.m.round++;
-      assert.equal(h.m.difficultyLevel, 0, '淘汰、离场或下一回合不撤销降级');
+      assert.equal(h.m.difficultyLevel, Math.max(0, level - 3), '淘汰、离场或下一回合不撤销降级');
       const fresh = makeMatch({ mode: 'coop', difficulty, difficultyLevel: level, fake: true });
       try {
         assert.equal(fresh.m.difficultyLevel, level);

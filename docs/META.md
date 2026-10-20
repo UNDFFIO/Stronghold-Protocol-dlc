@@ -53,6 +53,13 @@ outside the specified tiers. `grantRelic` applies every item exactly once, inclu
 battle. The private view contains actual awarded IDs: three different IDs for the three-item prize, one ID for the
 Legendary prize. The three identical Legendary reel images are presentation only.
 
+### DLC: Pear Phone difficulty reduction
+
+`grantRelic` applies Pear Phone's acquisition effect once: cumulative difficulty decreases by 1 in multiplayer
+matches, or 2 in solo matches (`Match.isSolo`), with a floor of 0. Human/alive seat counts do not change the mode.
+Choices and immediate grants share this path; different owners' acquisitions stack. Existing battles retain their
+rules; subsequent BattleSpecs use the new level. The reduction persists for this match only (COLLECTIBLES.md).
+
 ### DLC: Boss-stage collectible choices
 
 `Match._finishFinal` generates and waits for collectible choices only when a victorious Final Assault unlocks

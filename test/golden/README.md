@@ -98,6 +98,10 @@ The other four match digests are unchanged from the previous DLC baseline.
 
 将三件收藏品奖池改为普通 5%、精良 65%、稀有 30%，并用一件传说藏品替换回血奖项后，运行 `npm run golden:update` 重算全部 289 个场景，六个家族的 JSON 均无变动，故没有移动的场景。当前固定对局场景未包含 ASCENSION；新增行为由 `test/match/ascension-lottery.test.js` 的精确概率边界、排重、单件发放、耗尽池和实际回合推进用例，以及浏览器停轮检查覆盖。普通作战的掉落概率与既有对局结果保持一致。
 
+## DLC 鸭梨手机多人削弱
+
+多人模式领取鸭梨手机改为全队累计难度降低 1 级，单人模式仍降低 2 级。运行 `npm run golden:update` 重算全部 290 个场景，六个家族的 JSON 均无变动，没有移动的场景；当前固定对局场景未包含 ASCENSION。模式判定、多人叠加、最低零级、重复领取和两端后续战斗规则由 `test/match/relic-difficulty.test.js` 覆盖。
+
 ## Upstream 0.3.0 sync (2026-10-16)
 
 Merged upstream `c24e17ee`, preserving every existing DLC scenario and importing its
