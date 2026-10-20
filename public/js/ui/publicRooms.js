@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from '../../vendor/hooks.module.js';
 import { t } from '../../../shared/i18n.js';
 import { net } from '../net.js';
 import { html, Button, Icon, MicroLabel, DifficultyTag, Spinner } from './components.js';
+import { TestMark } from './testConsole.js';
 import { describeError } from './toasts.js';
 
 export function PublicRooms({ online, busy, onEnter }) {
@@ -53,7 +54,7 @@ export function PublicRooms({ online, busy, onEnter }) {
       : !rooms.length ? html`<div class="public-hall__empty"><${Icon} name="users" /><div><strong>${t('暂无公开房间')}</strong>
         <p>${t('创建同盟后，可在房间设置中将房间公开')}</p></div></div>`
       : html`<div class="public-hall__list">${rooms.map((r) => html`<article key=${r.code} class="public-room brackets" data-room-code=${r.code}>
-        <div class="public-room__name"><span class="public-room__code num">${r.code}</span><strong>${r.hostName || t('博士')}</strong>
+        <div class="public-room__name"><span class="public-room__code num">${r.code}</span><strong>${r.hostName || t('博士')}</strong>${r.test ? html` <${TestMark} />` : null}
           ${r.hasPassword ? html`<span class="public-room__lock"><${Icon} name="key" />${t('密码房间')}</span>` : null}
         </div>
         <div class="public-room__meta"><${DifficultyTag} difficulty=${r.difficulty} difficultyLevel=${r.difficultyLevel} />

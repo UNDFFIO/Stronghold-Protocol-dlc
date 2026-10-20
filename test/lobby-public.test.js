@@ -61,6 +61,19 @@ describe('public lobby and password rooms', () => {
   const subscribe = async (c) => { await ok(c, { t: 'room.list', subscribe: true }); return c.waitFor('room.list'); };
   const listed = (c, code, predicate = () => true) => c.waitFor('room.list', (s) => s.rooms.some((r) => r.code === code && predicate(r)));
 
+  test('boot preference sync and public discovery leave room for the first settings save', async () => {
+    const host = await player('Fresh host');
+    await ok(host, { t: 'room.loadout', entries: {} });
+    await ok(host, { t: 'room.ownership', notOwned: [] });
+    await ok(host, { t: 'room.diy', picks: {} });
+    await ok(host, { t: 'room.skins', skins: {} });
+    await subscribe(host);
+    const room = await create(host);
+    await ok(host, { t: 'room.list', subscribe: false });
+    await publish(host);
+    assert.equal(srv.lobby.getRoom(room.code).isPublic, true);
+  });
+
   test('only public co-op rooms appear; updates cover bots, migration, hiding and disposal without leaking secrets', async () => {
     const viewer = await player('Viewer');
     assert.deepEqual((await subscribe(viewer)).rooms, []);

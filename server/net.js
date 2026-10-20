@@ -7,7 +7,7 @@
 //   * Per-connection pipeline: token-bucket rate limit (40 msg/s) → JSON decode → schema validation
 //     (shared/protocol.js) → `hello`/`ping` handling → dispatch to the lobby handler → `ok`/`error`
 //     reply echoing the request id (`rid`). Intents whose answer is a large state resend (`g.watch` →
-//     m.field) also draw from a second, much smaller bucket (2/s, burst 6), so one socket cannot turn
+//     m.field) also draw from a second, much smaller bucket (2/s, burst 8), so one socket cannot turn
 //     40 tiny requests per second into hundreds of KB/s of downstream traffic.
 //   * Client address per connection (`clientAddress`): the socket peer, or — when the peer is a local
 //     reverse proxy (loopback / private address, e.g. `cloudflared tunnel --url http://localhost:3000`) —
@@ -59,7 +59,7 @@ export const NET_DEFAULTS = Object.freeze({
   maxConnectionsPerAddr: 64,    // concurrent sockets per client network key (0 = unlimited); see clientAddress
   maxSessions: 20_000,          // registry cap; oldest idle sessions are evicted first
   heavyPerSec: 2,               // refill of the bucket for resend-heavy intents (HEAVY_TYPES)
-  heavyBurst: 6,
+  heavyBurst: 8,               // upstream boot preferences plus DLC public-list subscribe/unsubscribe
   trustProxy: 'auto',           // forwarding headers: 'auto' = from loopback/private peers only, true = always, false = never
 });
 
@@ -70,9 +70,10 @@ export const NET_DEFAULTS = Object.freeze({
  * (a ≤ 160-id list, the same way), room.diy (≤ 8 自选 picks checked against the data, the same way), room.spectate
  * (taking a spectator seat in a running match resends its state like a watcher's g.watch — server/lobby.js spectate) and
  * room.setPlugins (a new visual set: every member downloads its art manifest — server/plugins/visualSet.js).
+ * room.skins carries per-operator appearance selections.
  * room.list resends public summaries; room.setSettings may derive a password verifier.
  */
-export const HEAVY_TYPES = new Set(['g.watch', 'room.loadout', 'room.ownership', 'room.diy', 'room.spectate', 'room.setPlugins', 'room.list', 'room.setSettings']);
+export const HEAVY_TYPES = new Set(['g.watch', 'room.loadout', 'room.ownership', 'room.diy', 'room.spectate', 'room.setPlugins', 'room.list', 'room.setSettings', 'room.skins']);
 
 /** Close codes (see header). */
 export const CLOSE = Object.freeze({ REPLACED: 4001, HELLO_TIMEOUT: 4002, POLICY: 1008, SHUTDOWN: 1001 });
@@ -125,6 +126,9 @@ export class Session {
     this.notOwned = null;
     /** @type {Readonly<Record<string, { charId: string, skillIndex: number, uniEquipId: string|null }>> | null} checked 自选 picks (lobby-owned, 0.2.0 自选编队) */
     this.diy = null;
+    /** @type {Readonly<Record<string, string>> | null} chosen operator skins (lobby-owned, docs/SKINS.md): keyed by
+     * charId; PUBLIC, unlike the loadout (a teammate sees your skin through Match.publicView().players[].skins) */
+    this.skins = null;
     /** @type {string} client address of the latest connection (logging) */
     this.addr = '?';
     /** @type {string | null} per-network limit key of the latest connection (null = not limited), see clientAddress */

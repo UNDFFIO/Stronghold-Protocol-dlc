@@ -5,20 +5,33 @@ import { ERR, ROOM_PASSWORD_MAX_LEN } from '../../../shared/constants.js';
 import { t } from '../../../shared/i18n.js';
 import { net } from '../net.js';
 import { createStore, useStore } from '../store.js';
-import { html, Modal, Button, TextField } from './components.js';
+import { html, Modal, Button, TextField, confirmDialog } from './components.js';
 import { describeError } from './toasts.js';
 
 const access = createStore({ pending: null });
 
+async function enterRoom(kind, fields) {
+  try { return await net.request(kind, fields); } catch (err) {
+    if (err?.code !== ERR.TEST_CONFIRM) throw err;
+    const text = kind === 'room.spectate'
+      ? t('这是测试房间，不计入任何记录。确认观战？')
+      : t('这是测试房间，不计入任何记录。确认加入？');
+    if (!await confirmDialog({ title: t('测试'), text })) return false;
+    fields.testAck = true;
+    return net.request(kind, fields);
+  }
+}
+
 /** The server remains authoritative when a public summary is stale or a private code is used. */
 export async function requestRoomEntry(kind, code, passwordRequired = false) {
   if (access.get().pending) return false;
+  const fields = { code };
   if (!passwordRequired) {
-    try { return await net.request(kind, { code }); } catch (err) {
+    try { return await enterRoom(kind, fields); } catch (err) {
       if (err?.code !== ERR.PASSWORD_REQUIRED) throw err;
     }
   }
-  return new Promise((resolve) => access.set({ pending: { kind, code, resolve } }));
+  return new Promise((resolve) => access.set({ pending: { kind, code, fields, resolve } }));
 }
 
 function PasswordDialog({ pending }) {
@@ -36,7 +49,7 @@ function PasswordDialog({ pending }) {
     lock.current = true;
     setBusy(true);
     setError(null);
-    try { finish(await net.request(pending.kind, { code: pending.code, password })); }
+    try { finish(await enterRoom(pending.kind, { ...pending.fields, password })); }
     catch (err) { setError(err); }
     finally { lock.current = false; setBusy(false); }
   };

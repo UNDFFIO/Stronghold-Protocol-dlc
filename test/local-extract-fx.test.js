@@ -744,7 +744,10 @@ describe('extracted effects (when fx was extracted on this machine)', { skip: !f
       const sw = kazema.abilities.find((a) => a.name === 'kazema[switch2stand]');
       assert.ok(sw.triggers.some((t) => t.template === 'kazema_tr' && t.event === 'ON_BEFORE_TRY_SET_HP_ZERO'), JSON.stringify(sw.triggers));
       assert.ok(sw.switchMode.some((x) => x.mode === 'Stand'));
-      assert.deepEqual(kazema.talentKeys.trait, ['-1']);
+      // fx.game_data omits talentKeys without the optional official character table; imported indexes may carry it.
+      if (kazema.talentKeys || existsSync(path.join(FX_ROOT, '.cache/gamedata/excel/character_table.json'))) {
+        assert.deepEqual(kazema.talentKeys?.trait, ['-1']);
+      }
     }
     const gnosis = index.units.char_206_gnosis?.talents?.['2'];
     if (gnosis) assert.ok(gnosis.nodes.some((n) => (n.triggers || []).some((t) => t.name === 'gnosis_t_2_buff' && t.buff === 'gnosis_t_2')));

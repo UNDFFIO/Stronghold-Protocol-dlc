@@ -510,7 +510,7 @@ test('economy and lifetime: fixed income starts in the next prep; results retain
 });
 
 for (const clientCombat of [false, true]) {
-  test(`boss and Hidden Core wins award one perfect-round relic each (${clientCombat ? 'client' : 'server'} combat)`, () => {
+  test(`only a boss win leading to Hidden Core awards a perfect-round relic (${clientCombat ? 'client' : 'server'} combat)`, () => {
     const h = makeMatch({ mode: 'solo', difficulty: 'HARD', fake: true, clientCombat,
       script: (b) => b.kind === 'boss' || b.kind === 'hidden' ? { bossDps: 1e8, duration: Infinity } : {} }).start();
     try {
@@ -527,9 +527,9 @@ for (const clientCombat of [false, true]) {
       assert.ok(h.ps('p_0').relics.some((r) => r.round === 14));
       assert.ok(h.drive(() => !!h.ended));
       const relics = h.ended.players[0].relics;
-      assert.equal(relics.filter((r) => r.round === 15).length, 1);
-      assert.equal(relics.length, 15);
-      assert.equal(new Set(relics.map((r) => r.id)).size, 15);
+      assert.equal(relics.filter((r) => r.round === 15).length, 0);
+      assert.equal(relics.length, 14);
+      assert.equal(new Set(relics.map((r) => r.id)).size, 14);
     } finally { h.m.dispose(); h.clients?.closeAll(); }
   });
 }
@@ -550,7 +550,7 @@ test('a defeated boss battle or a victorious boss battle with personal leaks giv
 });
 
 for (const clientCombat of [false, true]) {
-  test(`a surviving co-op player with a zero LP share still earns the perfect boss reward (${clientCombat ? 'client' : 'server'})`, () => {
+  test(`a surviving co-op player with a zero LP share gets no relic after the final stage (${clientCombat ? 'client' : 'server'})`, () => {
     const h = makeMatch({ humans: 2, difficulty: 'NORMAL', fake: true, clientCombat,
       script: (b) => b.kind === 'boss' ? { bossDps: 1e8, duration: Infinity } : {} }).start();
     try {
@@ -563,7 +563,7 @@ for (const clientCombat of [false, true]) {
       const p = h.ended.players.find((p) => p.playerId === 'p_1');
       assert.equal(p.alive, true);
       assert.equal(p.lp, 0);
-      assert.equal(p.relics.filter((r) => r.round === 14).length, 1);
+      assert.equal(p.relics.filter((r) => r.round === 14).length, 0);
     } finally { h.m.dispose(); h.clients?.closeAll(); }
   });
 }

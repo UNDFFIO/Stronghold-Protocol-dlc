@@ -13,7 +13,7 @@ through.
 The DLC fork's match digests include its collectible rewards, LP shields and staged shop expansion (+1 initially,
 another at round 4, another at round 9). These alter
 the bot lineups and random draws, so `matches.json` has a fork baseline. The battle families retain the upstream
-0.3.0 digests; DLC mechanics have separate tests under `test/match/relic*.test.js` and `test/sim/ascension.test.js`.
+0.3.1 digests; DLC mechanics have separate tests under `test/match/relic*.test.js` and `test/sim/ascension.test.js`.
 
 ## The corpus
 
@@ -111,3 +111,8 @@ upstream combat, AI, persistent-offer, temp-queue and co-op DIY-stock changes on
 [UPSTREAM-0.3.0.md](UPSTREAM-0.3.0.md) names every moved and added scenario and explains the baseline changes.
 The original partially unowned and DIY seeds remain as outcome regressions; the fully unowned scenario ensures
 stand-in coverage regardless of the AI's purchases, while seed 24 still deploys Siege in the merged rules.
+
+## Upstream 0.3.1 sync (2026-10-21)
+
+Only `roster-039` moved for the upstream 琳琅诗怀雅 S3 correction. All 290 merged scenarios pass;
+see [UPSTREAM-0.3.1.md](UPSTREAM-0.3.1.md) for the source and DLC compatibility scope.

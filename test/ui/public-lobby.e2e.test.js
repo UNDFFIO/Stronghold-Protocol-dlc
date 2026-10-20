@@ -90,6 +90,34 @@ describe('public lobby and room settings (real browser)', { skip: process.env.SP
     return page.screenshot({ path: path.join(OUT, `public-lobby-${name}.png`) });
   };
 
+  test('public password test rooms keep the test warning for joining and spectating', { timeout: 90000 }, async () => {
+    srv.lobby.testEnabled = true;
+    const host = await open('Test host');
+    await host.waitForSelector('[data-testid="create-test"] input');
+    await host.click('[data-testid="create-test"] input');
+    const code = await create(host);
+    assert.equal(await host.evaluate(() => globalThis.__SP__.store.get().room.test), true);
+    await settings(host);
+    await host.click('[data-testid="room-public-toggle"]');
+    await host.type('input[name="room-new-password"]', 'Test password');
+    await save(host);
+    const viewer = await open('Test guest');
+    await viewer.waitForSelector(row(code));
+    assert.match(await viewer.$eval(row(code), (el) => el.textContent), /测试/);
+    for (const action of ['hall-join', 'hall-spectate']) {
+      await viewer.click(`${row(code)} [data-testid="${action}"]`);
+      await enterPassword(viewer, 'Test password');
+      await viewer.waitForSelector('.modal__box:not(.room-access) .btn--primary');
+      await viewer.click('.modal__box:not(.room-access) .btn--primary');
+      await viewer.waitForSelector('.room-screen');
+      assert.equal(await viewer.evaluate(() => globalThis.__SP__.store.get().room.test), true);
+      if (action === 'hall-join') {
+        await viewer.click('.room-screen .topbar__left .btn--danger');
+        await viewer.waitForSelector(row(code));
+      }
+    }
+  });
+
   test('settings publish live, password join/spectate and private invitations work, cancellation preserves settings', { timeout: 120000 }, async () => {
     const host = await open('Host');
     const code = await create(host);
