@@ -44,8 +44,8 @@ export const DIFFICULTY_RULES = Object.freeze([
     p => t('所有我方干员开启技能后的{duration}秒内无法恢复生命值', { duration: p.duration }), N_('开技能前稳住血线，搭配护盾保护。'), N_('期间仍可正常获得护盾')),
   rule(19, 'goalStealth', N_('潜行冲线'), { distance: 2 },
     p => t('所有普通地面敌人距离目标点不足{distance}格时获得【隐匿】', { distance: p.distance }), N_('在目标点前保留近战阻挡。'), N_('对不可被阻挡的敌人不生效；被我方单位阻挡时【隐匿】效果解除')),
-  rule(20, 'debuffDecay', N_('终极协同'), { reduction: 0.35 },
-    p => t('所有敌方单位每受到一次伤害后，自身负面效果的剩余持续时间减少{percent}%', { percent: p.reduction * 100 }), N_('减少低伤多段攻击，及时补充控制与削弱。'), N_('每次实际伤害分别结算；永久负面效果不受影响')),
+  rule(20, 'controlArmor', N_('终极协同'), { increase: 0.1, maxIncrease: 3 },
+    p => t('所有敌方单位在受到控制效果时防御力和法抗每秒提升{percent}%,最高提升{maxPercent}%', { percent: p.increase * 100, maxPercent: p.maxIncrease * 100 }), N_('避免长时间控制，优先集中输出。')),
 ]);
 
 export function difficultyEffects(level = 0) {

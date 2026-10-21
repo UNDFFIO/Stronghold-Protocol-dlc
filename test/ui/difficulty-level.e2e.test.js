@@ -74,7 +74,7 @@ test('lobby shows tactical tips for ascension; room level controls render, synch
     await sleep(350);
     assert.equal(await currentLevel(c), 20);
     assert.match(await c.page.$eval('.level-wheel__row.is-selected', (el) => el.textContent), /终极协同/);
-    assert.match(await c.page.$eval('.level-wheel__row.is-selected', (el) => el.textContent), /每受到一次伤害后.*负面效果的剩余持续时间减少35%/);
+    assert.match(await c.page.$eval('.level-wheel__row.is-selected', (el) => el.textContent), /受到控制效果时.*防御力和法抗每秒提升10%,最高提升300%/);
     assert.equal(await c.page.$eval('.level-effects__head', el => el.textContent.trim()), 'LEVEL 20');
     assert.equal(await c.page.$$eval('.level-wheel__row.is-active', (els) => els.length), 20);
     assert.equal(await c.page.$('.solo-brief .level-rule, .solo-brief .level-effects'), null, 'solo has no separate effect panel');

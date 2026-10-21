@@ -46,6 +46,13 @@ server/sim/
 
 ---
 
+DLC Ascension level 20 (`server/sim/difficulty.js`, DESIGN §34.35) tracks each non-leader enemy's cumulative
+controlled time with an `asc:controlArmor` buff. Every full controlled second adds 10 percentage points to
+DEF/RES, up to +300% (4x); `Unit._recalc` keeps final RES at or below 100. [ASSUMED] Catalogue controls
+(`RESIST_STATUSES`) and 麻痹 count, overlaps count once, and partial seconds and bonuses remain after control
+ends. The tracker ticks before control expiry; failed/immune applications and ordinary stat debuffs add no time.
+It no longer changes any debuff duration on damage. Regression coverage: `test/sim/ascension.test.js`.
+
 ## 1. Driving a battle (match owner)
 
 DLC `difficultyLevel` enables cumulative Ascension rules (`shared/difficulty.js`, `server/sim/difficulty.js`).

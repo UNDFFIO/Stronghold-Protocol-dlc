@@ -4,39 +4,6 @@ import { RESIST_STATUSES } from './buffs.js';
 import { hypot } from './detmath.js';
 
 const P = Object.fromEntries(DIFFICULTY_RULES.map(r => [r.key, r.params]));
-const negativeStatuses = new Set([...RESIST_STATUSES, 'palsy', 'fragile', 'artsFragile', 'physFragile', 'elemFragile',
-  'weaken', 'aspdDown', 'defDown', 'resDown', 'reveal', 'burnBurst', 'neuralBurst', 'necrosisBurst', 'apoptosisBurst', 'erosionBurst']);
-const negativeFlags = ['stun', 'freeze', 'sleep', 'silence', 'disarm', 'fear', 'cold', 'reveal', 'bind', 'noHeal',
-  'noMove', 'noSp', 'noBlock', 'tremble', 'attract', 'levitate', 'groundbind', 'isolated', 'healFree'];
-const negativeAdd = ['atkFlat', 'atkPct', 'atkFinal', 'defFlat', 'defPct', 'hpFlat', 'hpPct', 'resFlat', 'aspd',
-  'blockCnt', 'rangeExtend', 'moveFlat', 'massFlat', 'hpRegen', 'hpRegenRatio', 'spRecoveryFlat', 'dodgePhys', 'dodgeArts'];
-const negativeMul = ['atkMul', 'defMul', 'hpMul', 'resMul', 'moveMul', 'dmgDealtMul', 'physDealtMul', 'artsDealtMul',
-  'atkScaleMul', 'healingDealtMul', 'healingTakenMul', 'spRecoveryMul'];
-const negativeIncrease = ['batPct', 'spCostFlat', 'redeployMul', 'dmgTakenMul', 'physTakenMul', 'artsTakenMul',
-  'trueTakenMul', 'elemTakenMul', 'elementalTakenMul'];
-
-// [ASSUMED] The DLC has no official debuff catalogue: classify harmful statuses, stat changes and tagged DoTs.
-// Enemy-authored forms/passives and field state are not operator debuffs. Permanent effects have no timer to shorten.
-function isTimedDebuff(effect) {
-  if (!Number.isFinite(effect.timeLeft) || !(effect.timeLeft > 0)) return false;
-  if (effect.source?.side === 'enemy' || effect.flags?.selfBound || effect.key.startsWith('terrain:')) return false;
-  if (negativeStatuses.has(effect.status ?? effect.key) || effect.tags.includes('dot')) return true;
-  if (negativeFlags.some(k => effect.flags?.[k])) return true;
-  const m = effect.mods;
-  return !!m && (negativeAdd.some(k => m[k] < 0) || negativeMul.some(k => m[k] < 1)
-    || negativeIncrease.some(k => m[k] > (k.endsWith('Mul') ? 1 : 0)));
-}
-
-function shortenDebuffs(b, target) {
-  const remaining = 1 - P.debuffDecay.reduction;
-  for (const effect of target.buffs) if (isTimedDebuff(effect)) {
-    effect.timeLeft *= remaining;
-    // Strongest-value effects may resume weaker applications with absolute expiry times.
-    for (let tail = effect.data.tail; tail; tail = tail.tail) {
-      if (Number.isFinite(tail.until) && tail.until > b.time) tail.until = b.time + (tail.until - b.time) * remaining;
-    }
-  }
-}
 const leader = e => e.isBoss || e.bossPool || e.def.rank === 'BOSS';
 const ordinary = e => e.side === 'enemy' && !e.isBoss && !e.bossPool && e.def.rank === 'NORMAL' && e.tag !== 'part';
 const op = u => u?.side === 'ally' && u.kind === 'op';
@@ -75,6 +42,22 @@ export function installDifficulty(b) {
     fx(b, physical ? 'ascPhysicalArmor' : 'ascArtsArmor', e);
   };
   b.on('enemySpawn', ({ enemy: e }) => {
+    if (rules.controlArmor && !leader(e)) b.addBuff(e, { key: 'asc:controlArmor', data: { elapsed: 0 },
+      onTick: ({ buff: effect, dt }) => {
+        if (!liveEnemy(e) || leader(e)) return;
+        const p = P.controlArmor;
+        const seconds = Math.round(p.maxIncrease / p.increase);
+        if (effect.data.elapsed >= seconds || !e.buffs.some(x => x.timeLeft > 0
+            && (RESIST_STATUSES.has(x.status ?? x.key) || x.key === 'palsy'))) return;
+        // [ASSUMED] Count the union of control time, retain gains and partial seconds between applications.
+        // This tracker precedes control buffs, so their final tick counts before normal expiry.
+        effect.data.elapsed = Math.min(seconds, effect.data.elapsed + dt);
+        const increase = Math.min(p.maxIncrease, Math.floor(effect.data.elapsed + 1e-9) * p.increase);
+        if (increase > 0 && effect.mods?.defMul !== 1 + increase) {
+          effect.mods = { defMul: 1 + increase, resMul: 1 + increase };
+          e.markDirty(); // Unit._recalc caps the final RES at 100, after all modifiers.
+        }
+      } });
     if (rules.openingRush && !leader(e)) buff(b, e, 'rush', { moveMul: P.openingRush.speed }, P.openingRush.duration);
     if (rules.firstHitImmune) buff(b, e, 'first', null, Infinity, { ascensionShield: true });
     if (rules.rotatingArmor) armor(e);
@@ -192,10 +175,4 @@ export function installDifficulty(b) {
       }
     }
   });
-  if (rules.debuffDecay) b.on('damaged', ({ target, amount, type, dmg }) => {
-    // HP loss is not damage; gauge fills and fully absorbed/cancelled hits do not trigger this protocol.
-    if (target.side === 'enemy' && target.hp > 0 && amount > 0 && type !== 'element' && !dmg?.tags?.includes('hpLoss')) {
-      shortenDebuffs(b, target);
-    }
-  }, { priority: -1000 });
 }

@@ -20,12 +20,13 @@ currently unblockable enemies (including levitated, feared or sleeping enemies, 
 If an affected enemy becomes unblockable, only this protocol's Invisibility is removed; it can qualify again
 once blockable. Level 20 inherits this exclusion. The main effect text stays unchanged; the hover detail
 explains the exclusion and that blocking removes Invisibility (maintainer-requested DLC adjustment, §29.21).
-Level 20, Ultimate Synergy, replaces the periodic Relay Barrier: each actual damage instance on an enemy
-multiplies its timed debuffs' remaining durations by 0.65 (§29.20). Controls, stat debuffs, tagged DoTs and
-finite elemental burst states are included; waiting weaker applications shorten too. Positive buffs and permanent
-or stack-only effects are unchanged. Zero/cancelled/dodged/fully absorbed hits, element gauge fills and HP loss
-are not triggers. [ASSUMED] Enemy-authored forms/passives and terrain state are not debuffs; burst states shorten
-with their associated cooldown and retain normal expiry/reset callbacks.
+Level 20, Ultimate Synergy, replaces damage-triggered debuff shortening with DEF and RES growth while an
+enemy is controlled: +10% per accumulated second, capped at +300% (4x), with final RES capped at 100.
+Leaders (`isBoss`, `bossPool` or `BOSS` rank) are exempt; this exemption is omitted from player-facing text.
+[ASSUMED] Control follows `RESIST_STATUSES` plus 麻痹, consistent with the cleanse/immunity protocols.
+Only successful, active controls count; overlaps count once. Full seconds grant additive 10-percentage-point
+steps, partial seconds and gains remain across control gaps, and idle time never increases stats. Ordinary
+stat debuffs and enemy self-binding do not count. This deliberate DLC adjustment supersedes §29.20 (§34.35).
 
 ### 6.1 State machine (Match.js)
 

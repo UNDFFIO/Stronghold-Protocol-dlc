@@ -481,113 +481,115 @@ test('19: real unblockable ghost leaders remain targetable near the goal', () =>
   }
 });
 
-test('20: each actual damage instance shortens remaining debuff durations by 35%, only at level 20', () => {
-  for (const level of [19, 20]) for (const key of ['enemy_test', 'enemy_elite', 'enemy_boss']) {
-    const { b, e, a } = field(level, key);
-    hit(b, a, e); // first-hit barrier
-    b.applyStatus(e, 'stun', { duration: 10, source: a }); // spend elite control immunity
-    if (!e.findBuff('stun')) b.applyStatus(e, 'stun', { duration: 10, source: a });
-    b.applyStatus(e, 'weaken', { duration: 10, source: a });
-    const raw = b.addBuff(e, { key: 'test:defCut', duration: 10, mods: { defPct: -0.2 }, source: a });
-    b._tickBuffs(2);
-    for (const source of [a, a, null]) {
-      assert.equal(hit(b, source, e), 100);
-    }
-    const expected = level === 20 ? 8 * 0.65 * 0.65 * 0.65 : 8;
-    for (const effect of [e.findBuff('stun'), e.findBuff('weaken'), raw]) {
-      assert.ok(Math.abs(effect.timeLeft - expected) < 1e-9);
-      assert.equal(effect.duration, 10, 'base duration is not changed');
-    }
-    assert.deepEqual(b.errors, []);
+test('20: only controlled time adds linear DEF/RES growth, capped at +300% and RES 100', () => {
+  for (const level of [19, 20]) {
+    const { b, e, a } = field(level);
+    e.base.def = 200; e.base.res = 40; e.markDirty();
+    run(b, 1);
+    assert.equal(e.s.def, 200);
+    assert.equal(e.s.res, 40);
+    b.applyStatus(e, 'stun', { duration: 40, source: a });
+    run(b, 0.9);
+    assert.equal(e.s.def, 200, 'no increase until a full controlled second');
+    run(b, 0.1);
+    assert.equal(e.s.def, level === 20 ? 200 * 1.1 : 200);
+    assert.equal(e.s.res, level === 20 ? 44 : 40);
+    run(b, 9);
+    assert.equal(e.s.def, level === 20 ? 400 : 200, 'ten seconds doubles rather than compounds');
+    assert.equal(e.s.res, level === 20 ? 80 : 40);
+    run(b, 20);
+    assert.equal(e.s.def, level === 20 ? 800 : 200);
+    assert.equal(e.s.res, level === 20 ? 100 : 40);
+    run(b, 5);
+    assert.equal(e.s.def, level === 20 ? 800 : 200, 'growth stops at +300%');
+    assert.equal(e.s.res, level === 20 ? 100 : 40);
   }
 });
 
-test('20: zero, shields, dodge, cancelled hits, element gauges and HP loss do not shorten debuffs', () => {
+test('20: control gaps pause growth and preserve partial seconds; overlaps never multiply growth', () => {
   const { b, e, a } = field(20);
-  b.applyStatus(e, 'resDown', { duration: 10 });
-  const effect = e.findBuff('resDown');
-  assert.equal(hit(b, a, e, 'true', 0), 0);
-  assert.equal(hit(b, a, e), 0, 'first-hit barrier');
-  b.addBuff(e, { key: 'test:shield', shield: 100 });
-  assert.equal(hit(b, a, e), 0, 'HP shield');
-  b.addBuff(e, { key: 'test:dodge', mods: { dodgePhys: 1 } });
-  assert.equal(b.dealDamage(a, e, { type: 'phys', amount: 100 }), 0);
-  const cancel = b.on('hit', ({ dmg }) => { dmg.cancel = true; });
-  assert.equal(hit(b, a, e), 0);
-  b.off(cancel);
-  b.dealDamage(a, e, { type: 'element', element: 'burn', amount: 10 });
-  b.loseHp(e, 10, { source: a });
-  assert.equal(effect.timeLeft, 10);
-  assert.equal(hit(b, a, e), 100);
-  assert.equal(effect.timeLeft, 6.5);
+  e.base.def = 200; e.base.res = 20; e.markDirty();
+  const fresh = b.spawnEnemy('enemy_test', { pos: [9, 11] });
+  b.applyStatus(e, 'stun', { duration: 0.5, source: a });
+  b.applyStatus(e, 'bind', { duration: 0.5, source: a });
+  run(b, 0.5);
+  assert.equal(e.findBuff('stun'), null);
+  assert.equal(e.s.def, 200);
+  run(b, 2);
+  assert.equal(e.s.def, 200, 'idle time contributes nothing');
+  b.applyStatus(e, 'stun', { duration: 0.5, source: a });
+  run(b, 0.5);
+  assert.equal(e.s.def, 200 * 1.1, 'two half seconds count once');
+  assert.equal(e.s.res, 22);
+  run(b, 2);
+  assert.equal(e.s.def, 200 * 1.1, 'growth remains after control expires');
+  assert.equal(fresh.findBuff('asc:controlArmor').mods, null, 'each enemy counts independently');
 });
 
-test('20: positive buffs, enemy forms and permanent debuffs keep their timers and stacks', () => {
-  const { b, e, a } = field(20);
-  hit(b, a, e);
-  const effects = [
-    b.addBuff(e, { key: 'test:positive', duration: 10, source: a, mods: { atkMul: 1.2 } }),
-    b.addBuff(e, { key: 'test:enemyForm', duration: 10, source: e, flags: { noMove: true } }),
-    b.addBuff(e, { key: 'terrain:test', duration: 10, mods: { aspd: -20 } }),
-    b.addBuff(e, { key: 'test:permanent', mods: { defFlat: -100 } }),
-  ];
-  b.applyStatus(e, 'palsy', { value: 3, source: a });
-  b.applyStatus(e, 'resist', { duration: 10 });
-  hit(b, a, e);
-  assert.deepEqual(effects.map(x => x.timeLeft), [10, 10, 10, Infinity]);
-  assert.equal(e.findBuff('palsy').stacks, 3);
-  assert.equal(e.findBuff('resist').timeLeft, 10);
-  assert.equal(e.findBuff('asc:rush').timeLeft, 5);
+test('20: all catalogue control statuses and palsy qualify; ordinary stat debuffs and self-binding do not', () => {
+  for (const status of ['stun', 'freeze', 'cold', 'sleep', 'fear', 'tremble', 'attract', 'levitate',
+    'bind', 'silence', 'disarm', 'sluggish', 'slow', 'groundbind', 'palsy', 'weaken', 'resDown']) {
+    const { b, e, a } = field(20);
+    e.base.def = 200; e.markDirty();
+    assert.equal(b.applyStatus(e, status, { duration: 1, source: a }), true, status);
+    run(b, 1);
+    assert.equal(e.s.def, ['weaken', 'resDown'].includes(status) ? 200 : 200 * 1.1, status);
+    assert.equal(e.findBuff(status), null, 'control still expires normally');
+  }
+  const { b, e } = field(20);
+  b.addBuff(e, { key: 'test:selfBound', flags: { selfBound: true, noMove: true } });
+  run(b, 2);
+  assert.equal(e.findBuff('asc:controlArmor').mods, null);
 });
 
-test('20: strongest debuff waiting tails shorten too and expire without restoring old durations', () => {
+test('20: elite control immunity does not count and all three leader identifiers are exempt', () => {
+  const { b, e, a } = field(20, 'enemy_elite');
+  e.base.def = 200; e.markDirty();
+  assert.equal(b.applyStatus(e, 'stun', { duration: 1, source: a }), false);
+  run(b, 1);
+  assert.equal(e.s.def, 200);
+  assert.equal(b.applyStatus(e, 'stun', { duration: 1, source: a }), true);
+  run(b, 1);
+  assert.equal(e.s.def, 200 * 1.1);
+  for (const kind of ['isBoss', 'bossPool', 'rank']) {
+    const leaderData = new DataSource({ ...data.raw, enemies: {
+      ...data.raw.enemies, enemy_leader: enemyRec({ hp: 1001, def: 200, res: 40, speed: 0,
+        rank: kind === 'rank' ? 'BOSS' : 'NORMAL' }),
+    } });
+    const h = field(20, 'enemy_leader', { data: leaderData });
+    if (kind === 'isBoss') h.e.isBoss = true;
+    if (kind === 'bossPool') h.e.bossPool = { hp: 1001, maxHp: 1001 };
+    h.b.applyStatus(h.e, 'stun', { duration: 5 });
+    if (!h.e.findBuff('stun')) h.b.applyStatus(h.e, 'stun', { duration: 5 });
+    run(h.b, 3);
+    assert.equal(h.e.s.def, 200, kind);
+    assert.equal(h.e.s.res, 40, kind);
+  }
+});
+
+test('20: RES stays within 100 with other modifiers and zero base RES remains zero', () => {
+  for (const res of [0, 10, 40, 100]) {
+    const { b, e } = field(20);
+    e.base.def = 200; e.base.res = res; e.markDirty();
+    b.addBuff(e, { key: 'test:resBoost', mods: { resMul: 2 } });
+    b.applyStatus(e, 'bind', { duration: 40 });
+    run(b, 31);
+    assert.equal(e.s.def, 800);
+    assert.equal(e.s.res, Math.min(100, res * 8));
+    assert.ok(e.s.res <= 100);
+  }
+});
+
+test('20: damage no longer shortens control, debuff, DoT or strongest-tail durations', () => {
   const { b, e, a } = field(20);
-  hit(b, a, e);
+  hit(b, a, e); // first-hit barrier
+  b.applyStatus(e, 'stun', { duration: 10, source: a });
   b.applyStatus(e, 'weaken', { duration: 10, value: 0.2, source: a });
   b.applyStatus(e, 'weaken', { duration: 4, value: 0.5, source: a });
-  b.time = 2;
-  b._tickBuffs(2);
-  hit(b, a, e);
-  const effect = e.findBuff('weaken');
-  assert.equal(effect.timeLeft, 1.3);
-  assert.equal(effect.data.tail.until, 7.2);
-  run(b, 1.4);
-  assert.equal(e.findBuff('weaken').data.value, 0.2);
-  run(b, 3.9);
-  assert.equal(e.findBuff('weaken'), null);
-});
-
-test('20: DoT ticks shorten their own debuff and expiry callbacks still run normally', () => {
-  const { b, e, a } = field(20);
-  hit(b, a, e);
-  let expired = 0;
-  const dot = b.addBuff(e, { key: 'test:dot', duration: 4, source: a, interval: 1, tags: ['dot'],
-    onTick: () => hit(b, a, e, 'arts', 10), onExpire: () => { expired++; } });
-  run(b, 1.1);
-  assert.ok(dot.timeLeft < 2, 'the tick shortens its own remaining timer');
-  run(b, 3);
-  assert.equal(e.findBuff('test:dot'), null);
-  assert.equal(expired, 1);
-});
-
-test('20: elemental HP damage shortens timed burst effects and normal expiry resets the gauges', () => {
-  const { b, e, a } = field(20);
-  hit(b, a, e);
-  b.dealDamage(a, e, { type: 'element', element: 'burn', amount: 1000 });
-  // Use a fresh enemy with enough HP to survive the 7000 burst damage.
-  const fresh = b.spawnEnemy('enemy_test', { pos: [9, 10], mods: { hpMul: 20 } });
-  hit(b, a, fresh);
-  b.dealDamage(a, fresh, { type: 'element', element: 'burn', amount: 1000 });
-  assert.equal(fresh.findBuff('burnBurst').timeLeft, 6.5, 'burst HP damage counts, gauge fill does not');
-  run(b, 6.6);
-  assert.equal(fresh.findBuff('burnBurst'), null);
-  assert.equal(fresh.elem.burn, 0);
-});
-
-test('20: the former periodic relay barrier is no longer installed', () => {
-  const { b, e, a } = field(20);
-  hit(b, a, e);
-  run(b, 20.1);
-  assert.equal(e.findBuff('asc:relay'), null);
-  assert.equal(hit(b, a, e), 100);
+  const dot = b.addBuff(e, { key: 'test:dot', duration: 10, source: a, tags: ['dot'] });
+  for (let i = 0; i < 3; i++) hit(b, a, e);
+  assert.equal(e.findBuff('stun').timeLeft, 10);
+  assert.equal(e.findBuff('weaken').timeLeft, 4);
+  assert.equal(e.findBuff('weaken').data.tail.until, 10);
+  assert.equal(dot.timeLeft, 10);
 });

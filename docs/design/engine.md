@@ -107,10 +107,11 @@ Definitions, icons, drop unlocks and the complete source notes: [COLLECTIBLES.md
 - Immunities from enemy data (`stunImmune`, `silenceImmune`, `sleepImmune`, `frozenImmune`, `levitateImmune`) are honoured by `applyStatus`; a unit both `invulnerable` and `untargetable` (a 重生, a 永久无敌 leader part) takes no status from the other side at all (PRTS 无敌 "无法被不同阵营选中", §21.19). Flag `selfBound` = 自缚 (守墓石像's 转换模式, the 自缚 leaders) beside its `noMove`: 余 S2 never teleports such a unit (束缚 sets `noMove` only).
 - Same-named debuffs on an enemy (奥术's arts damage taken, 灵知 坚冰, the 莱恩哈特 / 缄默德克萨斯 RES cuts): one instance per target whoever applies it, the strongest wins (`Battle.applyStrongest`; PRTS 作战机制 "同名buff…只能表现出一个" — strongest rather than latest [ASSUMED], §20.10). PRTS 盟约记录's current 奥术 note fits this under the default overlap; an equal re-hit refreshes the instance (an earlier PRTS wording forbade re-applying while one's own lasts) [ASSUMED, slightly stronger] (§21.7).
 
-DLC Ascension level 20 shortens timed enemy debuffs by 35% of their **remaining** duration after each actual
-HP-damage instance, including DoT ticks and elemental HP damage (§29.20). Strongest-value buffs' waiting tail
-expiry times shorten by the same ratio, without changing strength, stacks, base duration or expiry callbacks.
-Infinite durations are unchanged. See `docs/design/match.md` §6 for triggers and the `[ASSUMED]` debuff boundary.
+DLC Ascension level 20 increases non-leader enemies' DEF and RES by 10% per accumulated second under
+control, capped at +300% (a 4x multiplier). Final RES remains capped at 100 by normal stat aggregation.
+[ASSUMED] Control uses `RESIST_STATUSES` plus 麻痹, as with the other Ascension control protocols;
+overlapping controls count once, partial seconds and gained bonuses persist across gaps. Damage no longer
+shortens debuffs. Maintainer-requested DLC balance change: §34.35; current contract: `docs/design/match.md` §6.
 
 ### 5.4 Hook bus (the only way content plugs in)
 

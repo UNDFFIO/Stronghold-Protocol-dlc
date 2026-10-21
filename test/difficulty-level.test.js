@@ -83,13 +83,32 @@ test('level 19 keeps its effect description and explains unblockable exclusion o
   assert.equal(stealth.detail, '对不可被阻挡的敌人不生效；被我方单位阻挡时【隐匿】效果解除');
 });
 
-test('level 20 debuff decay parameters and picker description use 35% per damage instance', () => {
-  const decay = DIFFICULTY_RULES.find(r => r.level === 20);
-  assert.equal(decay.key, 'debuffDecay');
-  assert.deepEqual(decay.params, { reduction: 0.35 });
-  assert.equal(decay.description, '所有敌方单位每受到一次伤害后，自身负面效果的剩余持续时间减少35%');
-  assert.equal(difficultyEffects(19).debuffDecay, false);
-  assert.equal(difficultyEffects(20).debuffDecay, true);
+test('level 20 control armor grows by 10% per second up to +300%, without exposing leader exemption', () => {
+  const armor = DIFFICULTY_RULES.find(r => r.level === 20);
+  assert.equal(armor.key, 'controlArmor');
+  assert.deepEqual(armor.params, { increase: 0.1, maxIncrease: 3 });
+  assert.equal(armor.description, '所有敌方单位在受到控制效果时防御力和法抗每秒提升10%,最高提升300%');
+  assert.doesNotMatch([armor.description, armor.counter, armor.detail].join(''), /领袖/);
+  assert.equal(difficultyEffects(19).controlArmor, false);
+  assert.equal(difficultyEffects(20).controlArmor, true);
+});
+
+test('serialized level 20 battles reproduce controlled-time growth and final RES cap', () => {
+  const { spec } = battle(20);
+  const play = input => {
+    const b = createBattleFromSpec(input, data, { quiet: true });
+    b.autoFinish = false;
+    b.start();
+    const e = b.spawnEnemy('enemy_test', { pos: [9, 10] });
+    e.base.def = 200; e.base.res = 40; e.markDirty();
+    b.applyStatus(e, 'bind', { duration: 31 });
+    while (b.time < 31) b.step();
+    assert.equal(e.s.def, 800);
+    assert.equal(e.s.res, 100);
+    assert.deepEqual(b.errors, []);
+    return { snapshot: b.snapshot(), events: b.drainEvents(), def: e.s.def, res: e.s.res };
+  };
+  assert.deepEqual(play(spec), play(JSON.parse(JSON.stringify(spec))));
 });
 
 test('immunity starts at 5, does not consume zero damage or element fills, and applies independently per enemy', () => {
