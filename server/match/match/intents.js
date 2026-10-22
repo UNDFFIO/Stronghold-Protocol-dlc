@@ -38,6 +38,7 @@ export class MatchIntents {
       case 'g.unequip': return ps.unequip(msg.itemUid);
       case 'g.reward': return ps.pickReward(msg.idx);
       case 'g.relic': return this.pickRelicChoice(ps, msg.offerId, msg.idx);
+      case 'g.relicDebug': return this.debugRelic(ps, msg.relicId, msg.action);
       case 'g.relicRevive': return this.reviveTeammate(ps, msg.relicId, msg.playerId);
       case 'g.scratchBuy': return ps.buyScratch(msg.tier, msg.seq);
       case 'g.scratchOpen': return ps.openScratch(msg.ticketId);

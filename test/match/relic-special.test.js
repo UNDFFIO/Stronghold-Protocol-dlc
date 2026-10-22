@@ -14,7 +14,7 @@ function claim(h, ps, id) {
   assert.equal(selectRelic(ps, offer.id, 0).id, id);
   assert.equal(selectRelic(ps, offer.id, 0), null);
   ps.relics = ps.relics.filter((r) => r.id === id);
-  ps.scratchTicket = null;
+  ps.scratchTickets = [];
 }
 test('时间机器：实际抽取领取，下一场回血、低血不淘汰、护盾不消耗、仅生效一场及审计', () => {
   const h = makeMatch({ mode: 'solo', fake: true }).start();

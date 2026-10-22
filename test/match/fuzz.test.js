@@ -36,9 +36,10 @@ function randomIntent(rng, m, ps) {
     case 'g.art': return { t, itemUid: uid(), row: rng.int(19), col: rng.int(21) };
     case 'g.reward': case 'g.choice': return { t, idx: rng.int(6) };
     case 'g.relic': return { t, offerId: ps?.relicOffer && rng() < 0.8 ? ps.relicOffer.id : 'missing_offer', idx: rng.int(3) };
+    case 'g.relicDebug': return { t, relicId: rng.pick(['relic_003', 'relic_157', 'relic_158', 'relic_234', 'relic_235', 'missing_relic']), action: rng.pick(['add', 'remove']) };
     case 'g.relicRevive': return { t, relicId: rng() < 0.8 ? 'relic_233' : 'missing_relic', playerId: rng() < 0.8 ? rng.pick([...m.players.keys()]) : 'missing_player' };
     case 'g.scratchBuy': return { t, tier: 1 + rng.int(5), seq: ps?.scratchSeq ?? 0 };
-    case 'g.scratchOpen': case 'g.scratchClaim': return { t, ticketId: ps?.scratchTicket?.id ?? 'missing_ticket' };
+    case 'g.scratchOpen': case 'g.scratchClaim': return { t, ticketId: ps?.scratchTickets?.[0]?.id ?? 'missing_ticket' };
     case 'g.ready': return { t, ready: rng() < 0.4 };
     case 'g.emote': return { t, id: rng.pick(EMOTES) };
     case 'g.watch': return { t, fieldId: rng.pick(['n:p_0', 'n:p_1', 'n:ai_0', 'u', 'b1', 'b2', 'zz', '']) };

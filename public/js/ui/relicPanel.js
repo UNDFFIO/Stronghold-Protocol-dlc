@@ -51,7 +51,7 @@ export function RelicIcons({ relics, reward, notice = false, onOpen, onScratch =
         <p>${tr(r.desc) || tr('该收藏品的效果资料暂不可用')}</p>${r.used ? html`<span>${tr('已使用')}</span>` : null}
       </div>`}>
       <button type="button" class=${`effect effect--relic relic-tier-${r.tier || 1}${fresh ? ' is-new' : ''}`}
-        data-relic-id=${r.id} onClick=${r.scratchTicket && onScratch ? onScratch : onOpen} aria-haspopup="dialog"
+        data-relic-id=${r.id} onClick=${r.scratchTicket && onScratch ? () => onScratch(r.id) : onOpen} aria-haspopup="dialog"
         aria-label=${tr('{0}，收藏品，{1}，{2}', { 0: tr(r.name) || r.id, 1: tierName(r.tier), 2: tr(r.desc) || tr('效果资料暂不可用') })}>
         <${Img} src=${relicIconUrl(m, r.id)} fallback=${html`<${Icon} name="key" />`} />
         ${r.tier ? html`<span class="relic-icon__tier" aria-hidden="true">${RELIC_TIERS[r.tier - 1]?.normalDrop === false ? '!' : roman(r.tier)}</span>` : null}
@@ -105,10 +105,12 @@ function RelicReviveActions({ relicId, revival }) {
 export function RelicCollection({ relics, reward, owner = null, round = 1, shield = 0, nextShield = 0, revival = null, queuedChess = 0, scratch = null }) {
   const [open, setOpen] = useState(false);
   const [scratchOpen, setScratchOpen] = useState(false);
+  const [scratchTicketId, setScratchTicketId] = useState(undefined);
   const canScratch = scratch && relics?.some((r) => r.id === 'relic_234');
-  const showScratch = () => {
+  const showScratch = (relicId) => {
     setOpen(false); setScratchOpen(true);
-    const ticket = scratch?.view?.ticket;
+    const ticket = scratch?.view?.tickets.find((ticket) => ticket.relicId === relicId);
+    setScratchTicketId(ticket?.id);
     if (ticket && !ticket.opened && scratch.canUse) void scratch.onOpen(ticket.id);
   };
   const [notice, setNotice] = useState(false);
@@ -134,7 +136,7 @@ export function RelicCollection({ relics, reward, owner = null, round = 1, shiel
     <//>` : null}
     <div class="relic-icons__grid">
       <${RelicIcons} relics=${relics} reward=${reward} notice=${notice} onOpen=${show}
-        onScratch=${canScratch && scratch.view?.ticket ? showScratch : null} />
+        onScratch=${canScratch && scratch.view?.tickets?.length ? showScratch : null} />
     </div>
   </div>
     <${Modal} open=${open} title=${html`<span class="relic-panel__title"><${Icon} name="key" />${owner ? tr('{owner} 的收藏品', { owner }) : tr('你的收藏品')} <span class="num">${count}</span></span>`}
@@ -152,7 +154,7 @@ export function RelicCollection({ relics, reward, owner = null, round = 1, shiel
       ${queuedChess ? html`<p class="relic-panel__note" role="status">${tr('复活干员补给：{queuedChess} 名等待整备区空位，腾出位置后自动获得，跨回合保留。', { queuedChess })}</p>` : null}
       <${RelicList} relics=${relics} reward=${reward} illustrated=${true} revival=${revival} />
     <//>
-    ${scratchOpen && canScratch ? html`<${ScratchPanel} context=${scratch} onClose=${() => setScratchOpen(false)} />` : null}`;
+    ${scratchOpen && canScratch ? html`<${ScratchPanel} context=${scratch} initialTicketId=${scratchTicketId} onClose=${() => setScratchOpen(false)} />` : null}`;
 }
 
 /** Server offers are the only source of candidates; choosing does not mutate the collection optimistically. */

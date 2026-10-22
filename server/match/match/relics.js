@@ -3,11 +3,36 @@
 
 import { PHASE, ERR } from '../../../shared/constants.js';
 import { RELIC_CHOICE_SECONDS, getRelic } from '../../../shared/relics.js';
-import { selectRelic, autoSelectRelic, unusedRevival, consumeRevival, revivalOperators } from '../relics.js';
+import { selectRelic, autoSelectRelic, unusedRevival, consumeRevival, revivalOperators, grantRelic } from '../relics.js';
 import { OK, fail, DELAYS } from './common.js';
 import { msg } from '../../../shared/i18n.js';
 
 export class MatchRelics {
+  /** Single-player prep only; the settings switch controls visibility, never authorization. */
+  debugRelic(ps, relicId, action) {
+    if (!this.isSolo || this.ended) return fail(ERR.WRONG_PHASE);
+    const gate = ps._gate(); if (gate) return gate;
+    if (ps.left) return fail(ERR.ELIMINATED);
+    const relic = getRelic(relicId);
+    if (!relic || relic.multiplayerOnly) return fail(ERR.BAD_TARGET);
+    if (action === 'add') {
+      if (relic.scratchTicket && ps.scratchTickets.length) return fail(ERR.BAD_TARGET);
+      if (!grantRelic(ps, relicId, { battleRound: this.round })) return fail(ERR.BAD_TARGET);
+    } else if (action === 'remove') {
+      if (!ps.relics.some((r) => r.id === relicId)) return fail(ERR.BAD_TARGET);
+      // Removing the identity card also discards its tickets, preserving their ownership invariant.
+      const removed = (id) => id === relicId || (relicId === 'relic_234' && getRelic(id)?.scratchTicket);
+      ps.relics = ps.relics.filter((r) => !removed(r.id));
+      ps.scratchTickets = ps.scratchTickets.filter((ticket) => !removed(ticket.relicId));
+      if (removed(ps.scratchResult?.relicId)) ps.scratchResult = null;
+      if (removed(ps.relicReward?.id)) ps.relicReward = null;
+      if (relic.reverseLpOnce) ps.relicReverseLpRound = 0;
+    } else return fail(ERR.BAD_TARGET);
+    ps.recompute();
+    this.markPublic();
+    return OK;
+  }
+
   reviveTeammate(ps, relicId, playerId) {
     if (this.phase !== PHASE.PREP || this.ended || this.isSolo) return fail(ERR.WRONG_PHASE);
     if (!ps.alive || ps.left) return fail(ERR.ELIMINATED);

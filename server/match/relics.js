@@ -23,7 +23,7 @@ export function settleRelics(ps, result, { completed = false } = {}) {
   ps.dirty();
   if ((!comeback && (leaked || !result.perfect)) || ps.relicOffer) return null;
   const rng = createRng(deriveSeed(ps.m.seed, `relic-choice:${ps.seat}:${round}`));
-  const options = pickRelicChoices(round, ps.relics, rng, { comeback, multiplayer: !ps.m.isSolo, hasScratchTicket: !!ps.scratchTicket });
+  const options = pickRelicChoices(round, ps.relics, rng, { comeback, multiplayer: !ps.m.isSolo, hasScratchTicket: ps.scratchTickets.length > 0 });
   if (!options.length) return null;
   ps.relicOffer = { id: `relic:${ps.seat}:${round}`, round, reason: comeback ? 'comeback' : 'perfect', options };
   return ps.relicOffer;
@@ -35,7 +35,7 @@ export function selectRelic(ps, offerId, idx) {
   if (!ps.alive || ps.left || !offer || offer.id !== offerId || offer.round !== ps.m.round
     || !Number.isInteger(idx) || idx < 0 || idx >= offer.options.length) return null;
   const r = getRelic(offer.options[idx]);
-  if (!canReceiveRelic(r, ps.relics, { hasScratchTicket: !!ps.scratchTicket }) || (r.multiplayerOnly && ps.m.isSolo)) return null;
+  if (!canReceiveRelic(r, ps.relics, { hasScratchTicket: ps.scratchTickets.length > 0 }) || (r.multiplayerOnly && ps.m.isSolo)) return null;
   ps.relicOffer = null;
   return grantRelic(ps, r.id, { round: offer.round });
 }
@@ -43,7 +43,7 @@ export function selectRelic(ps, offerId, idx) {
 /** Shared acquisition path for choices and immediate grants; preserves one-time collectible effects. */
 export function grantRelic(ps, id, { round = ps.m.round, battleRound = round + 1 } = {}) {
   const r = getRelic(id);
-  if (!ps.alive || ps.left || !canReceiveRelic(r, ps.relics, { hasScratchTicket: !!ps.scratchTicket })
+  if (!ps.alive || ps.left || !canReceiveRelic(r, ps.relics)
     || (r.multiplayerOnly && ps.m.isSolo)) return null;
   const reward = { id: r.id, round };
   if (!ps.relics.some((o) => o.id === id)) ps.relics.push(reward);

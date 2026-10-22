@@ -574,32 +574,35 @@ async function mockRequest(t, f = {}) {
     case 'g.scratchBuy': {
       prepOnly();
       const spec = scratchTier(f.tier);
-      const scratch = p.scratch ??= { seq: 0, ticket: null, lastResult: null };
-      if (!spec || !p.alive || !(p.relics || []).some((r) => r.id === 'relic_234') || scratch.ticket
+      const scratch = p.scratch ??= { seq: 0, tickets: [], lastResult: null };
+      if (!spec || !p.alive || !(p.relics || []).some((r) => r.id === 'relic_234')
         || f.seq !== scratch.seq || pub.round < spec.unlockRound) fail('BAD_TARGET');
       if (p.funds < spec.price) fail('NO_FUNDS');
       p.funds -= spec.price;
-      scratch.ticket = { id: `scratch:mock:${++scratch.seq}`, tier: f.tier, relicId: spec.relicId, round: pub.round, opened: false };
-      S.scratchSecret = drawScratchTicket(f.tier, rnd);
+      const ticket = { id: `scratch:mock:${++scratch.seq}`, tier: f.tier, relicId: spec.relicId, round: pub.round, opened: false };
+      scratch.tickets.push(ticket);
+      (S.scratchSecret ??= {})[ticket.id] = drawScratchTicket(f.tier, rnd);
       if (!p.relics.some((r) => r.id === spec.relicId)) p.relics.push({ id: spec.relicId, round: pub.round });
       refreshPrivate(); return {};
     }
     case 'g.scratchOpen': {
       prepOnly();
-      const ticket = p.scratch?.ticket;
+      const ticket = p.scratch?.tickets.find((ticket) => ticket.id === f.ticketId);
       if (!ticket || ticket.id !== f.ticketId) fail('BAD_TARGET');
       ticket.opened = true;
-      Object.assign(ticket, { winningNumbers: S.scratchSecret.winningNumbers, cells: S.scratchSecret.cells });
+      const secret = S.scratchSecret[ticket.id];
+      Object.assign(ticket, { winningNumbers: secret.winningNumbers, cells: secret.cells });
       refreshPrivate(); return {};
     }
     case 'g.scratchClaim': {
       prepOnly();
       if (p.scratch?.lastResult?.ticketId === f.ticketId) return {};
-      const ticket = p.scratch?.ticket;
+      const ticket = p.scratch?.tickets.find((ticket) => ticket.id === f.ticketId);
       if (!ticket?.opened || ticket.id !== f.ticketId) fail('BAD_TARGET');
-      p.scratch.lastResult = { ticketId: ticket.id, relicId: ticket.relicId, amount: S.scratchSecret.amount, round: pub.round };
-      p.funds += S.scratchSecret.amount; p.scratch.ticket = null;
-      p.relics = p.relics.filter((r) => r.id !== ticket.relicId);
+      const amount = S.scratchSecret[ticket.id].amount;
+      p.scratch.lastResult = { ticketId: ticket.id, relicId: ticket.relicId, amount, round: pub.round };
+      p.funds += amount; p.scratch.tickets = p.scratch.tickets.filter((t) => t.id !== ticket.id);
+      if (!p.scratch.tickets.some((t) => t.relicId === ticket.relicId)) p.relics = p.relics.filter((r) => r.id !== ticket.relicId);
       refreshPrivate(); return {};
     }
     case 'g.relic': {
@@ -770,6 +773,11 @@ async function mockRequest(t, f = {}) {
       if (pub.phase !== PHASE.PREP) fail('WRONG_PHASE');
       if (f.ready && p.personalChoice) fail('BAD_TARGET');
       if (f.ready && !p.canReady) fail('TEMP_NOT_EMPTY');
+      if (f.ready && p.scratch?.tickets.length > 1) {
+        const best = p.scratch.tickets.reduce((a, b) => b.tier > a.tier ? b : a);
+        p.scratch.tickets = [best];
+        p.relics = p.relics.filter((r) => !getRelic(r.id)?.scratchTicket || r.id === best.relicId);
+      }
       p.ready = !!f.ready; refreshPrivate(); return {};
     }
     case 'g.emote': {

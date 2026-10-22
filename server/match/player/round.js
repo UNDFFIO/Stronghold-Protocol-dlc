@@ -8,6 +8,7 @@
 
 import { relicIncome } from '../../../shared/relics.js';
 import { startRelicRound, relicsView } from '../relics.js';
+import { retainBestScratchTicket } from '../scratchTickets.js';
 import { boardOrder, pieceDir } from '../board.js';
 import { computeBonds, bondSnapshot, activatedLayers, bondsWithGains } from '../bondsMeta.js';
 
@@ -42,6 +43,7 @@ export class PlayerRound {
    * resolved; what overflowed after Ready or during onPrepEnd stays for the next prep, which `prepsEnded` now names.
    */
   endPrep() {
+    retainBestScratchTicket(this);
     this.resolveTemp();
     this.prepsEnded++;
     for (const uid of [...this._tempDue.keys()]) if (!this.temp.some((p) => p && p.uid === uid)) this._tempDue.delete(uid);

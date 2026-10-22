@@ -60,3 +60,22 @@ test('game.js asks through readyFundsPrompt before g.ready (button and Space sha
   assert.match(src, /onReady=\$\{toggleReady\}/);
   assert.match(src, /toggleReady\(!L\.priv\.ready\)/, 'Space');
 });
+
+
+test('unused tickets share one Ready prompt with funds, including a single ticket and funds-retaining bands', () => {
+  const scratch = { tickets: [{ id: 'a', tier: 1 }, { id: 'b', tier: 5 }] };
+  const ask = readyFundsPrompt(priv({ scratch }));
+  assert.match(ask.text, /5 资金/);
+  assert.match(ask.text, /2 张刮刮票/);
+  assert.match(ask.text, /仅保留一张最高级/);
+  assert.equal(ask.text.split('确定准备就绪吗？').length, 2, 'one shared confirmation');
+  for (const state of [priv({ funds: 0, scratch }), priv({ bandId: 'band_cannot', scratch })]) {
+    const prompt = readyFundsPrompt(state);
+    assert.match(prompt.text, /2 张刮刮票/);
+    assert.doesNotMatch(prompt.text, /剩余资金将清零/);
+  }
+  assert.match(readyFundsPrompt(priv({ funds: 0, scratch: { tickets: [scratch.tickets[0]] } })).text, /1 张刮刮票/);
+  assert.equal(readyFundsPrompt(priv({ scratch }), { ready: false }), null);
+  assert.equal(readyFundsPrompt(priv({ scratch, ready: true })), null);
+  assert.equal(readyFundsPrompt(priv({ scratch }), { autoplay: true }), null);
+});

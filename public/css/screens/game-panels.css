@@ -940,6 +940,7 @@ button.bpop__harmony:hover { border-style: solid; color: #fff; }
 .offerov .spcard__icon { width: .6rem; height: .6rem; }
 .scratch-panel { font-size: calc(.15 * var(--t)); }
 .scratch-panel p { margin: .08rem 0; }
+.scratch-inventory { display: flex; align-items: center; flex-wrap: wrap; gap: .08rem; max-height: 1.2rem; overflow-y: auto; margin-bottom: .12rem; }
 .scratch-shop { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .16rem; }
 .scratch-product { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .1rem; min-width: 0; min-height: 2.1rem; border: 1px solid var(--line); padding: .16rem .1rem; background: var(--bg-2); color: var(--text-hi); font: inherit; text-align: center; cursor: pointer; overflow: hidden; transition: border-color var(--t-fast), transform var(--t-fast); }
 .scratch-product:hover:not(:disabled), .scratch-product.is-armed { border-color: var(--mint-400); transform: translateY(-.03rem); }
@@ -952,7 +953,7 @@ button.bpop__harmony:hover { border-style: solid; color: #fff; }
 .scratch-product .scard__confirm { pointer-events: none; }
 .scratch-unopened { display: grid; justify-items: center; gap: .15rem; padding: .12rem; }
 .scratch-unopened img { width: 1.2rem; height: 1.6rem; object-fit: contain; }
-.scratch-paper { color: #383021; background: #f6ead0; border: .06rem solid #c79749; border-radius: .08rem; padding: .18rem; max-width: 4.5rem; margin: .12rem auto; box-shadow: 0 .05rem .16rem #0004; }
+.scratch-paper { position: relative; color: #383021; background: #f6ead0; border: .06rem solid #c79749; border-radius: .08rem; padding: .18rem; max-width: 4.5rem; margin: .12rem auto; box-shadow: 0 .05rem .16rem #0004; }
 .scratch-panel--face { background: #f6ead0; color: #383021; border: .06rem solid #c79749; border-radius: .08rem; padding: .3rem; min-height: min(7.2rem, 88vh); box-shadow: 0 .05rem .16rem #0004; }
 .scratch-panel--face::after, .scratch-panel--face > .modal__stripe { display: none; }
 .scratch-panel--face > .modal__body { padding: 0; color: inherit; scrollbar-width: none; }
@@ -964,6 +965,16 @@ button.bpop__harmony:hover { border-style: solid; color: #fff; }
 .scratch-panel--face .scratch-cell { height: 1.1rem; }
 .scratch-panel--face .scratch-cell__value b { font-size: calc(.32 * var(--t)); }
 .scratch-panel--face .scratch-cell__value span { font-size: calc(.18 * var(--t)); }
+.relic-debug { position: absolute; top: 2.1rem; left: 2.3rem; z-index: 11; width: min(4.8rem, calc(100vw - .4rem)); color: var(--text-hi); background: #101916f5; border: 1px solid var(--line-2); pointer-events: auto; font-size: calc(.14 * var(--t)); }
+.relic-debug__heading { display: flex; justify-content: space-between; gap: .2rem; width: 100%; padding: .12rem; color: inherit; background: #253b31; font-weight: bold; }
+.relic-debug__body { display: grid; gap: .1rem; padding: .12rem; max-height: min(5rem, 60vh); overflow: auto; }
+.relic-debug__body p { margin: 0; }
+.relic-debug__body input, .relic-debug__body select { width: 100%; min-width: 0; color: inherit; background: #17251e; border: 1px solid var(--line-2); padding: .08rem; font: inherit; }
+.relic-debug__owned { display: grid; gap: .06rem; margin: 0; padding: 0; list-style: none; }
+.relic-debug__owned li { display: flex; align-items: center; justify-content: space-between; gap: .1rem; }
+.relic-debug .btn { font-size: inherit; min-height: 28px; }
+@media (max-width: 720px) { .relic-debug { top: 1.4rem; left: .2rem; width: min(320px, calc(100vw - .4rem)); font-size: max(12px, calc(.14 * var(--t))); } }
+
 .scratch-paper__header { display: flex; flex-wrap: wrap; gap: .08rem; justify-content: space-between; align-items: center; border-bottom: 2px solid #c79749; padding-bottom: .1rem; }
 .scratch-paper__header b { font-size: calc(.25 * var(--t)); color: #9a391e; }
 .scratch-paper__header span { font-size: calc(.13 * var(--t)); }
@@ -977,6 +988,7 @@ button.bpop__harmony:hover { border-style: solid; color: #fff; }
 .scratch-cell__value span { font-size: calc(.12 * var(--t)); }
 .scratch-match { color: #a12d14; text-decoration: underline; }
 .scratch-coating { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: default; user-select: none; }
+.scratch-debris { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2; pointer-events: none; }
 .scratch-controls { display: flex; gap: .1rem; justify-content: center; margin-top: .15rem; }
 .scratch-paper__footer { display: flex; justify-content: space-between; align-items: center; gap: .1rem; font-size: calc(.1 * var(--t)); margin-top: .15rem; }
 .scratch-barcode { width: 1rem; height: .22rem; background: repeating-linear-gradient(90deg,#383021 0 1px,transparent 1px 3px,#383021 3px 5px,transparent 5px 7px); }

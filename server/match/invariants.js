@@ -62,9 +62,11 @@ export function collectViolations(m, { limit = 25 } = {}) {
     if (!Number.isInteger(ps.funds) || ps.funds < 0) fail(`${id}: funds ${ps.funds}`);
     if (!Number.isInteger(ps.pendingFunds) || ps.pendingFunds < 0) fail(`${id}: pendingFunds ${ps.pendingFunds}`);
     if (!Number.isSafeInteger(ps.scratchSeq) || ps.scratchSeq < 0) fail(`${id}: invalid scratch sequence`);
-    if (ps.scratchTicket && (!getRelic(ps.scratchTicket.relicId)?.scratchTicket
+    if (new Set(ps.scratchTickets.map((t) => t.id)).size !== ps.scratchTickets.length) fail(`${id}: duplicate scratch tickets`);
+    for (const ticket of ps.scratchTickets) if (!getRelic(ticket.relicId)?.scratchTicket
       || !ps.relics.some((r) => r.id === 'relic_234')
-      || !Number.isInteger(ps.scratchTicket.amount) || ps.scratchTicket.amount < 0)) fail(`${id}: invalid scratch ticket`);
+      || !ps.relics.some((r) => r.id === ticket.relicId)
+      || !Number.isInteger(ticket.amount) || ticket.amount < 0) fail(`${id}: invalid scratch ticket`);
     if (!Number.isFinite(ps.lp)) fail(`${id}: lp ${ps.lp}`);
     if (ps.alive && m.phase !== PHASE.SETTLE && ps.lp <= 0 && m.teamLp == null && m.round > 0 && ps.bandId) fail(`${id}: alive with lp ${ps.lp}`);
     if (ps.hand.length !== gd.benchSize) fail(`${id}: hand has ${ps.hand.length} slots`);

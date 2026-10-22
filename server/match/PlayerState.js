@@ -233,7 +233,7 @@ export class PlayerState {
     this.eliminatedRoster = null;
     this.relicChessQueue = [];
     this.scratchSeq = 0;
-    this.scratchTicket = null;
+    this.scratchTickets = [];
     this.scratchResult = null;
     /** active bounties: { id, card, roundsLeft, chooser } */
     this.bounties = [];

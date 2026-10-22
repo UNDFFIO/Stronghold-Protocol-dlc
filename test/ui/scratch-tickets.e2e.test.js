@@ -20,14 +20,14 @@ async function clickText(page, selector, text) {
   for (const button of await page.$$(selector)) if ((await button.evaluate((e) => e.textContent)).includes(text)) { await button.click(); return; }
   throw new Error(`button missing: ${text}`);
 }
-async function openShop(page) {
-  await page.goto(`${base}/dev/game-mock.html?shot=1&phase=PREP`, { waitUntil: 'domcontentloaded' });
+async function openShop(page, render = 'engine') {
+  await page.goto(`${base}/dev/game-mock.html?shot=1&phase=PREP&render=${render}`, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('.relic-icons__heading');
   await page.evaluate(() => { for (const key of Object.keys(localStorage)) if (key.startsWith('sp.scratch.')) localStorage.removeItem(key); });
   await page.evaluate(() => globalThis.__MOCK__.mutate((s) => {
     s.pub.round = 7; s.priv.alive = true; s.priv.ready = false; s.priv.funds = 100;
     s.priv.relics = [{ id: 'relic_234', round: 1 }];
-    s.priv.scratch = { seq: 0, ticket: null, lastResult: null };
+    s.priv.scratch = { seq: 0, tickets: [], lastResult: null };
   }));
   await page.click('.scratch-shop-card');
   await page.waitForSelector('.scratch-product');
@@ -48,11 +48,85 @@ async function scratchRegion(page, region) {
     const y = box.y + box.height * (row + 0.5) / 8;
     await page.mouse.move(box.x + (row % 2 ? box.width - 3 : 3), y);
     await page.mouse.move(box.x + (row % 2 ? 3 : box.width - 3), y, { steps: 9 });
+    if (!await page.$(`[data-scratch-region="${region}"] .scratch-coating`)) break;
   }
   await page.mouse.up();
   await page.waitForFunction((r) => document.querySelector('.scratch-shop')
     || document.querySelector(`[data-scratch-region="${r}"]`)?.classList.contains('is-revealed'), {}, region);
 }
+
+async function waitForDebris(page, visible) {
+  await page.waitForFunction((expected) => {
+    const canvas = document.querySelector('.scratch-debris');
+    const pixels = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
+    let painted = false;
+    for (let i = 3; i < pixels.length; i += 4) if (pixels[i]) { painted = true; break; }
+    return painted === expected;
+  }, { timeout: 3000 }, visible);
+}
+
+test('scratch debris: mouse flakes fall outside cells, expire, ignore erased foil and clear on close', {
+  skip: !ENABLED && 'set SP_E2E=1 and provide Chrome', timeout: 60000,
+}, async () => {
+  const page = await browser.newPage(), errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  try {
+    await page.setViewport({ width: 1440, height: 1000, deviceScaleFactor: 2 });
+    await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'no-preference' }]);
+    await openShop(page, 'fallback'); await buyAndOpen(page);
+    assert.equal(await page.$eval('.scratch-debris', (el) => getComputedStyle(el).pointerEvents), 'none');
+    await waitForDebris(page, false);
+    const box = await (await page.$('[data-scratch-region="0"] canvas')).boundingBox();
+    const stroke = async () => {
+      await page.mouse.move(box.x + box.width * 0.2, box.y + box.height * 0.75);
+      await page.mouse.down();
+      await page.mouse.move(box.x + box.width * 0.75, box.y + box.height * 0.75, { steps: 8 });
+      await page.mouse.up();
+    };
+    const falling = page.waitForFunction(() => {
+      const canvas = document.querySelector('.scratch-debris'), bounds = canvas.getBoundingClientRect();
+      const cell = document.querySelector('[data-scratch-region="0"]').getBoundingClientRect();
+      const y = Math.ceil((cell.bottom - bounds.top) * canvas.height / bounds.height) + 2;
+      const pixels = canvas.getContext('2d').getImageData(0, y, canvas.width, canvas.height - y).data;
+      for (let i = 3; i < pixels.length; i += 4) if (pixels[i]) return true;
+      return false;
+    }, { timeout: 5000 });
+    await stroke(); await waitForDebris(page, true); await falling;
+    // Capture the current painted frame before screenshot encoding outlives the short effect.
+    await page.$eval('.scratch-debris', (el) => {
+      const image = new Image(); image.src = el.toDataURL(); image.className = el.className;
+      image.style.pointerEvents = 'none'; el.after(image);
+    });
+    await page.screenshot({ path: 'test/e2e/out/scratch-debris-desktop.png' });
+    await page.$eval('img.scratch-debris', (el) => el.remove());
+    await waitForDebris(page, false);
+    // Widen the erased strip, then scratch its empty interior away from antialiased edges.
+    await page.mouse.move(box.x + box.width * 0.2, box.y + box.height * 0.6);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width * 0.75, box.y + box.height * 0.6, { steps: 8 });
+    await page.mouse.up(); await waitForDebris(page, false);
+    await page.mouse.move(box.x + box.width * 0.45, box.y + box.height * 0.675);
+    await page.mouse.down(); await page.mouse.up();
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    assert.equal(await page.$eval('.scratch-debris', (el) => {
+      const a = el.getContext('2d').getImageData(0, 0, el.width, el.height).data;
+      return a.some((v, i) => i % 4 === 3 && v);
+    }), false, 'repeated strokes over cleared foil emit no new flakes');
+    await scratchRegion(page, 0);
+    await waitForDebris(page, true);
+    assert.ok(await page.$('[data-scratch-region="0"].is-revealed'), 'flakes outlive the removed coating');
+    await page.evaluate(() => { globalThis.__scratchDebrisCanvas = document.querySelector('.scratch-debris'); });
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => !document.querySelector('.scratch-panel'));
+    assert.equal(await page.evaluate(() => {
+      const el = globalThis.__scratchDebrisCanvas;
+      return el.getContext('2d').getImageData(0, 0, el.width, el.height).data.some((v, i) => i % 4 === 3 && v);
+    }), false, 'closing clears the transient layer');
+    await page.click('.scratch-shop-card'); await page.waitForSelector('.scratch-debris');
+    await waitForDebris(page, false);
+    assert.deepEqual(errors, []);
+  } finally { await page.close(); }
+});
 
 test('shop ticket slot: unlock gate, stacked art, shared purchase flow, ready gate and folding', {
   skip: !ENABLED && 'set SP_E2E=1 and provide Chrome', timeout: 60000,
@@ -68,7 +142,7 @@ test('shop ticket slot: unlock gate, stacked art, shared purchase flow, ready ga
     await page.evaluate(() => globalThis.__MOCK__.mutate((s) => {
       s.pub.round = 7; s.priv.alive = true; s.priv.ready = false; s.priv.funds = 100;
       s.priv.relics = [{ id: 'relic_234', round: 1 }];
-      s.priv.scratch = { seq: 0, ticket: null, lastResult: null };
+      s.priv.scratch = { seq: 0, tickets: [], lastResult: null };
     }));
     await page.waitForSelector('.scratch-shop-card');
     assert.equal(await page.$('.scratch-shortcut'), null, 'no purchase shortcut next to the collection');
@@ -191,7 +265,7 @@ test('scratch desktop: actual mouse erasure, saved progress, eight regions, one 
     await page.screenshot({ path: 'test/e2e/out/scratch-shop-desktop.png' });
     await buyAndOpen(page);
     assert.equal((await page.$$('.scratch-coating')).length, 8);
-    const ticketId = await page.evaluate(() => globalThis.__MOCK__.S().priv.scratch.ticket.id);
+    const ticketId = await page.evaluate(() => globalThis.__MOCK__.S().priv.scratch.tickets[0].id);
     await scratchRegion(page, 0);
     assert.equal((await page.$$('.scratch-coating')).length, 7);
     await page.screenshot({ path: 'test/e2e/out/scratch-partial-desktop.png' });
@@ -204,17 +278,17 @@ test('scratch desktop: actual mouse erasure, saved progress, eight regions, one 
     await page.waitForFunction(() => !document.querySelector('.scratch-panel'));
     await page.click('.scratch-shop-card');
     await page.waitForSelector('[data-scratch-region="0"].is-revealed');
-    assert.equal(await page.evaluate(() => globalThis.__MOCK__.S().priv.scratch.ticket.id), ticketId);
+    assert.equal(await page.evaluate(() => globalThis.__MOCK__.S().priv.scratch.tickets[0].id), ticketId);
     for (let region = 1; region < 8; region++) await scratchRegion(page, region);
     await page.waitForSelector('.scratch-shop');
     assert.equal(await page.evaluate(() => globalThis.__MOCK__.S().requests.filter(([t]) => t === 'g.scratchClaim').length), 1);
-    assert.equal(await page.evaluate(() => globalThis.__MOCK__.S().priv.scratch.ticket), null);
+    assert.deepEqual(await page.evaluate(() => globalThis.__MOCK__.S().priv.scratch.tickets), []);
     assert.equal(await page.$('.relic-icons [data-relic-id="relic_235"]'), null, 'claimed ticket leaves the collection');
     assert.equal(await page.evaluate((id) => localStorage.getItem(`sp.scratch.${id}`), ticketId), null, 'claimed scratch data is removed');
     await page.click('.scratch-product');
     await page.waitForSelector('.scratch-product.is-armed');
     await page.click('.scratch-product'); await page.waitForSelector('.scratch-unopened');
-    assert.notEqual(await page.evaluate(() => globalThis.__MOCK__.S().priv.scratch.ticket.id), ticketId);
+    assert.notEqual(await page.evaluate(() => globalThis.__MOCK__.S().priv.scratch.tickets[0].id), ticketId);
     assert.deepEqual(errors, []);
   } finally { await page.close(); }
 });
@@ -232,7 +306,17 @@ test('scratch mobile: real touch strokes, reload, phase gate, language switching
     await client.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: box.x + 5, y: box.y + box.height / 2 }] });
     for (let i = 1; i <= 8; i++) await client.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: box.x + box.width * i / 10, y: box.y + box.height / 2 }] });
     await client.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-    assert.ok(await page.evaluate(() => Object.values(JSON.parse(localStorage.getItem(`sp.scratch.${globalThis.__MOCK__.S().priv.scratch.ticket.id}`))).length > 0));
+    assert.ok(await page.evaluate(() => Object.values(JSON.parse(localStorage.getItem(`sp.scratch.${globalThis.__MOCK__.S().priv.scratch.tickets[0].id}`))).length > 0));
+    await waitForDebris(page, false);
+    await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'no-preference' }]);
+    const next = await (await page.$('[data-scratch-region="1"] canvas')).boundingBox();
+    await client.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: next.x + 10, y: next.y + next.height / 2 }] });
+    await client.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: next.x + next.width * 0.7, y: next.y + next.height / 2 }] });
+    await client.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await waitForDebris(page, true);
+    await page.screenshot({ path: 'test/e2e/out/scratch-debris-mobile.png' });
+    await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
+    await waitForDebris(page, false);
     const saved = await page.evaluate(() => ({ priv: structuredClone(globalThis.__MOCK__.S().priv), secret: structuredClone(globalThis.__MOCK__.S().scratchSecret) }));
     await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForSelector('.relic-icons__heading');
     await page.evaluate((saved) => globalThis.__MOCK__.mutate((s) => { s.pub.round = 7; s.priv = saved.priv; s.scratchSecret = saved.secret; }), saved);
@@ -260,5 +344,55 @@ test('scratch mobile: real touch strokes, reload, phase gate, language switching
     await page.focus('.scratch-controls button'); await page.keyboard.press('Enter');
     await page.waitForSelector('.scratch-shop');
     assert.equal(await page.evaluate(() => globalThis.__MOCK__.S().requests.filter(([t]) => t === 'g.scratchClaim').length), 1);
+  } finally { await page.close(); }
+});
+
+
+test('multiple tickets: buy while holding, switch and claim independently; one combined Ready prompt cancels or keeps best', {
+  skip: !ENABLED && 'set SP_E2E=1 and provide Chrome', timeout: 60000,
+}, async () => {
+  const page = await browser.newPage(), errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  try {
+    await page.setViewport({ width: 1920, height: 1080 });
+    await openShop(page);
+    for (const tier of [1, 5, 1]) {
+      if (await page.$('.scratch-inventory')) await page.click('.scratch-inventory button');
+      await page.waitForSelector('.scratch-product');
+      const selector = '.scratch-product:nth-child(' + tier + ')';
+      await page.click(selector); await page.waitForSelector(selector + '.is-armed'); await page.click(selector);
+      await page.waitForSelector('.scratch-unopened');
+    }
+    const tickets = await page.evaluate(() => structuredClone(globalThis.__MOCK__.S().priv.scratch.tickets));
+    assert.equal(tickets.length, 3);
+    assert.equal(await page.evaluate(() => globalThis.__MOCK__.S().priv.funds), 86);
+    await page.click('.scratch-inventory button:last-child');
+    await clickText(page, '.scratch-unopened button', '开始刮奖');
+    await page.waitForSelector('.scratch-coating');
+    await clickText(page, '.scratch-controls button', '全部刮开');
+    await page.waitForFunction(() => globalThis.__MOCK__.S().priv.scratch.tickets.length === 2);
+    assert.ok(await page.$('.relic-icons [data-relic-id="relic_235"]'), 'another ticket of the same tier remains');
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => !document.querySelector('.scratch-panel'));
+    await page.click('.readybtn');
+    await page.waitForSelector('.modal__text');
+    assert.equal((await page.$$('[role=dialog]')).length, 1);
+    const text = await page.$eval('.modal__text', (el) => el.textContent);
+    assert.match(text, /资金未使用/); assert.match(text, /2 张刮刮票/); assert.match(text, /其余将销毁/);
+    await clickText(page, '.modal__actions button', '继续整备');
+    assert.equal(await page.evaluate(() => globalThis.__MOCK__.S().priv.scratch.tickets.length), 2);
+    assert.equal(await page.evaluate(() => globalThis.__MOCK__.S().priv.ready), false);
+    await page.click('.readybtn'); await page.waitForSelector('.modal__text');
+    await clickText(page, '.modal__actions button', '准备就绪');
+    await page.waitForFunction(() => globalThis.__MOCK__.S().priv.ready);
+    assert.deepEqual(await page.evaluate(() => globalThis.__MOCK__.S().priv.scratch.tickets.map((t) => t.id)), [tickets[1].id]);
+    await page.click('.readybtn');
+    await page.waitForFunction(() => !globalThis.__MOCK__.S().priv.ready);
+    await page.evaluate(() => globalThis.__MOCK__.mutate((s) => { s.priv.funds = 0; }));
+    await page.click('.readybtn'); await page.waitForSelector('.modal__text');
+    const single = await page.$eval('.modal__text', (el) => el.textContent);
+    assert.match(single, /1 张刮刮票/); assert.doesNotMatch(single, /剩余资金将清零/);
+    await page.screenshot({ path: 'test/e2e/out/scratch-ready-warning.png' });
+    assert.deepEqual(errors, []);
   } finally { await page.close(); }
 });

@@ -572,6 +572,7 @@ export const C2S = {
   'g.unequip': { itemUid: isUid },
   'g.reward': { idx: (v) => isInt(v, 0, 5) },
   'g.relic': { offerId: isId, idx: (v) => isInt(v, 0, 2) },
+  'g.relicDebug': { relicId: isId, action: (v) => v === 'add' || v === 'remove' },
   'g.relicRevive': { relicId: isId, playerId: isId },
   'g.scratchBuy': { tier: (v) => isInt(v, 1, 5), seq: (v) => isInt(v, 0, Number.MAX_SAFE_INTEGER) },
   'g.scratchOpen': { ticketId: isId },

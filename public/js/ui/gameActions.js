@@ -91,6 +91,7 @@ export const actions = {
   unequip: (itemUid) => act('g.unequip', { itemUid }),
   reward: (idx) => act('g.reward', { idx }),
   relic: (offerId, idx) => act('g.relic', { offerId, idx }),
+  relicDebug: (relicId, action) => act('g.relicDebug', { relicId, action }),
   relicRevive: (relicId, playerId) => act('g.relicRevive', { relicId, playerId }, { sfx: 'confirm' }),
   scratchBuy: (tier, seq) => act('g.scratchBuy', { tier, seq }, { sfx: 'buy' }),
   scratchOpen: (ticketId) => act('g.scratchOpen', { ticketId }, { sfx: false }),

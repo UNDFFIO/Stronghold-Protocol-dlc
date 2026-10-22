@@ -99,6 +99,7 @@ import { EmoteWheel } from '../ui/emotes.js';
 import { DamageRanking } from '../ui/damageRanking.js';
 import { EffectsList } from '../ui/effectsList.js';
 import { RelicCollection, RelicChoice, ownerRelics, revivalTargets } from '../ui/relicPanel.js';
+import { RelicDebugPanel } from '../ui/relicDebug.js';
 import { AscensionLottery } from '../ui/ascensionLottery.js';
 import { CombatHud } from '../ui/combatHud.js';
 import { CombatMetricsPanel } from '../ui/combatMetrics.js';
@@ -983,8 +984,8 @@ function MatchScreen() {
     finally { buyPending.current.delete(i); }
   }, []);
   const removeSpectator = useCallback((playerId) => actions.removeSpectator(playerId), []);
-  // 准备 with funds left asks first: the prep's end wipes them (community report #4; not 坎诺特, not at 0 funds, not
-  // under AI 托管 — gameLogic.readyFundsPrompt). The button and Space both come here.
+  // Unspent funds and unused scratch tickets share one Ready confirmation (gameLogic.readyFundsPrompt).
+  // The button and Space both come here; the server owns all deadline/Ready cleanup.
   const askingReady = useRef(false);
   const toggleReady = useCallback(async (r) => {
     const L = live.current;
@@ -1002,7 +1003,7 @@ function MatchScreen() {
     await actions.ready(r);
     setReadyBusy(false);
   }, []);
-  // the prep ended (timer) while the question was open: drop it — the funds are gone either way
+  // The prep ended while the question was open: the server already settled funds and retained the best ticket.
   useEffect(() => { if (phase !== PHASE.PREP && askingReady.current) closeAllDialogs(); }, [phase]);
 
   /** 出售 (operators, underframe +N) / 销毁 (items and Arts, confirmed: they cannot be sold). */
@@ -1866,7 +1867,9 @@ function MatchScreen() {
     ${replace ? html`<${EquipReplaceDialog} request=${replace.request} getItem=${gd.item}
       onConfirm=${(uid) => closeReplace(uid)} onCancel=${() => closeReplace(null)} />` : null}
 
-    <${SettingsModal} open=${settingsOpen} onClose=${() => setSettingsOpen(false)} />
+    ${solo && !spectator && playerSettings.relicDebug ? html`<${RelicDebugPanel} relics=${priv?.relics || []}
+      canEdit=${phase === PHASE.PREP && alive && !priv?.ready && conn.status === 'online'} onChange=${actions.relicDebug} />` : null}
+    <${SettingsModal} open=${settingsOpen} onClose=${() => setSettingsOpen(false)} solo=${solo && !spectator} />
     <${DownedPlate} open=${downed} onWatch=${() => setDowned(false)} onLeave=${() => { setDowned(false); setExitOpen(true); }} />
     <${ExitModal} open=${exitOpen} onClose=${() => setExitOpen(false)} solo=${solo} />
   </div>`;

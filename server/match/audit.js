@@ -183,22 +183,22 @@ export function attachAudit(m, { invariants = true, limit = 200 } = {}) {
       return res;
     });
     wrap(ps, 'buyScratch', function (orig, tier, seq) {
-      const f0 = ps.funds, s0 = ps.scratchSeq, fx = hasSpendEffects(m, ps);
+      const f0 = ps.funds, s0 = ps.scratchSeq, n0 = ps.scratchTickets.length, fx = hasSpendEffects(m, ps);
       const res = orig(tier, seq);
       if (res?.ok) check('scratch purchase', () => {
-        if (ps.scratchSeq !== s0 + 1 || !ps.scratchTicket) fail(`${ps.playerId}: scratch purchase did not issue exactly one ticket`);
+        if (ps.scratchSeq !== s0 + 1 || ps.scratchTickets.length !== n0 + 1) fail(`${ps.playerId}: scratch purchase did not issue exactly one ticket`);
         if (!fx && !hasSpendEffects(m, ps) && ps.funds !== f0 - scratchTier(tier).price) fail(`${ps.playerId}: scratch price mismatch`);
       });
       return res;
     });
     wrap(ps, 'claimScratch', function (orig, ticketId) {
       const f0 = ps.funds;
-      const ticket = ps.scratchTicket;
+      const ticket = ps.scratchTickets.find((t) => t.id === ticketId);
       const amount = ticket?.id === ticketId && ticket.opened ? ticket.amount : 0;
       const res = orig(ticketId);
       if (res?.ok) check('scratch claim', () => {
         if (ps.funds !== f0 + amount) fail(`${ps.playerId}: scratch prize mismatch`);
-        if (ps.scratchTicket?.id === ticketId) fail(`${ps.playerId}: claimed ticket still held`);
+        if (ps.scratchTickets.some((t) => t.id === ticketId)) fail(`${ps.playerId}: claimed ticket still held`);
       });
       return res;
     });

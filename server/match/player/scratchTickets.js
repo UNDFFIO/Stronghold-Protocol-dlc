@@ -8,7 +8,7 @@ export class PlayerScratchTickets {
     const gate = this._gate(); if (gate) return gate;
     const spec = scratchTier(tier);
     if (this.left || !spec || !Number.isInteger(seq) || seq !== this.scratchSeq
-      || this.scratchTicket || !this.relics.some((r) => r.id === 'relic_234')
+      || !this.relics.some((r) => r.id === 'relic_234')
       || this.m.round < spec.unlockRound) return fail(ERR.BAD_TARGET);
     if (this.funds < spec.price) return fail(ERR.NO_FUNDS);
     this.spend(spec.price);
@@ -19,7 +19,7 @@ export class PlayerScratchTickets {
 
   openScratch(ticketId) {
     const gate = this._gate(); if (gate) return gate;
-    const ticket = this.scratchTicket;
+    const ticket = this.scratchTickets.find((t) => t.id === ticketId);
     if (this.left || !ticket || ticket.id !== ticketId) return fail(ERR.BAD_TARGET);
     ticket.opened = true;
     this.dirty();
@@ -30,11 +30,13 @@ export class PlayerScratchTickets {
     const gate = this._gate(); if (gate) return gate;
     if (this.left) return fail(ERR.BAD_TARGET);
     if (this.scratchResult?.ticketId === ticketId) return OK;
-    const ticket = this.scratchTicket;
+    const ticket = this.scratchTickets.find((t) => t.id === ticketId);
     if (!ticket || ticket.id !== ticketId || !ticket.opened) return fail(ERR.BAD_TARGET);
     // Consume before crediting: retries and effect hooks cannot pay the same ticket twice.
-    this.scratchTicket = null;
-    this.relics = this.relics.filter((r) => r.id !== ticket.relicId);
+    this.scratchTickets = this.scratchTickets.filter((t) => t.id !== ticketId);
+    if (!this.scratchTickets.some((t) => t.relicId === ticket.relicId)) {
+      this.relics = this.relics.filter((r) => r.id !== ticket.relicId);
+    }
     this.scratchResult = { ticketId, relicId: ticket.relicId, amount: ticket.amount, round: this.m.round };
     this.addFunds(ticket.amount, { reason: 'scratch-ticket' });
     this.dirty();

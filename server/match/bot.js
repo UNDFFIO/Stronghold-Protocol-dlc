@@ -1433,8 +1433,8 @@ export function botPrepBegin(m, ps) {
 export function* botPrepBeginSteps(m, ps, { delegate = false } = {}) {
   if (!ps.alive || ps.ready) return null;
   m.autoPickPersonalChoice(ps, 'bot');
-  if (ps.scratchTicket) {
-    const id = ps.scratchTicket.id;
+  for (const ticket of [...ps.scratchTickets]) {
+    const id = ticket.id;
     ps.openScratch(id);
     ps.claimScratch(id);
   }
