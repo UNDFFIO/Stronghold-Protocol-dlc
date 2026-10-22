@@ -18,6 +18,7 @@ export const CUSTOM_RELIC_ICON_FILES = Object.freeze({
   relic_237: 'relic_237.png',
   relic_238: 'relic_238.png',
   relic_239: 'relic_239.png',
+  relic_240: 'relic_240.png',
 });
 
 /** 原创原稿随源码保存；离线及强制重建都从原稿恢复运行副本。 */

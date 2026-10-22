@@ -8,6 +8,45 @@ const KEY = 'relic:collection';
 const healingHandInstalled = new WeakSet();
 const fertilizerInstalled = new WeakSet();
 const skillEndSpInstalled = new WeakSet();
+const poisonDaggerInstalled = new WeakSet();
+
+function installPoisonDagger(battle, owners) {
+  if (!owners.size || poisonDaggerInstalled.has(battle)) return;
+  poisonDaggerInstalled.add(battle);
+  let seq = 0;
+  battle.on('death', ({ unit }) => {
+    for (const buff of unit.buffs.slice()) if (buff.tags.includes('relic:240')) battle.removeBuff(unit, buff);
+  });
+  battle.on('damageConvert', (ctx) => {
+    const { source, target, dmg } = ctx;
+    if (ctx.cancel || source?.kind !== 'op' || !owners.has(source.ownerId) || target.side !== 'enemy') return;
+    // Weakness-damage hooks can turn an Arts tick back into Physical. Keep the converted tick Arts,
+    // rather than splitting it into five new poison layers every second.
+    if (dmg.tags.includes('relic:240')) { dmg.type = 'arts'; return; }
+    if (dmg.type !== 'phys' || !(dmg.amount > 0)) return;
+    // Physical boosts are captured once, before DEF. Each delayed arts instance then uses live RES,
+    // arts/general multipliers and shields. A missed/cancelled hit never reaches this hook.
+    const amount = dmg.amount * source.s.physDealtMul / 5;
+    const { mul, resIgnorePct, resIgnoreFlat } = dmg;
+    const tags = [...dmg.tags, 'dot', 'relic:240'];
+    let remaining = 5;
+    let nextAt = battle.time + 1;
+    battle.addBuff(target, {
+      key: `relic:240:${++seq}`, source, duration: Infinity, tags: ['relic:240'],
+      onTick: ({ buff }) => {
+        // Scheduled skills can hit before this frame's buff pass; wait a full second from the actual hit.
+        if (battle.time + 1e-9 < nextAt) return;
+        nextAt += 1;
+        battle.dealDamage(source, target, {
+          amount, type: 'arts', mul, resIgnorePct, resIgnoreFlat,
+          canDodge: false, ignoreSelect: true, tags,
+        });
+        if (--remaining === 0) battle.removeBuff(target, buff);
+      },
+    });
+    ctx.cancel = true;
+  });
+}
 
 function installSkillEndSp(battle, byPlayer) {
   const refunds = new Map();
@@ -82,6 +121,7 @@ export function install(battle) {
   installHealingHand(battle, new Set([...byPlayer].filter(([, ids]) => ids.includes('relic_172')).map(([pid]) => pid)));
   installFertilizer(battle, new Set([...byPlayer].filter(([, ids]) => ids.includes('relic_125')).map(([pid]) => pid)));
   installSkillEndSp(battle, byPlayer);
+  installPoisonDagger(battle, new Set([...byPlayer].filter(([, ids]) => ids.includes('relic_240')).map(([pid]) => pid)));
 
   const apply = (unit) => {
     if (!unit || unit.kind !== 'op') return;

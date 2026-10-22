@@ -361,3 +361,8 @@ DSL plugin budget and attribution. Vanilla registrations remain empty; no offici
 
 The same SDK and scriptGuard apply inside SES in sandbox mode (DESIGN §32.11); the evaluator consumes verified
 script descriptors. SDK-owned results are frozen copies; live Battle/Unit objects are not hardened.
+
+
+### DLC 淬毒匕首
+
+relic_240 按持有者隔离，将落地物理命中在闪避后、DEF减免前通过 damageConvert 转换为5秒独立法术持续伤害。原命中无即时伤害，每秒一段，共五段；物理增幅在命中时捕获，法抗及法术/通用增幅随每段实时结算。毒伤固定为法术类型，仅转换一次，避免弱点伤害将其转回物理后递归叠层。目标死亡清除效果，来源死亡不取消已附加效果。显示链路以可选 b.snap.poison: [[id, 层数]] 传递未完成层数，逐层加深绿黑色并在效果到期时还原。完整规则见 [COLLECTIBLES.md](../COLLECTIBLES.md)。

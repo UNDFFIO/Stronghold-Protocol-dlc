@@ -58,11 +58,12 @@ export class BattleEvents {
    *         effect it shows;
    *   charges: [[id, stored, maximum]] — the charges an ally's charge skill stores (snapshot.js chargeView: 卡涅利安's): the
    *         official sand armour of her charges;
+   *   poison: [[id, n]] — the enemy's active Poison Dagger layers (display-only model darkening);
    *   stand: [[id, until]] — when each enemy's attack recovery ends (atkStandUntil; alive, deployed, visible, not
    *         feared or stunned) — display metadata (render/interp.js holds the position until then);
    *   standCut: [[id, at]] — the latest time each listed enemy's recovery was cut or ignored (_cutAttackStand), the
    *         dying ones in their death window included.
-   * ammo / wolves / neg / energy / layers / charges / stand / standCut are display only: no sim state reads them, and the
+   * ammo / wolves / neg / energy / layers / charges / poison / stand / standCut are display only: no sim state reads them, and the
    * nine-field unit tuples are unchanged.
    */
   snapshot() {
@@ -98,6 +99,8 @@ export class BattleEvents {
         if (cutAt <= snap.t && (listed || (listed = new Set(snap.units.map((x) => x[0])))).has(u.id)) (standCut || (standCut = [])).push([u.id, cutAt]);
       }
       if (!u.alive || !u.deployed || u.hidden) continue;
+      const poison = u.side === 'enemy' ? u.buffs.filter((b) => b.tags.includes('relic:240')).length : 0;
+      if (poison) (snap.poison || (snap.poison = [])).push([u.id, poison]);
       const until = Math.round(u.atkStandUntil * 1000) / 1000;
       if (u.side === 'enemy' && !u.s.flags.fear && !u.s.flags.stun && Number.isFinite(until) && until > snap.t) {
         (stand || (stand = [])).push([u.id, until]);

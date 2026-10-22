@@ -54,6 +54,27 @@ test('prep pips retain both equipment slots and a zero-slot morph, then remove o
   v.destroy();
 });
 
+test('淬毒匕首：敌人随层数变暗，消退恢复原色；干员不变暗', () => {
+  for (const side of ['enemy', 'ally']) {
+    const v = view({ side, kind: side === 'enemy' ? 'enemy' : 'chess' });
+    const sample = { x: 5, y: 12, hp: 1000, maxHp: 1000, sp: 0, spMax: 0, flags: 0, anim: 0 };
+    const colors = [];
+    for (const poison of [0, 1, 2, 10, 0]) {
+      v.sync({ ...sample, poison }, 0);
+      v.update(1 / 60, cam(), 0);
+      colors.push(v.fallback.tint);
+    }
+    assert.equal(colors[0], colors[4]);
+    if (side === 'enemy') {
+      assert.ok(colors[0] > colors[1] && colors[1] > colors[2] && colors[2] > colors[3] && colors[3] > 0);
+      const r = (colors[3] >> 16) & 255, g = (colors[3] >> 8) & 255, b = colors[3] & 255;
+      assert.ok(g > b && b > r, 'dark tint has a subtle green cast');
+    }
+    else assert.ok(colors.every((c) => c === colors[0]));
+    v.destroy();
+  }
+});
+
 describe('tier chips', () => {
   test('summon tokens in the hand show no tier chip (tokens have no tier)', async () => {
     const v = view({ kind: 'token', defId: 'token_10028_vigil_wolf', avatar: 'token_10028_vigil_wolf' }, { prep: true });

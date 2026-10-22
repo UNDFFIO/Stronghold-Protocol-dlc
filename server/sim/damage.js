@@ -339,7 +339,7 @@ export function dealDamage(battle, source, target, dmgIn) {
     ts = target.s; // handlers may have changed the target's buffs (fragile, invulnerable, dodge…): never use stale stats
     if (ts.flags.invulnerable || sleepBlocks(target, hs, dmg)) return 0;
   }
-  const type = dmg.type;
+  let type = dmg.type;
   // dodge. The yellow MISS (PRTS: a hit that would have been red, dodged) is classified after the existing roll
   // and does not roll again. Source stats are peeked so a dirty attacker is not refreshed just to label the dodge.
   if (dmg.canDodge && (type === 'phys' || type === 'arts')) {
@@ -353,6 +353,13 @@ export function dealDamage(battle, source, target, dmgIn) {
       if (battle._hooks.dodge) battle.emit('dodge', { source, target, dmg });
       return 0;
     }
+  }
+  // Conversion consumes a landed hit before DEF/RES, shields, HP loss and damage-triggered effects.
+  if (battle._hooks.damageConvert) {
+    const ctx = { source: hs, target, dmg, cancel: false };
+    battle.emit('damageConvert', ctx);
+    if (ctx.cancel) return 0;
+    type = dmg.type;
   }
   // 频次 units (flags hitCount / hitCountArts): every damage instance removes exactly 1 HP (maxHp = hits needed);
   // hitCountArts ignores physical instances. The instance keeps its own DamageInfo, so `damaged` handlers still

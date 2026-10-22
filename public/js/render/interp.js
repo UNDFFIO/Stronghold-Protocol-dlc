@@ -34,6 +34,7 @@
 //       `ammo`   [[id, rounds left, rounds in the magazine]]  → sample().ammo   [left, magazine] | null (whole numbers only)
 //       `wolves` [[id, 狼影 left, the talent's maximum]]      → sample().wolves [left, maximum]  | null
 //       `neg`    [[id, fill]] (0.01–1: the negative-HP pool's share of its cap) → sample().neg  number (0: none)
+//       `poison`  [[id, n]] (active Poison Dagger effects, n ≥ 1)             → sample().poison  number (0: none)
 //     and two the official effects read (render/vfx/talentfx.js, skillfx.js), the same way:
 //       `layers`  [[id, n]] (the hit-negating 护盾 layers, n ≥ 1)                → sample().layers  number (0: none)
 //       `charges` [[id, stored, maximum]] (a charge skill's stored charges)   → sample().charges [stored, maximum] | null
@@ -121,6 +122,13 @@ export function normalizeSnapshot(snap) {
   }
   const ammo = countList(snap.ammo, units), wolves = countList(snap.wolves, units), coins = countList(snap.coins, units);
   const energy = countList(snap.energy, units), charges = countList(snap.charges, units);
+  let poison = null;
+  if (Array.isArray(snap.poison)) {
+    for (const e of snap.poison) {
+      if (!Array.isArray(e) || !units.has(e[0]) || !Number.isSafeInteger(e[1]) || e[1] < 1) continue;
+      (poison || (poison = new Map())).set(e[0], e[1]);
+    }
+  }
   let layers = null;
   if (Array.isArray(snap.layers)) {
     for (const e of snap.layers) {
@@ -158,7 +166,7 @@ export function normalizeSnapshot(snap) {
       (standCut || (standCut = new Map())).set(e[0], e[1]);
     }
   }
-  return { t, units, down, ammo, wolves, coins, energy, charges, layers, neg, stand, standCut, raw: snap };
+  return { t, units, down, ammo, wolves, coins, energy, charges, layers, poison, neg, stand, standCut, raw: snap };
 }
 
 /**
@@ -417,6 +425,7 @@ export class SnapshotBuffer {
       o.energy = A.energy?.get(id) ?? null;
       o.charges = A.charges?.get(id) ?? null;
       o.layers = A.layers?.get(id) ?? 0;
+      o.poison = A.poison?.get(id) ?? 0;
       o.neg = A.neg ? A.neg.get(id) || 0 : 0;
       o.seen = stamp;
     }

@@ -2622,5 +2622,8 @@
   "原创：10金币票，奖金与概率采用原创奖表。": "Original: a 10-coin ticket with an original prize table.",
   "每回合本人无漏怪，弹出藏品三选一；连续三回合漏怪，获得一次较高稀有度三选一及下回合 2 点护盾。每次只获得所选的一件，永久藏品同名不重复，刮刮票兑奖后可再次获得，效果仅在本局有效。": "A personal perfect round offers three collectibles; three consecutive leaking rounds offer higher-quality choices and a 2-point shield next round. Pick one. Permanent collectibles are unique; scratch tickets can be acquired again after claiming. Effects last for this match only.",
   "第 {round} 回合基础概率；已获得的永久藏品移出候选池，实际概率随剩余藏品调整。": "Base odds for round {round}; owned permanent collectibles leave the pool, so actual odds depend on remaining collectibles.",
-  "收藏品增益无累计上限。同类属性与伤害增幅相加；永久藏品同名不重复，刮刮票兑奖后可再次获得。": "Collectible bonuses have no cumulative cap. Matching stat and damage bonuses add together. Permanent collectibles are unique; scratch tickets can be acquired again after claiming."
+  "收藏品增益无累计上限。同类属性与伤害增幅相加；永久藏品同名不重复，刮刮票兑奖后可再次获得。": "Collectible bonuses have no cumulative cap. Matching stat and damage bonuses add together. Permanent collectibles are unique; scratch tickets can be acquired again after claiming.",
+  "淬毒匕首": "Poison Dagger",
+  "所有我方干员造成的物理伤害提高至110%，在防御结算前转为5次等额法术伤害（命中1秒后开始，每秒1次，可独立叠加）": "All allied Operators deal 110% Physical damage, converted before DEF into 5 equal instances of Arts damage (starting 1 second after the hit, once per second; each hit stacks independently)",
+  "原创：物理伤害转为可叠加的五段法术持续伤害。": "Original: Converts Physical damage into five stackable instances of Arts damage over time."
 }

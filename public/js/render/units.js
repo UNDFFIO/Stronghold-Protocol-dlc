@@ -693,6 +693,7 @@ export class UnitView {
     this.neg = 0;                 // the share of its cap a negative-HP pool holds, 0 = none (sync; b.snap `neg`, 斩业星熊's 我执)
     this.layers = 0;              // hit-negating 护盾 layers (sync; b.snap `layers`: the official layer effect, vfx/talentfx.js)
     this.charges = null;          // [stored, maximum] of a charge skill (sync; b.snap `charges`: vfx/skillfx.js)
+    this.poison = 0;              // independent Poison Dagger layers; display only
     this.flags = 0; this.anim = ANIM.IDLE;
     this.statuses = new Set();
     this.alive = true;
@@ -1159,6 +1160,7 @@ export class UnitView {
     this.coins = s.coins || null;
     this.energy = s.energy || null;
     this.layers = s.layers > 0 ? s.layers | 0 : 0; this.charges = s.charges || null;
+    this.poison = this.isEnemy && Number.isSafeInteger(s.poison) && s.poison > 0 ? s.poison : 0;
     const prevFlags = this.flags;
     this.flags = s.flags | 0;
     this.anim = s.anim | 0;
@@ -1641,6 +1643,7 @@ export class UnitView {
       else if (this.flags & UF.FROZEN) tint = 0x9fd4ff;
       else if (this.flags & UF.COLD) tint = 0xcfe6ff;
       if (flashK > 0) tint = mixTint(tint, 0xff8a80, flashK * 0.8);
+      if (this.poison) tint = mixTint(tint, 0x082010, this.poison / (this.poison + 3));
       let animDt = dt * (this.ctx.animRate?.() || 1);
       if (this._offDt > 0) { animDt += Math.min(0.5, this._offDt); this._offDt = 0; }
       let interval = this.ctx.impostorInterval ? this.ctx.impostorInterval() : 0;
@@ -1678,6 +1681,7 @@ export class UnitView {
       this.fallback.scale.set(size / 160);
       this.fallback.position.set(0, -s * 0.08 + bob);
       this.fallback.tint = this.down ? DOWN_LOOK.tint : this.flash > 0 ? mixTint(0xffffff, 0xff8a80, this.flash) : (this.flags & UF.FROZEN ? 0x9fd4ff : 0xffffff);
+      if (this.poison) this.fallback.tint = mixTint(this.fallback.tint, 0x082010, this.poison / (this.poison + 3));
       if (!this.alive) this.fallback.alpha = Math.max(0, this.fallback.alpha);
     }
     this.flash = Math.max(0, this.flash - dt * 6);

@@ -16,6 +16,20 @@ function feed(buf, frames, t0 = 0, realStep = 0.05, gameStep = 0.1) {
   return (frames.length - 1) * realStep;
 }
 
+test('Poison Dagger layers: validate, retain stepwise counts, reset absent snapshots and reused output', () => {
+  const b = new SnapshotBuffer();
+  const frame = (t, poison) => ({ ...snap(t, [U(1, 0, 0)]), poison });
+  b.push(frame(0, [[1, 2], [2, 100], [1, -1], [1, 1.5], [1, '3']]), 0);
+  b.push(frame(1, [[1, 3]]), 1);
+  b.push(frame(2, undefined), 2);
+  let out = b.sample(0.5);
+  assert.equal(out.get(1).poison, 2);
+  out = b.sample(1, out);
+  assert.equal(out.get(1).poison, 3);
+  out = b.sample(2, out);
+  assert.equal(out.get(1).poison, 0);
+});
+
 describe('normalizeSnapshot', () => {
   test('rejects junk, keeps valid tuples, fills defaults', () => {
     assert.equal(normalizeSnapshot(null), null);

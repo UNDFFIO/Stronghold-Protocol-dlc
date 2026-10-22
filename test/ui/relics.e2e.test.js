@@ -108,6 +108,7 @@ test('时光之末：自己的列表按钮复活队友、显示已使用，观�
 });
 
 for (const item of [
+  { id: 'relic_240', name: '淬毒匕首', tier: '稀有', phrases: ['110%', '防御结算前', '5次', '每秒1次', '独立叠加'], shot: 'poison-dagger' },
   { id: 'relic_139', name: '黄金平原', tier: '稀有', phrases: ['技能结束时', '2点技力'], shot: 'golden-plains' },
   { id: 'relic_140', name: '第一法则', tier: '史诗', phrases: ['技能结束时', '4点技力'], shot: 'first-law' },
   { id: 'relic_125', name: '液体化肥', tier: '精良', phrases: ['50点生命', '100点屏障', '140%'], shot: 'fertilizer' },
