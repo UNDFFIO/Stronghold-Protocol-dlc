@@ -137,7 +137,7 @@ test('collection: every tier is populated, early pools cannot run out during ord
   assert.equal(RELICS.length, 58);
   assert.equal(new Set(RELICS.map((r) => r.id)).size, RELICS.length);
   assert.ok(RELICS.filter((r) => r.tier === 1).length >= 9);
-  for (const { tier } of RELIC_TIERS) assert.ok(RELICS.some((r) => r.tier === tier));
+  for (const { tier } of RELIC_TIERS.filter((t) => t.normalDrop !== false)) assert.ok(RELICS.some((r) => r.tier === tier));
   for (const r of RELICS) {
     assert.ok(r.name && r.desc && r.sourceEffect);
     assert.ok(Object.isFrozen(r) && Object.isFrozen(r.mods));
@@ -195,7 +195,7 @@ test('balance: duplicate IDs, forged payloads, profession and position add witho
 });
 
 test('掉落进度：普通奖励按新回合区间抽取，逆风概率维持独立表', () => {
-  assert.deepEqual(RELIC_TIERS.map((r) => r.unlockRound), [1, 1, 4, 7, 7]);
+  assert.deepEqual(RELIC_TIERS.filter((r) => r.normalDrop !== false).map((r) => r.unlockRound), [1, 1, 4, 7, 7]);
   const normal = [
     [1, [80, 20, 0, 0, 0]], [3, [80, 20, 0, 0, 0]],
     [4, [60, 28, 12, 0, 0]], [6, [60, 28, 12, 0, 0]],

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { RELICS } from '../../shared/relics.js';
-import { RelicList, relicEntries, relicOdds, ownerRelics, revivalTargets } from '../../public/js/ui/relicPanel.js';
+import { RelicList, relicEntries, relicOdds, ownerRelics, revivalTargets, tierName } from '../../public/js/ui/relicPanel.js';
 import { liveLp } from '../../public/js/ui/hud.js';
 import { LpTower } from '../../public/js/ui/gameComponents.js';
 import { rowLp } from '../../public/js/ui/teamPanel.js';
@@ -55,6 +55,14 @@ test('collection follows the screen owner without leaking own rewards or shields
   assert.deepEqual(view('other').relics, []);
   assert.deepEqual(view('missing'), { relics: [], reward: null, shield: 0, nextShield: 0 });
   assert.equal(view('me').relics, priv.relics, 'returning home restores your collection');
+});
+
+test('negative quality is named independently of the five strength tiers and never shown in drop odds', () => {
+  assert.equal(tierName(6), '负面');
+  assert.equal(tierName(1), 'I · 普通');
+  for (const round of [0, 1, 7, 15, 100]) {
+    assert.ok(relicOdds(round).every((t) => t.tier !== 6 && Number.isFinite(t.percent)));
+  }
 });
 
 test('displayed odds sum to 100% and lock high-strength tiers until their unlock round', () => {

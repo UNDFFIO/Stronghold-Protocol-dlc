@@ -33,12 +33,12 @@ export function ownerRelics({ pub, priv, myId, ownerId }) {
 export function relicOdds(round) {
   const weights = dropWeights(round);
   const sum = weights.reduce((a, b) => a + b, 0);
-  return RELIC_TIERS.map((t, i) => ({ ...t, unlock: t.unlockRound, percent: sum > 0 ? weights[i] / sum * 100 : 0 }));
+  return RELIC_TIERS.filter((t) => t.normalDrop !== false).map((t, i) => ({ ...t, unlock: t.unlockRound, percent: sum > 0 ? weights[i] / sum * 100 : 0 }));
 }
 
-function tierName(tier) {
+export function tierName(tier) {
   const t = RELIC_TIERS.find((r) => r.tier === tier);
-  return t ? `${roman(tier)} · ${tr(t.name)}` : tr('未分类');
+  return t ? (t.normalDrop === false ? tr(t.name) : `${roman(tier)} · ${tr(t.name)}`) : tr('未分类');
 }
 
 /** Same icon frame and tooltip as active effects, with a focusable/tappable collection shortcut. */
@@ -54,7 +54,7 @@ export function RelicIcons({ relics, reward, notice = false, onOpen }) {
         data-relic-id=${r.id} onClick=${onOpen} aria-haspopup="dialog"
         aria-label=${tr('{0}，收藏品，{1}，{2}', { 0: tr(r.name) || r.id, 1: tierName(r.tier), 2: tr(r.desc) || tr('效果资料暂不可用') })}>
         <${Img} src=${relicIconUrl(m, r.id)} fallback=${html`<${Icon} name="key" />`} />
-        ${r.tier ? html`<span class="relic-icon__tier" aria-hidden="true">${roman(r.tier)}</span>` : null}
+        ${r.tier ? html`<span class="relic-icon__tier" aria-hidden="true">${RELIC_TIERS[r.tier - 1]?.normalDrop === false ? '!' : roman(r.tier)}</span>` : null}
         ${fresh ? html`<span class="relic-icon__new" role="status" aria-label=${tr('新收藏品：{0}', { 0: tr(r.name) || tr('收藏品') })}></span>` : null}
       </button>
     <//>`;

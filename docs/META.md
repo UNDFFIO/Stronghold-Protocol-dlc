@@ -60,6 +60,10 @@ matches, or 2 in solo matches (`Match.isSolo`), with a floor of 0. Human/alive s
 Choices and immediate grants share this path; different owners' acquisitions stack. Existing battles retain their
 rules; subsequent BattleSpecs use the new level. The reduction persists for this match only (COLLECTIBLES.md).
 
+### DLC: Negative collectible quality
+
+The maintainer-defined Negative quality uses internal tier 6 with `normalDrop: false` and no unlock round. All shared random collectible draws exclude it, including normal, comeback and Ascension lottery rewards, even with explicit tier weights. Direct grants by ID remain available through the existing acquisition validation. It is separate from strength tiers I–V, uses a red `!` badge and red collection accents, and is omitted from drop odds. This adds quality support only; existing collectibles and five-tier probabilities are unchanged. See [COLLECTIBLES.md](COLLECTIBLES.md).
+
 ### DLC: Boss-stage collectible choices
 
 `Match._finishFinal` generates and waits for collectible choices only when a victorious Final Assault unlocks

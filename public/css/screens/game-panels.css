@@ -784,6 +784,7 @@ button.bpop__harmony:hover { border-style: solid; color: #fff; }
 .relic-tier-3 { --relic-tone: #80c8f4; }
 .relic-tier-4 { --relic-tone: #d3a6fb; }
 .relic-tier-5 { --relic-tone: #ffd56b; }
+.relic-tier-6 { --relic-tone: #ff6464; }
 .relic-card { min-width: 0; padding: .1rem .12rem; background: rgba(0, 0, 0, .23); border: 1px solid var(--line); border-left: 3px solid var(--relic-tone); }
 .relic-card.is-new { border-top-color: var(--relic-tone); border-bottom-color: var(--relic-tone); }
 .relic-card__head { display: flex; align-items: flex-start; justify-content: space-between; gap: .09rem; }

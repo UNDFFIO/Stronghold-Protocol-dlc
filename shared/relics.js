@@ -9,6 +9,8 @@ export const RELIC_TIERS = Object.freeze([
   { tier: 3, name: N_('稀有'), unlockRound: 4 },
   { tier: 4, name: N_('史诗'), unlockRound: 7 },
   { tier: 5, name: N_('传说'), unlockRound: 7 },
+  // Maintainer-defined special quality, not a sixth strength tier or a random reward.
+  { tier: 6, name: N_('负面'), unlockRound: null, normalDrop: false },
 ].map((tier) => Object.freeze(tier)));
 
 /**
@@ -179,7 +181,7 @@ export function canReceiveRelic(r, owned, { hasScratchTicket = false } = {}) {
 export function pickRelic(round, owned, rng, { comeback = false, multiplayer = false, tierWeights = null, hasScratchTicket = false, excludeIds = [] } = {}) {
   const excluded = new Set(excludeIds);
   const weights = tierWeights ?? (comeback ? comebackWeights(round) : dropWeights(round));
-  const pools = RELIC_TIERS.map(({ tier }) => RELICS.filter((r) => r.tier === tier && !excluded.has(r.id)
+  const pools = RELIC_TIERS.map(({ tier, normalDrop }) => normalDrop === false ? [] : RELICS.filter((r) => r.tier === tier && !excluded.has(r.id)
     && canReceiveRelic(r, owned, { hasScratchTicket }) && (!r.multiplayerOnly || multiplayer)));
   const total = weights.reduce((sum, w, i) => sum + (pools[i].length ? w : 0), 0);
   if (!total) return null;
