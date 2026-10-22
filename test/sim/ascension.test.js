@@ -53,17 +53,17 @@ test('02: death embers damage only allies in the fixed death area, with visible 
   assert.equal(emberFx[4].r, 1.2);
   assert.equal(emberFx[4].dur, 5);
   run(b, 1.1);
-  assert.equal(before - a.hp, 15, 'each pulse deals 15% of the enemy base ATK');
+  assert.equal(before - a.hp, 10, 'each pulse deals 10% of the enemy base ATK');
   run(b, 2);
-  assert.equal(before - a.hp, 45);
+  assert.equal(before - a.hp, 30);
   run(b, 2);
-  assert.equal(before - a.hp, 75, 'five one-second pulses');
+  assert.equal(before - a.hp, 50, 'five one-second pulses');
   assert.equal(other.hp, outside);
   run(b, 1);
-  assert.equal(before - a.hp, 75, 'hazard has stopped');
+  assert.equal(before - a.hp, 50, 'hazard has stopped');
 });
 
-for (const [round, radius, damage] of [[1, 1.2, 15], [8, 2.6, 15], [9, 2.8, 25], [10, 3, 35], [15, 4, 85]]) test(`02: round ${round} ember radius, damage and duration`, () => {
+for (const [round, radius, damage] of [[1, 1.2, 10], [8, 2.6, 10], [9, 2.8, 20], [10, 3, 30], [11, 3.2, 40], [12, 3.4, 50], [15, 4, 50]]) test(`02: round ${round} ember radius, damage and duration`, () => {
   const { b, e, a, other } = field(2, 'enemy_test', { round });
   e.x = a.x; e.y = a.y;
   a.x = e.x - radius;
@@ -71,7 +71,7 @@ for (const [round, radius, damage] of [[1, 1.2, 15], [8, 2.6, 15], [9, 2.8, 25],
   const before = a.hp, outside = other.hp;
   b.kill(e, a);
   const emberFx = b.drainEvents().find(ev => ev[0] === 'fx' && ev[1] === 'ascEmbers');
-  assert.equal(emberFx[4].r, radius);
+  assert.ok(Math.abs(emberFx[4].r - radius) < 1e-9);
   assert.equal(emberFx[4].dur, 5);
   run(b, 1.1);
   assert.equal(before - a.hp, damage);

@@ -6,8 +6,9 @@ Part of [DESIGN.md](../DESIGN.md) (the index; section numbers are global).
 
 DLC Ascension protocols are cumulative and defined in `shared/difficulty.js`. Level 2, Death Embers, leaves a
 5-second hazard at each killed ordinary enemy's position. In round n, radius is `1 + n * 0.2` tiles and
-each one-second Arts pulse deals `15 + max(0, n - 8) * 10` percent of that enemy's base ATK: 15% through
-round 8, 25% in round 9, 35% in round 10. Separate embers stack independently. Higher levels inherit it.
+each one-second Arts pulse deals `min(50, 10 + max(0, n - 8) * 10)` percent of that enemy's base ATK:
+10% through round 8, 20% in round 9, 30% in round 10, 40% in round 11, capped at 50% from round 12.
+Separate embers stack independently; the cap applies to each ember, not their combined damage. Higher levels inherit it.
 The picker describes growing radius and damage without the formula (maintainer-requested DLC balance change;
 supersedes §29.18).
 Level 10, Rotating Armor, reduces either Physical or Arts damage taken by all enemies by 10%, alternating every

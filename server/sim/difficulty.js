@@ -101,7 +101,7 @@ export function installDifficulty(b) {
       if (rules.embers && u.base.atk > 0) {
         const { x, y } = u;
         const p = P.embers, radius = p.radius + b.round * p.radiusPerRound;
-        const damage = p.damage + Math.max(0, b.round - p.afterRound) * p.damagePerRound;
+        const damage = Math.min(p.maxDamage, p.damage + Math.max(0, b.round - p.afterRound) * p.damagePerRound);
         b.fx('ascEmbers', { x, y, r: radius, dur: p.duration });
         for (let i = 1; i <= p.duration; i++) b.after(i, () => {
           for (const a of b.alliesInRadius(x, y, radius)) b.dealDamage(u, a,

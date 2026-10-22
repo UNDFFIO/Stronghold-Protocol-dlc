@@ -8,7 +8,7 @@ const rule = (level, key, name, params, describe, counter, detail = null) => Obj
 export const DIFFICULTY_RULES = Object.freeze([
   rule(1, 'openingRush', N_('先锋急行'), { duration: 5, speed: 1.5 },
     p => t('所有非领袖单位登场后{duration}秒内移动速度+{percent}%，被阻挡时失去该效果', { duration: p.duration, percent: Math.round((p.speed - 1) * 100) }), N_('用前排阻挡截停冲锋。')),
-  rule(2, 'embers', N_('死亡余烬'), { duration: 5, radius: 1, radiusPerRound: 0.2, damage: 0.15, afterRound: 8, damagePerRound: 0.1 },
+  rule(2, 'embers', N_('死亡余烬'), { duration: 5, radius: 1, radiusPerRound: 0.2, damage: 0.1, afterRound: 8, damagePerRound: 0.1, maxDamage: 0.5 },
     p => t('所有普通敌人倒下后留下持续{duration}秒的余烬，每秒对周围我方单位造成基于其基础攻击力的法术伤害。余烬范围随回合数扩大，第{round}回合后伤害逐回合提高。', { duration: p.duration, round: p.afterRound }), N_('让敌人倒在防线外，避免近战扎堆。')),
   rule(3, 'escort', N_('结伴护卫'), { radius: 1.2, taken: 0.8 },
     p => t('所有敌人周围{radius}格内存在其他敌人时，受到的物理、法术与真实伤害-{percent}%', { radius: p.radius, percent: Math.round((1 - p.taken) * 100) }), N_('优先集火，拆散护卫群。')),

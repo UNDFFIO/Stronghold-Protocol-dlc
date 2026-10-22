@@ -58,8 +58,9 @@ It no longer changes any debuff duration on damage. Regression coverage: `test/s
 DLC `difficultyLevel` enables cumulative Ascension rules (`shared/difficulty.js`, `server/sim/difficulty.js`).
 From level 2, a killed ordinary enemy leaves Death Embers for 5 game seconds: five one-second Arts damage pulses
 at its fixed death position. Radius is `1 + b.round * 0.2` tiles; each pulse deals
-`(0.15 + Math.max(0, b.round - 8) * 0.1)` of that enemy's base ATK (15% through round 8, 25% in round 9,
-35% in round 10). Separate embers stack independently. The ground FX uses the same duration and radius as
+`Math.min(0.5, 0.1 + Math.max(0, b.round - 8) * 0.1)` of that enemy's base ATK (10% through round 8,
+20% in round 9, 30% in round 10, 40% in round 11, capped at 50% from round 12).
+Separate embers stack independently; the cap is per ember, not a shared damage cap. The ground FX uses the same duration and radius as
 the damage checks (maintainer-requested DLC change, superseding DESIGN §29.18).
 From level 10, Rotating Armor alternates 10% Physical / Arts damage reduction every 12 game seconds on the
 battle clock, starting with Physical; late spawns inherit the current phase (DESIGN §29.19).
