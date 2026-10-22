@@ -63,6 +63,24 @@ test('02: death embers damage only allies in the fixed death area, with visible 
   assert.equal(before - a.hp, 50, 'hazard has stopped');
 });
 
+test('02: death embers skip operators at or below half HP and resume above it', () => {
+  const { b, e, a } = field(2);
+  e.x = a.x; e.y = a.y;
+  const half = a.s.maxHp / 2;
+  a.hp = half + 1;
+  b.kill(e, a);
+  run(b, 1.1);
+  assert.equal(a.hp, half - 9, 'a pulse above half HP can cross the threshold');
+  run(b, 1);
+  assert.equal(a.hp, half - 9, 'subsequent pulses skip an operator below half HP');
+  b.heal(a, a, 9);
+  run(b, 1);
+  assert.equal(a.hp, half, 'exactly half HP is protected too');
+  b.heal(a, a, 20);
+  run(b, 1);
+  assert.equal(a.hp, half + 10, 'damage resumes after healing above half HP');
+});
+
 for (const [round, radius, damage] of [[1, 1.2, 10], [8, 2.6, 10], [9, 2.8, 20], [10, 3, 30], [11, 3.2, 40], [12, 3.4, 50], [15, 4, 50]]) test(`02: round ${round} ember radius, damage and duration`, () => {
   const { b, e, a, other } = field(2, 'enemy_test', { round });
   e.x = a.x; e.y = a.y;

@@ -34,6 +34,7 @@ export class PlayerScratchTickets {
     if (!ticket || ticket.id !== ticketId || !ticket.opened) return fail(ERR.BAD_TARGET);
     // Consume before crediting: retries and effect hooks cannot pay the same ticket twice.
     this.scratchTicket = null;
+    this.relics = this.relics.filter((r) => r.id !== ticket.relicId);
     this.scratchResult = { ticketId, relicId: ticket.relicId, amount: ticket.amount, round: this.m.round };
     this.addFunds(ticket.amount, { reason: 'scratch-ticket' });
     this.dirty();

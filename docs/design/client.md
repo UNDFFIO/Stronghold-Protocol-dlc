@@ -285,6 +285,10 @@ Screens: **Title** (season art backdrop, 开始 → nickname), **Lobby** (独立
 
 盟约栏支持「收起／展开盟约」（GitHub #142）：收起时隐藏完整列表并关闭由列表打开的浮层，让原图标区域的指针事件到达棋盘，只保留至少 44×44 CSS px 的恢复按钮。折叠状态在本局阶段变化、观看队友时保留；展开后仍按当前观看对象显示最新盟约。按钮支持 Enter / Space，聚焦按钮时 Space 不触发准备或暂停。
 
+The expanded shop adds a scratch-ticket entry after the item offers and before the funds column only when the owner holds 身份证 (`relic_234`). Five existing ticket icons form a stacked illustration. Clicking opens the existing purchase/scratch dialog without charging funds; an outstanding ticket changes the entry label to 刮刮票 · 待兑奖. The entry is separate from server shop slots and does not participate in refresh, stock, two-tap purchases or W-buy. The collection shortcut remains available with the shop folded or absent (DLC; [COLLECTIBLES.md](../COLLECTIBLES.md)).
+
+The bottom-left in-match button group is temporarily hidden and inert when its actual rectangle overlaps the expanded shop row. Its layout footprint is retained to avoid visibility oscillation. Shop folding/removal, slot changes and viewport resizing recheck the overlap; the group returns automatically when clear (maintainer-requested DLC UI fix). No fixed slot-count threshold is used.
+
 A bond the mode never activates (标准: official `inactiveBondIdList`) reads 本局禁用 on shop / reward cards (struck through), detail chips and the popup — no 在场 count, no 当前效果 (§21.7); a strategy built around one carries a 本局禁用 tag and note in the strategy draft and stays selectable (bands.json `bondIds`, §21.26).
 
 The strategy draft enables skip only on the viewer's turn, with quota left and another unpicked player to pass to.
@@ -713,5 +717,7 @@ Forge UI mounts without an equivalent slot require an explicit manual-adaptation
 Art/audio templates ship original CC0 sample media; the studio fills the target's first editable slot [ASSUMED].
 
 ### DLC manual scratch tickets
+
+The purchase dialog displays five ticket cards in a three-column grid (three above, two below; two columns on phones). The whole card is clickable: the first tap shows 确认购买 / 再次点击 and the second tap on the same card buys it. Selecting another card or tapping outside the cards cancels the previous confirmation; a phase, round, ticket or purchase-sequence change also clears it. Existing funds, unlock-round and phase gates still apply. The dialog omits the funds readout, previous-claim result banner, explanatory footer and full-prize-table disclosure (maintainer-requested simplified layout).
 
 The owner's Identity Card and ticket entries open the scratch panel; a shortcut shows whether a ticket is held. Other players' collections remain read-only. Two winning-number areas and six number/prize cells have silver Canvas coatings. Mouse drag and touch strokes erase real alpha; each area reveals at 60% erased coverage, and all eight revealed areas request a single authoritative claim. The accessible Scratch all button follows the same claim flow. Local storage keyed by the server ticket identity restores strokes after closing/reloading; phase changes preserve unclaimed tickets and disable play until PREP before Ready. Actual winnings are credited only by the server. Text and revealed numbers use existing localization and number masking. The five ticket icons use realistic printed-paper designs; the Identity Card follows the collectible art style.

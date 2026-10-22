@@ -89,6 +89,8 @@ test('scratch purchase/claim: payment, stats, audit, stale sequences, no client 
     view.ticket.cells[0].amount = 100000;
     assert.notEqual(ps.scratchTicket.cells[0].amount, 100000);
     assert.ok(ps.claimScratch(ticket.id).ok);
+    assert.ok(!ps.relics.some((r) => r.id === ticket.relicId), 'claimed ticket leaves the collection');
+    assert.ok(ps.relics.some((r) => r.id === 'relic_234'), 'identity card remains');
     assert.equal(ps.funds, 10 + ticket.amount);
     assert.equal(ps.stats.fundsGained, gained + ticket.amount);
     assert.ok(ps.claimScratch(ticket.id).ok);

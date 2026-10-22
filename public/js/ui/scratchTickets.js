@@ -4,7 +4,7 @@ import { Img } from './gameComponents.js';
 import { data } from '../data.js';
 import { relicIconUrl } from './assetUrls.js';
 import { getRelic, RELIC_TIERS } from '../../../shared/relics.js';
-import { SCRATCH_TIERS, SCRATCH_MULTIPLIERS } from '../../../shared/scratchTickets.js';
+import { SCRATCH_TIERS } from '../../../shared/scratchTickets.js';
 import { t } from '../../../shared/i18n.js';
 
 const progressKey = (id) => `sp.scratch.${id}`;
@@ -52,7 +52,13 @@ function ScratchCoating({ region, progress, disabled, onChange, children }) {
   }, [done, t('刮开此处')]);
 
   const move = (e) => {
-    if (disabled || done || pointer.current?.id !== e.pointerId) return;
+    if (disabled || done) return;
+    if (e.pointerType === 'mouse') {
+      if (!(e.buttons & 1)) { pointer.current = null; return; }
+      // A held left button may enter from outside this coating or from another region.
+      if (pointer.current?.id !== e.pointerId) pointer.current = { id: e.pointerId };
+    }
+    if (pointer.current?.id !== e.pointerId) return;
     e.preventDefault();
     const rect = canvas.current.getBoundingClientRect();
     const x = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
@@ -70,16 +76,18 @@ function ScratchCoating({ region, progress, disabled, onChange, children }) {
     ${done ? null : html`<canvas ref=${canvas} width="300" height="100" class="scratch-coating" aria-label=${t('按住并拖动刮开涂层')}
       onPointerDown=${(e) => {
         if (disabled || (e.pointerType === 'mouse' && e.button !== 0)) return;
-        e.currentTarget.setPointerCapture(e.pointerId); pointer.current = { id: e.pointerId }; move(e);
-      }} onPointerMove=${move} onPointerUp=${() => { pointer.current = null; }} onPointerCancel=${() => { pointer.current = null; }} />`}
+        if (e.pointerType !== 'mouse') e.currentTarget.setPointerCapture(e.pointerId);
+        pointer.current = { id: e.pointerId }; move(e);
+      }} onPointerMove=${move} onPointerLeave=${(e) => { if (e.pointerType === 'mouse') pointer.current = null; }}
+      onPointerUp=${() => { pointer.current = null; }} onPointerCancel=${() => { pointer.current = null; }} />`}
   </div>`;
 }
 
 function erase(ctx, line) {
-  ctx.globalCompositeOperation = 'destination-out'; ctx.lineWidth = 28; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.globalCompositeOperation = 'destination-out'; ctx.lineWidth = 42; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
   ctx.beginPath(); ctx.moveTo(line[0] * 300, line[1] * 100); ctx.lineTo(line[2] * 300, line[3] * 100); ctx.stroke();
   // Small broken edges suggest foil fragments without adding an animation loop.
-  ctx.clearRect(line[2] * 300 + 15, line[3] * 100 - 8, 3, 2);
+  ctx.clearRect(line[2] * 300 + 22, line[3] * 100 - 8, 3, 2);
 }
 
 function ScratchFace({ ticket, context, busy, run }) {
@@ -126,9 +134,32 @@ function ScratchFace({ ticket, context, busy, run }) {
   </div>`;
 }
 
+/** An unlocked shop entry, not a purchase: prices and all action gates stay in ScratchPanel. */
+export function ScratchShopCard({ context }) {
+  const [open, setOpen] = useState(false);
+  const label = context.view?.ticket ? t('刮刮票 · 待兑奖') : t('购买刮刮票');
+  return html`<button type="button" class="scratch-shop-card" aria-label=${label} aria-haspopup="dialog" aria-expanded=${open}
+    onClick=${() => setOpen(true)}>
+    <span class="scratch-shop-card__stack" aria-hidden="true">
+      ${SCRATCH_TIERS.map((spec, i) => html`<${Img} key=${spec.tier} src=${relicIconUrl(data.get('assets'), spec.relicId)}
+        style=${`--ticket-index: ${i}`} />`)}
+    </span>
+    <span class="scratch-shop-card__label">${label}</span>
+  </button>
+  ${open ? html`<${ScratchPanel} context=${context} onClose=${() => setOpen(false)} />` : null}`;
+}
+
 export function ScratchPanel({ context, onClose }) {
   const [busy, setBusy] = useState(false);
+  const [armed, setArmed] = useState(null);
   const ticket = context.view?.ticket;
+  useEffect(() => { setArmed(null); }, [context.canUse, context.round, context.view?.seq, ticket?.id]);
+  useEffect(() => {
+    if (armed == null) return;
+    const disarm = (e) => { if (!e.target.closest?.('.scratch-product')) setArmed(null); };
+    window.addEventListener('pointerdown', disarm, true);
+    return () => window.removeEventListener('pointerdown', disarm, true);
+  }, [armed]);
   const result = context.view?.lastResult;
   useEffect(() => {
     if (result?.ticketId) {
@@ -140,29 +171,30 @@ export function ScratchPanel({ context, onClose }) {
     setBusy(true);
     try { await fn(); } finally { setBusy(false); }
   };
-  return html`<${Modal} open=${true} title=${t('刮刮票')} micro="SCRATCH TICKETS" class="scratch-panel" width="min(8.8rem, 94vw)"
-    onClose=${onClose} actions=${html`<${Button} size="sm" onClick=${onClose}>${t('关闭')}<//>`}>
-    <p>${t('当前金币：{amount}', { amount: context.funds })}</p>
+  const face = !!ticket?.opened;
+  return html`<${Modal} open=${true} title=${face ? null : t('刮刮票')} micro=${face ? null : 'SCRATCH TICKETS'}
+    class=${`scratch-panel${face ? ' scratch-panel--face' : ''}`} width="min(8.8rem, 94vw)"
+    onClose=${onClose} actions=${face ? null : html`<${Button} size="sm" onClick=${onClose}>${t('关闭')}<//>`}>
     ${!context.canUse ? html`<p role="status">${t('未准备的休整阶段可购买、刮票与兑奖')}</p>` : null}
     ${ticket ? (ticket.opened ? html`<${ScratchFace} key=${ticket.id} ticket=${ticket} context=${context} busy=${busy} run=${run} />`
       : html`<div class="scratch-unopened"><${Img} src=${relicIconUrl(data.get('assets'), ticket.relicId)} />
         <b>${t(getRelic(ticket.relicId).name)}</b><${Button} variant="primary" disabled=${!context.canUse || busy}
           onClick=${() => run(() => context.onOpen(ticket.id))}>${t('开始刮奖')}<//></div>`)
       : html`<div class="scratch-shop">
-        ${result ? html`<p class="scratch-result" role="status">${result.amount > 0 ? t('本次获得{amount}金币', { amount: result.amount }) : t('谢谢参与，下次好运')}</p>` : null}
-        ${SCRATCH_TIERS.map((spec) => html`<div key=${spec.tier} class=${`scratch-product relic-tier-${spec.tier}`}>
+        ${SCRATCH_TIERS.map((spec) => html`<button type="button" key=${spec.tier}
+          class=${`scratch-product relic-tier-${spec.tier}${armed === spec.tier ? ' is-armed' : ''}`}
+          aria-pressed=${armed === spec.tier}
+          disabled=${!context.canUse || busy || context.round < spec.unlockRound || context.funds < spec.price}
+          onClick=${() => {
+            if (armed !== spec.tier) { setArmed(spec.tier); return; }
+            setArmed(null);
+            void run(() => context.onBuy(spec.tier, context.view?.seq ?? 0));
+          }}>
           <${Img} src=${relicIconUrl(data.get('assets'), spec.relicId)} />
-          <div><b>${t(getRelic(spec.relicId).name)}</b><span>${t('中奖率{chance}%，最高{amount}金币', { chance: (10000 - spec.weights[0]) / 100, amount: spec.price * 50 })}</span></div>
-          <${Button} size="sm" disabled=${!context.canUse || busy || context.round < spec.unlockRound || context.funds < spec.price}
-            onClick=${() => run(() => context.onBuy(spec.tier, context.view?.seq ?? 0))}>
-            ${context.round < spec.unlockRound ? t('R{unlock} 解锁', { unlock: spec.unlockRound }) : t('{amount}金币', { amount: spec.price })}<//>
-        </div>`)}
+          <span class="scratch-product__info"><b>${t(getRelic(spec.relicId).name)}</b><span>${t('中奖率{chance}%，最高{amount}金币', { chance: (10000 - spec.weights[0]) / 100, amount: spec.price * 50 })}</span></span>
+          <b class="scratch-product__price">${context.round < spec.unlockRound ? t('R{unlock} 解锁', { unlock: spec.unlockRound }) : t('{amount}金币', { amount: spec.price })}</b>
+          ${armed === spec.tier ? html`<span class="scard__confirm" role="status"><b>${t('确认购买')}</b><small>${t('再次点击')}</small></span>` : null}
+        </button>`)}
       </div>`}
-    <p class="scratch-note">${t('最多保留1张未兑奖票，可跨回合保留；刮完兑奖后可继续购买。奖金包含本金。')}</p>
-    <details class="scratch-odds"><summary>${t('查看完整奖表')}</summary><div class="scratch-odds__scroll"><table>
-      <thead><tr><th>${t('品质')}</th><th>${t('奖金')}</th><th>${t('概率')}</th></tr></thead>
-      <tbody>${SCRATCH_TIERS.map((spec) => SCRATCH_MULTIPLIERS.map((multiplier, i) => html`<tr key=${`${spec.tier}:${i}`}>
-        <td>${t(RELIC_TIERS[spec.tier - 1].name)}</td><td>${t('{amount}金币', { amount: multiplier * spec.price })}</td><td>${spec.weights[i] / 100}%</td></tr>`))}</tbody>
-    </table></div></details>
   <//>`;
 }

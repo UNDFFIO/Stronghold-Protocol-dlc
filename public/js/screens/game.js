@@ -86,6 +86,7 @@ import { TopBar, liveLp, ownLeaks, uniteRemaining, tempInfo, tempReadyReason } f
 import { BondStrip, BondPopup } from '../ui/bondStrip.js';
 import { TeamPanel } from '../ui/teamPanel.js';
 import { ShopBar } from '../ui/shopBar.js';
+import { useShopCornerVisibility } from '../ui/shopCornerVisibility.js';
 import { DetailPanel, resolveDetail } from '../ui/detailPanel.js';
 import { RewardOverlay } from '../ui/rewardOverlay.js';
 import { FinalAssaultPlate, HiddenCorePlate, EndPlate, preloadBossPlateArt, bossPlateArtReady, finalPlateRows, endPlateOf } from '../ui/bossPlates.js';
@@ -1625,7 +1626,13 @@ function MatchScreen() {
   const bondPop = popupView({ open: bondOpen, pub, priv, myId, field, units: popOps, live: liveLayers });
   const openBond = (id, ownerId, from) => { setBondOpen((b) => toggleBond(b, id, ownerId, from)); audio.sfx('click', { volume: 0.4 }); };
   const watchingNow = combat ? (watching || field?.fieldId || home) : watching;
+  const scratchContext = priv?.relics?.some((r) => r.id === 'relic_234') ? {
+    view: priv.scratch, funds: priv.funds ?? 0, round: pub?.round || 1,
+    canUse: phase === PHASE.PREP && alive && !priv.ready,
+    onBuy: actions.scratchBuy, onOpen: actions.scratchOpen, onClaim: actions.scratchClaim,
+  } : null;
   const shopOpen = showShop && !barCollapsed;
+  useShopCornerVisibility(hudElRef, barRef);
   const ufShown = !!(selEntry && editable && !facing && !drag && showPrep && ufGeo);
   // the temp overflow row holds pieces (user playtest #3 item 3): framed and labelled on the own prep board
   const temp = tempInfo(priv);
@@ -1742,8 +1749,7 @@ function MatchScreen() {
       <div class="gm__effects">
         <${RelicCollection} key=${strip.ownerId} owner=${strip.name} relics=${collection.relics} reward=${collection.reward} round=${pub?.round || 1} shield=${collection.shield} nextShield=${collection.nextShield}
           revival=${strip.ownerId === myId ? { phase, alive, targets: revivalTargets(pub, myId), onRevive: actions.relicRevive } : null}
-          scratch=${strip.ownerId === myId ? { view: priv?.scratch, funds: priv?.funds ?? 0, round: pub?.round || 1,
-            canUse: phase === PHASE.PREP && alive && !priv?.ready, onBuy: actions.scratchBuy, onOpen: actions.scratchOpen, onClaim: actions.scratchClaim } : null}
+          scratch=${strip.ownerId === myId ? scratchContext : null}
           queuedChess=${strip.ownerId === myId ? priv?.relicChessQueue?.length || 0 : 0} />
         <div class="gm__effect-base"><${EffectsList} effects=${watchingOther && field ? (field.effects ?? null) : priv?.effects} /></div>
       </div>
@@ -1754,7 +1760,7 @@ function MatchScreen() {
       </div>` : null}
 
       ${showShop ? html`<${ShopBar} priv=${priv} editable=${editable} collapsed=${barCollapsed} refreshBusy=${refreshBusy} onCollapse=${setCollapsed}
-        barRef=${barRef} offBonds=${offBonds}
+        barRef=${barRef} offBonds=${offBonds} scratch=${scratchContext}
         onBuy=${buy} onLevel=${() => actions.levelUp()} onRefresh=${() => actions.refresh()} onFreeze=${() => actions.freeze()}
         onDetail=${(id, kind, hint) => setDetail({ kind: kind === 'item' ? 'item' : 'chess', id, hint: hint || null, tap: ++cardTap.current })}
         onDetailClose=${() => setDetail((d) => (d?.kind === 'chess' || d?.kind === 'item' ? null : d))}

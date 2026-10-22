@@ -599,6 +599,7 @@ async function mockRequest(t, f = {}) {
       if (!ticket?.opened || ticket.id !== f.ticketId) fail('BAD_TARGET');
       p.scratch.lastResult = { ticketId: ticket.id, relicId: ticket.relicId, amount: S.scratchSecret.amount, round: pub.round };
       p.funds += S.scratchSecret.amount; p.scratch.ticket = null;
+      p.relics = p.relics.filter((r) => r.id !== ticket.relicId);
       refreshPrivate(); return {};
     }
     case 'g.relic': {

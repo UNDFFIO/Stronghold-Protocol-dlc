@@ -42,7 +42,7 @@ export function tierName(tier) {
 }
 
 /** Same icon frame and tooltip as active effects, with a focusable/tappable collection shortcut. */
-export function RelicIcons({ relics, reward, notice = false, onOpen }) {
+export function RelicIcons({ relics, reward, notice = false, onOpen, onScratch = null }) {
   const m = data.get('assets');
   return relicEntries(relics).map((r) => {
     const fresh = notice && reward?.id === r.id && reward?.round === r.round;
@@ -51,7 +51,7 @@ export function RelicIcons({ relics, reward, notice = false, onOpen }) {
         <p>${tr(r.desc) || tr('该收藏品的效果资料暂不可用')}</p>${r.used ? html`<span>${tr('已使用')}</span>` : null}
       </div>`}>
       <button type="button" class=${`effect effect--relic relic-tier-${r.tier || 1}${fresh ? ' is-new' : ''}`}
-        data-relic-id=${r.id} onClick=${onOpen} aria-haspopup="dialog"
+        data-relic-id=${r.id} onClick=${r.scratchTicket && onScratch ? onScratch : onOpen} aria-haspopup="dialog"
         aria-label=${tr('{0}，收藏品，{1}，{2}', { 0: tr(r.name) || r.id, 1: tierName(r.tier), 2: tr(r.desc) || tr('效果资料暂不可用') })}>
         <${Img} src=${relicIconUrl(m, r.id)} fallback=${html`<${Icon} name="key" />`} />
         ${r.tier ? html`<span class="relic-icon__tier" aria-hidden="true">${RELIC_TIERS[r.tier - 1]?.normalDrop === false ? '!' : roman(r.tier)}</span>` : null}
@@ -62,7 +62,7 @@ export function RelicIcons({ relics, reward, notice = false, onOpen }) {
 }
 
 /** Shared by the live modal and each settlement card. No richness/HTML from remote sources. */
-export function RelicList({ relics, reward = null, history = false, illustrated = history, revival = null, onScratch = null }) {
+export function RelicList({ relics, reward = null, history = false, illustrated = history, revival = null }) {
   const entries = relicEntries(relics);
   if (!entries.length) return html`<p class="relic-empty">${history ? tr('尚未收录收藏品。领取收藏品后将自动加入图鉴。') : tr('尚未获得收藏品。每回合本人无漏怪，可从三件藏品中选择一件。')}</p>`;
   return html`<ol class="relic-list" aria-label=${history ? tr('已获得过的收藏品') : tr('本局收藏品')}>
@@ -73,7 +73,6 @@ export function RelicList({ relics, reward = null, history = false, illustrated 
       <div class="relic-card__head"><b class="relic-card__name">${tr(r.name) || r.id}</b>
         <span class="relic-card__tier">${tierName(r.tier)}</span></div>
       <p class="relic-card__desc">${tr(r.desc) || tr('该收藏品的效果资料暂不可用')}</p>
-      ${!history && onScratch && (r.id === 'relic_234' || r.scratchTicket) ? html`<${Button} size="sm" onClick=${onScratch}>${tr('购彩与刮奖')}<//>` : null}
       ${!history && r.reviveOnce ? (r.used ? html`<span class="relic-card__used">${tr('已使用 · 复活机会已消耗')}</span>`
         : revival ? html`<${RelicReviveActions} relicId=${r.id} revival=${revival} />` : html`<span class="relic-card__used">${tr('未使用 · 剩余 1 次')}</span>`) : null}
       ${history ? null : html`<span class="relic-card__round">${r.round == null ? tr('本局获得') : tr('第 {round} 回合获得', { round: r.round })}</span>`}
@@ -107,7 +106,11 @@ export function RelicCollection({ relics, reward, owner = null, round = 1, shiel
   const [open, setOpen] = useState(false);
   const [scratchOpen, setScratchOpen] = useState(false);
   const canScratch = scratch && relics?.some((r) => r.id === 'relic_234');
-  const showScratch = () => { setOpen(false); setScratchOpen(true); };
+  const showScratch = () => {
+    setOpen(false); setScratchOpen(true);
+    const ticket = scratch?.view?.ticket;
+    if (ticket && !ticket.opened && scratch.canUse) void scratch.onOpen(ticket.id);
+  };
   const [notice, setNotice] = useState(false);
   const count = relicEntries(relics).length;
   const rewardKey = reward?.id ? `${reward.id}:${reward.round}` : '';
@@ -130,9 +133,9 @@ export function RelicCollection({ relics, reward, owner = null, round = 1, shiel
       <span class="relic-shield"><${Icon} name="shield" />${shield > 0 ? tr('护盾 {shield}', { shield }) : tr('下回合护盾 2')}</span>
     <//>` : null}
     <div class="relic-icons__grid">
-      <${RelicIcons} relics=${relics} reward=${reward} notice=${notice} onOpen=${show} />
+      <${RelicIcons} relics=${relics} reward=${reward} notice=${notice} onOpen=${show}
+        onScratch=${canScratch && scratch.view?.ticket ? showScratch : null} />
     </div>
-    ${canScratch ? html`<button type="button" class="scratch-shortcut" onClick=${showScratch}>${scratch.view?.ticket ? tr('刮刮票 · 待兑奖') : tr('购买刮刮票')}</button>` : null}
   </div>
     <${Modal} open=${open} title=${html`<span class="relic-panel__title"><${Icon} name="key" />${owner ? tr('{owner} 的收藏品', { owner }) : tr('你的收藏品')} <span class="num">${count}</span></span>`}
       micro="RELIC COLLECTION // THIS MATCH" class="relic-panel" width="min(9.6rem, 94vw)" onClose=${() => setOpen(false)}
@@ -147,7 +150,7 @@ export function RelicCollection({ relics, reward, owner = null, round = 1, shiel
       <p class="relic-panel__note">${tr('第 {round} 回合基础概率；已获得的永久藏品移出候选池，实际概率随剩余藏品调整。', { round })}</p>
       <p class="relic-panel__note">${tr('收藏品增益无累计上限。同类属性与伤害增幅相加；永久藏品同名不重复，刮刮票兑奖后可再次获得。')}</p>
       ${queuedChess ? html`<p class="relic-panel__note" role="status">${tr('复活干员补给：{queuedChess} 名等待整备区空位，腾出位置后自动获得，跨回合保留。', { queuedChess })}</p>` : null}
-      <${RelicList} relics=${relics} reward=${reward} illustrated=${true} revival=${revival} onScratch=${canScratch ? showScratch : null} />
+      <${RelicList} relics=${relics} reward=${reward} illustrated=${true} revival=${revival} />
     <//>
     ${scratchOpen && canScratch ? html`<${ScratchPanel} context=${scratch} onClose=${() => setScratchOpen(false)} />` : null}`;
 }

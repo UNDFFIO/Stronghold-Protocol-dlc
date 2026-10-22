@@ -4,7 +4,8 @@
 //
 //   node scripts/launch.mjs [--port 3000] [--host ::] [--no-open] [--no-setup] [--scripts sandbox] [--test-mode 1] [setup options…]
 //
-//   1. If our server already answers on the port, just open the browser (double-clicking twice is harmless).
+//   1. If our server already answers on the port, Windows stops it before starting a new one (active matches end).
+//      Other platforms just open the browser.
 //   2. An update package extracted over the folder (UPDATE.json) is finished (server/update.js; the server does it too,
 //      for the routes that skip this script); one that does not fit this install stops here with the message.
 //   3. node tools/setup.mjs --quiet (dependencies, vendor libs, art download / resume, optional local extraction);
@@ -120,6 +121,25 @@ async function waitHealthy(port, child, timeoutMs = 30000) {
   return false;
 }
 
+/** Stop the Windows server and wait for the port to be released before setup or updates. */
+export async function restartWindowsServer(port, host, stop = () => spawnSync('powershell.exe', [
+  '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', path.join(ROOT, 'scripts', 'stop-windows-server.ps1'),
+  '-Port', String(port),
+], { cwd: ROOT, stdio: 'inherit' }), probe = probePort) {
+  const result = stop();
+  if (result.error || result.status !== 0) {
+    console.error(`${mark.err} 无法停止旧服务器；若为开机自启服务，请以管理员身份运行启动脚本。`);
+    return false;
+  }
+  const until = Date.now() + 10000;
+  do {
+    if ((await probe(port, host)).state === 'free') return true;
+    await new Promise((r) => setTimeout(r, 200));
+  } while (Date.now() < until);
+  console.error(`${mark.err} 旧服务器停止后端口 ${port} 仍未释放，已取消启动。`);
+  return false;
+}
+
 async function main() {
   const o = parseArgs(process.argv.slice(2));
   if (o.help) {
@@ -138,7 +158,12 @@ async function main() {
   }
   const localUrl = `http://localhost:${o.port}`;
 
-  const before = await probePort(o.port, o.host);
+  let before = await probePort(o.port, o.host);
+  if (before.state === 'ours' && IS_WIN) {
+    console.log(`${mark.ok} 正在停止旧服务器（端口 ${o.port}），然后重新启动；正在进行的对局会中断。`);
+    if (!await restartWindowsServer(o.port, o.host)) return 1;
+    before = await probePort(o.port, o.host);
+  }
   if (before.state === 'ours') {
     console.log(`${mark.ok} 服务器已经在运行（端口 ${o.port}），直接打开浏览器。`);
     if (o.scripts !== undefined) console.log(c.warn(`  --scripts ${o.scripts} 不会改变正在运行的服务器：先停止它（关掉它的窗口），再重新启动。`));

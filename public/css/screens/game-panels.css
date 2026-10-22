@@ -938,19 +938,32 @@ button.bpop__harmony:hover { border-style: solid; color: #fff; }
   .offerov .spov__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 .offerov .spcard__icon { width: .6rem; height: .6rem; }
-.scratch-shortcut { pointer-events: auto; color: var(--gold); background: var(--bg-2); border: 1px solid var(--line); padding: .06rem .1rem; cursor: pointer; font-size: calc(.12 * var(--t)); }
 .scratch-panel { font-size: calc(.15 * var(--t)); }
 .scratch-panel p { margin: .08rem 0; }
-.scratch-shop { display: grid; gap: .08rem; }
-.scratch-product { display: flex; align-items: center; gap: .12rem; border: 1px solid var(--line); padding: .08rem; }
-.scratch-product img { width: .56rem; height: .7rem; object-fit: contain; }
-.scratch-product > div { flex: 1; display: grid; gap: .04rem; }
-.scratch-product > div span { color: var(--text-md); font-size: calc(.12 * var(--t)); }
+.scratch-shop { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .16rem; }
+.scratch-product { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .1rem; min-width: 0; min-height: 2.1rem; border: 1px solid var(--line); padding: .16rem .1rem; background: var(--bg-2); color: var(--text-hi); font: inherit; text-align: center; cursor: pointer; overflow: hidden; transition: border-color var(--t-fast), transform var(--t-fast); }
+.scratch-product:hover:not(:disabled), .scratch-product.is-armed { border-color: var(--mint-400); transform: translateY(-.03rem); }
+.scratch-product:focus-visible { outline: 2px solid var(--mint-400); outline-offset: 2px; }
+.scratch-product:disabled { opacity: .5; cursor: not-allowed; }
+.scratch-product img { width: .8rem; height: 1.05rem; object-fit: contain; }
+.scratch-product__info { display: grid; gap: .06rem; }
+.scratch-product__info > span { color: var(--text-md); font-size: calc(.12 * var(--t)); }
+.scratch-product__price { color: var(--gold); }
+.scratch-product .scard__confirm { pointer-events: none; }
 .scratch-unopened { display: grid; justify-items: center; gap: .15rem; padding: .12rem; }
 .scratch-unopened img { width: 1.2rem; height: 1.6rem; object-fit: contain; }
-.scratch-note { color: var(--text-md); font-size: calc(.12 * var(--t)); line-height: 1.6; }
-.scratch-result { color: var(--gold); font-weight: 700; padding: .1rem; border: 1px solid currentColor; }
 .scratch-paper { color: #383021; background: #f6ead0; border: .06rem solid #c79749; border-radius: .08rem; padding: .18rem; max-width: 4.5rem; margin: .12rem auto; box-shadow: 0 .05rem .16rem #0004; }
+.scratch-panel--face { background: #f6ead0; color: #383021; border: .06rem solid #c79749; border-radius: .08rem; padding: .3rem; min-height: min(7.2rem, 88vh); box-shadow: 0 .05rem .16rem #0004; }
+.scratch-panel--face::after, .scratch-panel--face > .modal__stripe { display: none; }
+.scratch-panel--face > .modal__body { padding: 0; color: inherit; scrollbar-width: none; }
+.scratch-panel--face > .modal__body::-webkit-scrollbar { display: none; }
+.scratch-panel--face .scratch-paper { width: 100%; max-width: none; margin: 0; padding: 0; background: none; border: 0; border-radius: 0; box-shadow: none; }
+.scratch-panel--face .scratch-paper__header b { font-size: calc(.36 * var(--t)); }
+.scratch-panel--face .scratch-paper__header span { font-size: calc(.18 * var(--t)); }
+.scratch-panel--face .scratch-paper__hint, .scratch-panel--face .scratch-paper h3 { font-size: calc(.18 * var(--t)); margin-block: .2rem; }
+.scratch-panel--face .scratch-cell { height: 1.1rem; }
+.scratch-panel--face .scratch-cell__value b { font-size: calc(.32 * var(--t)); }
+.scratch-panel--face .scratch-cell__value span { font-size: calc(.18 * var(--t)); }
 .scratch-paper__header { display: flex; flex-wrap: wrap; gap: .08rem; justify-content: space-between; align-items: center; border-bottom: 2px solid #c79749; padding-bottom: .1rem; }
 .scratch-paper__header b { font-size: calc(.25 * var(--t)); color: #9a391e; }
 .scratch-paper__header span { font-size: calc(.13 * var(--t)); }
@@ -963,26 +976,29 @@ button.bpop__harmony:hover { border-style: solid; color: #fff; }
 .scratch-cell__value b { font-size: calc(.23 * var(--t)); line-height: 1.1; }
 .scratch-cell__value span { font-size: calc(.12 * var(--t)); }
 .scratch-match { color: #a12d14; text-decoration: underline; }
-.scratch-coating { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: crosshair; user-select: none; }
+.scratch-coating { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: default; user-select: none; }
 .scratch-controls { display: flex; gap: .1rem; justify-content: center; margin-top: .15rem; }
 .scratch-paper__footer { display: flex; justify-content: space-between; align-items: center; gap: .1rem; font-size: calc(.1 * var(--t)); margin-top: .15rem; }
 .scratch-barcode { width: 1rem; height: .22rem; background: repeating-linear-gradient(90deg,#383021 0 1px,transparent 1px 3px,#383021 3px 5px,transparent 5px 7px); }
-.scratch-odds summary { cursor: pointer; padding: .08rem 0; }
-.scratch-odds__scroll { max-height: 2.4rem; overflow: auto; }
-.scratch-odds table { width: 100%; border-collapse: collapse; font-size: calc(.13 * var(--t)); }
-.scratch-odds th, .scratch-odds td { text-align: left; border-bottom: 1px solid var(--line); padding: .05rem; }
 @media (max-width: 480px) {
   .scratch-panel { font-size: max(calc(.15 * var(--t)), 13px); }
   .scratch-panel .btn { font-size: max(calc(.14 * var(--t)), 12px); min-height: 34px; }
   .scratch-paper { width: 100%; max-width: 320px; padding: 12px; }
+  .scratch-panel--face { padding: 16px; min-height: 0; }
+  .scratch-panel--face .scratch-paper__header b { font-size: 26px; }
+  .scratch-panel--face .scratch-paper__header span { font-size: 13px; }
+  .scratch-panel--face .scratch-paper__hint, .scratch-panel--face .scratch-paper h3 { font-size: 14px; margin-block: 14px; }
+  .scratch-panel--face .scratch-cell { height: 80px; }
+  .scratch-panel--face .scratch-cell__value b { font-size: 26px; }
+  .scratch-panel--face .scratch-cell__value span { font-size: 14px; }
   .scratch-paper__header b { font-size: max(calc(.25 * var(--t)), 20px); }
   .scratch-paper__header span, .scratch-paper h3 { font-size: max(calc(.14 * var(--t)), 13px); }
   .scratch-paper .scratch-paper__hint, .scratch-cell__value span,
-  .scratch-product > div span, .scratch-note, .scratch-odds table { font-size: max(calc(.12 * var(--t)), 12px); }
+  .scratch-product__info > span { font-size: max(calc(.12 * var(--t)), 12px); }
   .scratch-cell { min-height: max(calc(.65 * var(--t)), 60px); }
   .scratch-cell__value b { font-size: max(calc(.23 * var(--t)), 22px); }
   .scratch-paper__footer { font-size: max(calc(.1 * var(--t)), 10px); }
-  .scratch-product { gap: .07rem; }
-  .scratch-product img { width: 35px; height: 48px; }
-  .scratch-product .btn { padding-inline: .08rem; }
+  .scratch-shop { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .scratch-product { gap: 8px; min-height: 190px; padding: 12px 8px; }
+  .scratch-product img { width: 60px; height: 80px; }
 }
