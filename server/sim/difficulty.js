@@ -100,10 +100,12 @@ export function installDifficulty(b) {
     if (ordinary(u)) {
       if (rules.embers && u.base.atk > 0) {
         const { x, y } = u;
-        b.fx('ascEmbers', { x, y, r: P.embers.radius, dur: P.embers.duration });
-        for (let i = 1; i <= P.embers.duration; i++) b.after(i, () => {
-          for (const a of b.alliesInRadius(x, y, P.embers.radius)) b.dealDamage(u, a,
-            { type: 'arts', amount: u.base.atk * P.embers.damage, canDodge: false, tags: ['asc:embers'] });
+        const p = P.embers, radius = p.radius + b.round * p.radiusPerRound;
+        const damage = p.damage + Math.max(0, b.round - p.afterRound) * p.damagePerRound;
+        b.fx('ascEmbers', { x, y, r: radius, dur: p.duration });
+        for (let i = 1; i <= p.duration; i++) b.after(i, () => {
+          for (const a of b.alliesInRadius(x, y, radius)) b.dealDamage(u, a,
+            { type: 'arts', amount: u.base.atk * damage, canDodge: false, tags: ['asc:embers'] });
         });
       }
       // Use the damage pipeline's current flags: temporary hit-count forms are excluded too.

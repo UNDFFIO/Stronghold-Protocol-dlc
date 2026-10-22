@@ -98,6 +98,12 @@ Visuals: oblique perspective board (tilted ~30°, trapezoid tiles), raised highl
 
 ### Official battle effects (官方特效; render/vfx, 0.3.0)
 
+DLC Death Embers (`ascEmbers`) reuse the warrior/leader death-pollution binding:
+`projectile_enemy_nhpbr_polluted` → `toTargetOnStart` → `enemy_nhpbr_attack_range`, independent of the fallen
+unit's kit. Each area loops at its death position for the sim event's duration (5 seconds), with a uniform
+root scale of `r / 2` relative to the source's 2-tile radius. Separate areas remain separate. Missing official
+assets or a disabled official layer retain the procedural ember area; this changes no damage or pollution rules.
+
 `public/js/render/vfx/` plays the official battle effect prefabs that `tools/local-extract/fx.py` extracts from the
 player's own client (the format: DESIGN §33, docs/design/vfx-format.md) on the 3D board. It is client-only: it draws
 events the field view already receives, and the simulation, the protocol and the golden results do not change. The

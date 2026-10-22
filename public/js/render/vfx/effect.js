@@ -279,6 +279,7 @@ export class Effect {
     this.mountRot = null;                              // the mount point's world rotation on the root ([x,y,z,w]) or null
     this.rootRot = null;                               // the rotation the game sets on the root as it plays it, or null
     this.groundZ = 0;
+    this.scale = 1;                                    // caller's uniform radius multiplier (DLC death embers)
     this.time = 0;                                     // s since spawn (battle clock)
     this.delay = def.delayToPlay + (def.randomDelay > 0 ? Math.random() * def.randomDelay : 0);
     this.state = 'play';                               // 'play' | 'stopping' | 'linger' | 'done'
@@ -324,6 +325,7 @@ export class Effect {
     this.matOv.clear(); this.rendOv.clear(); this.trails.clear(); this.linePts.clear();
     this.anchor[0] = this.anchor[1] = this.anchor[2] = 0;
     this.yaw = 0; this.pitch = 0; this.roll = 0; this.mirror = false; this.flipY = false; this.groundZ = 0; this.mountRot = null; this.rootRot = null;
+    this.scale = 1;
     this.time = 0;
     this.delay = def.delayToPlay + (def.randomDelay > 0 ? Math.random() * def.randomDelay : 0);
     this.state = 'play'; this.linger = 0; this.started = false; this.track = null; this.hidden = false; this.pausedBy = false; this.owner = null;
@@ -351,6 +353,7 @@ export class Effect {
     if (typeof o.mirror === 'boolean') this.mirror = o.mirror;
     if (typeof o.flipY === 'boolean') this.flipY = o.flipY;
     if (typeof o.groundZ === 'number') this.groundZ = o.groundZ;
+    if (Number.isFinite(o.scale) && o.scale > 0) this.scale = o.scale;
     if (Array.isArray(o.mountRot) && o.mountRot.length === 4) {
       const q = this.mountRot || (this.mountRot = [0, 0, 0, 1]);
       q[0] = o.mountRot[0]; q[1] = o.mountRot[1]; q[2] = o.mountRot[2]; q[3] = o.mountRot[3];
@@ -594,6 +597,7 @@ export class Effect {
       // parents to the projectile and resets), not the prefab's own; an effect placed at a map position keeps it
       // (Effect._InitLocation sets only the position)
       if (i === 0) {
+        _s3[0] *= this.scale; _s3[1] *= this.scale; _s3[2] *= this.scale;
         const r = this.rootRot;
         if (r) { _q[0] = r[0]; _q[1] = r[1]; _q[2] = r[2]; _q[3] = r[3]; } else if (def.proj) { _q[0] = 0; _q[1] = 0; _q[2] = 0; _q[3] = 1; }
       }

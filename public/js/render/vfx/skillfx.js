@@ -992,6 +992,8 @@ export class SkillFx {
   simFx(kind, x, y, extra) {
     if (!this.active() || !extra || typeof extra !== 'object' || typeof kind !== 'string') return false;
     const now = this.w.ofx.time;
+    // DLC embers reuse the warrior/leader death pool (native radius 2 tiles), regardless of the fallen enemy's kit.
+    if (kind === 'ascEmbers') return this._zone(ENEMY_FX_BINDINGS.enemy_1267_nhpbr.zone, x, y, extra, extra.r / 2);
     // a skill start cast with every charge stored (the kit's `charged`: 卡涅利安) — the `[eff_cond]` state (_cond)
     if (extra.charged === true && extra.id != null) { const C = this.units.get(extra.id); if (C) C.charged = true; }
     // (0) an enemy's area: its zone's official prefabs at the fx's point, an aura tick its talent loops stand for
@@ -1206,7 +1208,7 @@ export class SkillFx {
   }
 
   /** An enemy's zone: its binding's prefabs at the fx's point on the ground, the looping ones for the zone's time. */
-  _zone(bind, x, y, extra) {
+  _zone(bind, x, y, extra, scale = 1) {
     const keys = bindingEffects(this.w.idx, bind).filter((k) => this.w.ofx.lib.has(k));
     if (!keys.length) return false;
     const at = this._ground(x, y);
@@ -1215,7 +1217,7 @@ export class SkillFx {
     let drew = false;
     for (const k of keys) {
       // (a one-shot plays its own life: `important` — no cap on what nobody stops)
-      const h = this.w.playOn(k, at, bind.once ? { important: true } : { loop: true, important: true });
+      const h = this.w.playOn(k, at, bind.once ? { important: true, scale } : { loop: true, important: true, scale });
       if (!h) continue;
       drew = true;
       if (!bind.once) later(this.w.ofx, holdS, () => h.stop());

@@ -172,6 +172,26 @@ describe('skills.js: the enemies\' kit-fx bindings', () => {
 });
 
 describe('an enemy\'s zone under the official layer', () => {
+  test('DLC embers reuse the warrior death pool without a kit owner, scaled by radius and held for five seconds', async () => {
+    const { w, frame, spawned, handles, ofx } = await setup();
+    for (const r of [1.2, 2.6, 4]) assert.equal(w.simFx('ascEmbers', 7, 9, { r, dur: 5 }), true);
+    assert.deepEqual(spawned, Array(3).fill('enemy_nhpbr_attack_range'));
+    assert.deepEqual(handles.map(h => h.place.scale), [0.6, 1.3, 2]);
+    assert.ok(handles.every(h => h.opts.loop));
+    assert.deepEqual(handles[0].place.pos.slice(0, 2), [-3, 0]);
+    ofx.time = 4.9; frame();
+    assert.equal(live(handles, 'enemy_nhpbr_attack_range').length, 3);
+    ofx.time = 5.1; frame();
+    assert.equal(live(handles, 'enemy_nhpbr_attack_range').length, 0);
+  });
+
+  test('DLC embers keep the procedural fallback when official FX are disabled or the death pool is absent', async () => {
+    for (const options of [{ active: false }, { installed: KEYS.filter(k => k !== 'enemy_nhpbr_attack_range') }]) {
+      const { w, spawned } = await setup(options);
+      assert.equal(w.simFx('ascEmbers', 7, 9, { r: 3, dur: 5 }), false);
+      assert.deepEqual(spawned, []);
+    }
+  });
   test("萨卡兹枯朽战士: its death pool, in the frame of its 'die', plays its talent projectile's area at the point for the zone's time", async () => {
     const { w, view, frame, spawned, handles, ofx } = await setup();
     const e = view(1, 'enemy_1267_nhpbr', 7.7);

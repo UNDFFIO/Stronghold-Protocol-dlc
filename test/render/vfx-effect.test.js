@@ -42,6 +42,20 @@ const pe = (fields) => ({ class: 'ParticleEffect', enabled: true, fields: { _del
 function runUntil(fx, seconds, dt = 1 / 30) { for (let t = 0; t < seconds && !fx.done; t += dt) fx.update(dt); return fx; }
 
 describe('effect lifecycle', () => {
+  test('radius scaling multiplies the authored root and child offsets, without moving the anchor or leaking through pooling', () => {
+    const child = psNode(1, 0);
+    child.pos = [2, 0, 0];
+    const fx = new Effect(compileEffect(desc([root(), child])), { seed: 1 });
+    fx.place({ pos: [10, 3, 0], scale: 2 });
+    fx.update(1 / 30);
+    assert.equal(fx.world[0][0], 2);
+    assert.equal(fx.world[0][12], 10);
+    assert.equal(fx.world[1][12], 14);
+    fx.reset(1).place({ pos: [10, 3, 0] });
+    fx.update(1 / 30);
+    assert.equal(fx.world[0][0], 1);
+    assert.equal(fx.world[1][12], 12);
+  });
   test('a one-shot finishes when its particles are gone, then lingers `_delayToFinish`', () => {
     const fx = new Effect(compileEffect(desc([root([pe({ _delayToFinish: 0.4 })]), psNode(1, 0)])), { seed: 1 });
     fx.update(1 / 30);

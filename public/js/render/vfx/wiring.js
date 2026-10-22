@@ -528,7 +528,7 @@ export class FxWiring {
     const pos = P.fmp ? mountPoint(skin, P.fmp.mount, pose) : spawnPoint(skin, P.spawn, pose);
     const ground = (v.z || 0);
     if (P.onGround) pos[2] = -ground;
-    const place = { pos, groundZ: -ground, yaw: 0, mirror: false, flipY: false, mountRot: null, rootRot: null };
+    const place = { pos, groundZ: -ground, yaw: 0, mirror: false, flipY: false, mountRot: null, rootRot: null, scale: o.scale ?? 1 };
     this._rotate(P, place, skin, pose);
     this._orient(def, place, pose, o, v);
     const opts = { track: o.track || null, data: o.data ?? null, loop: !!o.loop, important: !!o.important, skip: o.skip > 0 ? o.skip : 0, owner: v };

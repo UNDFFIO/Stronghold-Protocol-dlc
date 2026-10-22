@@ -1626,7 +1626,7 @@
   "▼ —— 以下难度较大，请谨慎选择 —— ▼": "▼ —— High difficulty ahead; choose carefully —— ▼",
   "▼ —— 【极限超频】新增 / 以下难度极大，请谨慎选择 —— ▼": "▼ —— New in Extreme Overclock / Extreme difficulty ahead; choose carefully —— ▼",
   "所有非领袖单位登场后{duration}秒内移动速度+{percent}%，被阻挡时失去该效果": "All non-leader units gain +{percent}% movement speed for {duration}s after appearing; blocking removes this effect.",
-  "所有普通敌人倒下后留下持续{duration}秒的余烬，每秒对周围{radius}格内的我方单位造成{percent}%基础攻击力的法术伤害": "All normal enemies leave embers lasting {duration}s when defeated, dealing Arts damage equal to {percent}% of their base ATK each second to allied units within {radius} tiles.",
+  "所有普通敌人倒下后留下持续{duration}秒的余烬，每秒对周围我方单位造成基于其基础攻击力的法术伤害。余烬范围随回合数扩大，第{round}回合后伤害逐回合提高。": "All normal enemies leave embers lasting {duration}s when defeated, dealing Arts damage based on their base ATK each second to nearby allied units. The radius increases with each round, and damage increases each round after round {round}.",
   "所有敌人周围{radius}格内存在其他敌人时，受到的物理、法术与真实伤害-{percent}%": "All enemies take {percent}% less Physical, Arts and True damage while another enemy is within {radius} tiles.",
   "所有我方干员治疗其他单位后，{duration}秒内更容易成为敌方远程攻击目标": "After healing another unit, all allied Operators are more likely to be targeted by enemy ranged attacks for {duration}s.",
   "所有敌人登场时获得1层可抵挡一次伤害的屏障": "All enemies gain one barrier that blocks a single instance of damage when appearing.",
