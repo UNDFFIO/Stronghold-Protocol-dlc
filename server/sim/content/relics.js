@@ -104,8 +104,15 @@ function installHealingHand(battle, owners) {
   };
   battle.on('tick', cleanse);
   battle.on('deploy', cleanse);
+  // Maintainer adaptation: full-HP operators can be healed to build the barrier. Stop selecting them at the cap;
+  // the query's existing HP-ratio ordering still puts injured allies first.
+  battle.on('healTarget', (ctx) => {
+    const a = ctx.target;
+    if (!a.s.flags.noHeal && !a.profile?.noHeal && covered(a)
+      && (a.findBuff('overheal')?.shield ?? 0) < a.s.maxHp) ctx.eligible = true;
+  });
   battle.on('heal', ({ target, opts }) => {
-    // Ordinary targeting is unchanged. Regeneration is not a healing action; blocked heals never reach this hook.
+    // Regeneration is not a healing action; blocked heals never reach this hook.
     if (!opts.regen && covered(target)) opts.overheal = true;
   });
 }

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { makeBattle, chessRec, checkInvariants, flatStage, flatRoutes } from '../helpers/battleHarness.js';
 import { install } from '../../server/sim/content/relics.js';
 import { RESIST_STATUSES } from '../../server/sim/buffs.js';
+import { acquireTargets } from '../../server/sim/ai.js';
 import { DataSource } from '../../server/sim/simdata.js';
 import { buildBattleSpec, createBattleFromSpec, resultDigest } from '../../server/sim/spec.js';
 
@@ -37,6 +38,48 @@ test('护愈之手：医疗真实普攻产生溢出屏障，重叠范围只转�
   assert.equal(shield(u), 400, 'one 500-point heal restores 100 HP and converts 400');
   assert.equal(u.hp, u.s.maxHp);
   healthy(h);
+});
+
+test('护愈之手：满血普攻积累屏障至上限，受伤优先且屏障耗损后恢复治疗', () => {
+  const h = setup(), m = h.unit(1), u = h.unit(2);
+  assert.ok(h.runUntil(() => shield(m) === m.s.maxHp && shield(u) === u.s.maxHp, 30));
+  assert.deepEqual(h.b.injuredAlliesInKeys(m.rangeKeys, m), [], 'full barriers need no healing');
+  h.b.dealDamage(null, u, { amount: 500, type: 'true' });
+  assert.equal(u.hp, u.s.maxHp);
+  assert.deepEqual(h.b.injuredAlliesInKeys(m.rangeKeys, m), [u]);
+  assert.ok(h.runUntil(() => shield(u) === u.s.maxHp, 5));
+  h.b.removeBuff(m, 'overheal');
+  u.hp -= 100;
+  assert.deepEqual(h.b.injuredAlliesInKeys(m.rangeKeys, m), [u, m], 'HP injury takes priority over a missing barrier');
+  healthy(h);
+});
+
+test('护愈之手：满血治疗索敌保留范围、归属、禁疗与医疗存活限制', () => {
+  const h = setup(), m = h.unit(1), u = h.unit(2), out = h.unit(3), token = h.unit(4);
+  const targets = () => h.b.injuredAlliesInKeys(h.b.allyUnits.map((a) => a.tileR * 21 + a.tileC), m);
+  assert.deepEqual(targets(), [m, u]);
+  assert.deepEqual(acquireTargets(h.b, m, { ...m.profile, heal: { mode: 'single', hpAtMost: 0.5 } }), [],
+    'full-HP barrier targets do not bypass a skill HP threshold');
+  h.b.addBuff(m, { key: 'test:selfNoHeal', flags: { noHeal: true } });
+  assert.deepEqual(targets(), [u], 'full-HP self targeting still requires a healable target');
+  h.b.removeBuff(m, 'test:selfNoHeal');
+  h.b.addBuff(u, { key: 'test:noHeal', flags: { noHeal: true } });
+  assert.deepEqual(targets(), [m]);
+  h.b.removeBuff(u, 'test:noHeal');
+  u.ownerId = 'p2';
+  assert.deepEqual(targets(), [m]);
+  u.ownerId = 'p1';
+  m.rangeKeySet = new Set([...m.rangeKeys, token.tileR * 21 + token.tileC]);
+  assert.ok(!targets().includes(token));
+  assert.ok(!targets().includes(out));
+  m.rangeKeySet = new Set();
+  assert.deepEqual(targets(), []);
+  m.rangeKeySet = new Set(m.rangeKeys);
+  h.b.dealDamage(null, m, { amount: 10000, type: 'true' });
+  assert.deepEqual(targets(), []);
+  const plain = setup([]);
+  assert.deepEqual(plain.b.injuredAlliesInKeys(plain.unit(1).rangeKeys, plain.unit(1)), []);
+  healthy(h); healthy(plain);
 });
 
 test('护愈之手：范围、状态种类、死亡及再部署实时判断，重复安装不叠加', () => {

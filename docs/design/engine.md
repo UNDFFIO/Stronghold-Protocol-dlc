@@ -363,6 +363,10 @@ The same SDK and scriptGuard apply inside SES in sandbox mode (DESIGN §32.11); 
 script descriptors. SDK-owned results are frozen copies; live Battle/Unit objects are not hardened.
 
 
+### DLC 护愈之手满血治疗
+
+维护者指定：relic_172 覆盖范围内，持有者满血且溢出治疗屏障不足最大生命值100%的干员也进入共用治疗索敌，允许普攻和依赖该索敌的技能启动。受伤干员仍优先；达到屏障上限后不再额外选择该满血目标，屏障损失后恢复选择。原有技能生命比例阈值、禁疗、范围和归属限制保持不变，不惠及队友或召唤物。通过 healTarget 钩子补入候选，不改变未持有藏品时的行为。完整规则见 [COLLECTIBLES.md](../COLLECTIBLES.md)。
+
 ### DLC 淬毒匕首
 
 relic_240 按持有者隔离，将落地物理命中在闪避后、DEF减免前通过 damageConvert 转换为5秒独立法术持续伤害。原命中无即时伤害，每秒一段，共五段；物理增幅在命中时捕获，法抗及法术/通用增幅随每段实时结算。毒伤固定为法术类型，仅转换一次，避免弱点伤害将其转回物理后递归叠层。目标死亡清除效果，来源死亡不取消已附加效果。显示链路以可选 b.snap.poison: [[id, 层数]] 传递未完成层数，逐层加深绿黑色并在效果到期时还原。完整规则见 [COLLECTIBLES.md](../COLLECTIBLES.md)。

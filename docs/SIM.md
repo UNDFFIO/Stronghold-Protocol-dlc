@@ -342,7 +342,10 @@ heal (古米 S1 / S2, 塞雷娅 S1, 波登可 S1) — selects injured allies onl
 the enemy it blocks (PRTS 卫戍协议/帮助 "对于医疗干员（咒愈师分支除外），攻击目标为需要治疗的单位"; PRTS 仇恨
 HP_RATIO_NOT_FULL_ASC; PRTS 选择器 adds only the blocked units the selector's side can pick): `ai.js acquireTargets`
 returns its heal targets before the blocked targets, and the heal skills' DEFAULT trigger looks at injured allies
-(test/sim/feedback1e-healers.test.js).
+(test/sim/feedback1e-healers.test.js). DLC Healing Hand is the maintainer-authorized exception: a covered owner's
+full-HP operator with an incomplete overheal barrier may also be selected; injured allies remain first. The shared
+`injuredAlliesInKeys` query applies this to attacks and skill triggers, preserving explicit HP thresholds and healability
+filters. At the barrier cap the full-HP target drops out until its barrier is damaged.
 
 **Enemy attacks:** blocked melee enemies hit their blocker; enemies with `rangeRadius > 0` **and `applyWay` ≠ `MELEE`**
 attack allies whose collider touches their range circle — centre distance ≤ `rangeRadius` + `ALLY_COLLIDER_RADIUS` 0.25
@@ -943,6 +946,7 @@ registration order. `battle.off(handle)` / `battle.off(name, fn)` / `battle.offO
 | `elementHit` | `{ source, target, dmg }` | before a gauge fill (`dmg.type === 'element'`); mutate `dmg.amount`/`dmg.mul`, set `dmg.cancel` |
 | `damaged` | `{ source, target, amount, type, dmg, credit }` | after application (`amount` may be 0 when shielded); element fills too (with their source); 无来源: `source` null, `credit` set |
 | `hpDamage` | `{ source, target, amount, dmg, credit }` | a damage instance after shields, before the HP loss (§4; not a 流失): lower `amount` only (a raise is ignored) — HP floors / reductions ordered after a barrier (kits/ops/op-huang.js, op-zuole.js) |
+| `healTarget` | `{ healer, target, eligible }` | For otherwise healthy allies passing the shared healing query's filters; set `eligible` to include a target that needs an overheal barrier (DLC Healing Hand). HP-ratio ordering is unchanged. |
 | `heal` | `{ source, target, amount, opts }` | mutable `amount` |
 | `fatal` | `{ unit, source, credit, dmg, amount, prevented }` | HP would reach 0 — set `prevented` (substitutes, kit savers, 不死 items; the 复活 — M3茧甲, 埃芒加德 — and 不屈 are `death` hooks). Fired by every HP loss of a unit without a boss pool — hits of any type, element bursts, 无来源 damage, `loseHp` 流失. Order: kits' own savers (10 … −60) → items' 不死 (坚固维式重锤 — once per deployment: `items/battle.js deploymentOf`, a key every deploy changes (a 复活's redeploy too); one battle-level hook holds the running windows (`holdsUndying`), so a window outlasts a lend, DESIGN §21.21 — the lock `PRIO_REVIVE` −100 after the substitutes (−100, registered first), the running windows `PRIO_UNDYING_HELD` −99 before them: a 傀儡师 holding 不死 does not switch, PRTS 分支特性信息 傀儡师 "未持有不死的情况下", DESIGN §22.11) → 淬羽赫默 S3's 不死 (−100.5: PRTS 衍生生命 "无畏者协议提供的不死效果仅在目标没有不死效果时才会触发"; its running windows held at −99 like the hammer's). The 复活 act on the knock-out after this step (PRTS "复活" acts on a knock-out, which a 不死 prevents): `death`, below |
 | `dollSwitch` | `{ unit, reason, done }` | content switches a 傀儡师 to its <替身> now (归溟幽灵鲨 S2 "技能结束后立刻切换为<替身>": no lethal HP loss); its trait does it unless it already is one or is not on the field, and sets `done` |
