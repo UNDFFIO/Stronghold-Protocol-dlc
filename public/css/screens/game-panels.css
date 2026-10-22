@@ -937,3 +937,51 @@ button.bpop__harmony:hover { border-style: solid; color: #fff; }
   .offerov .spov__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 .offerov .spcard__icon { width: .6rem; height: .6rem; }
+.scratch-shortcut { pointer-events: auto; color: var(--gold); background: var(--bg-2); border: 1px solid var(--line); padding: .06rem .1rem; cursor: pointer; font-size: calc(.12 * var(--t)); }
+.scratch-panel { font-size: calc(.15 * var(--t)); }
+.scratch-panel p { margin: .08rem 0; }
+.scratch-shop { display: grid; gap: .08rem; }
+.scratch-product { display: flex; align-items: center; gap: .12rem; border: 1px solid var(--line); padding: .08rem; }
+.scratch-product img { width: .56rem; height: .7rem; object-fit: contain; }
+.scratch-product > div { flex: 1; display: grid; gap: .04rem; }
+.scratch-product > div span { color: var(--text-md); font-size: calc(.12 * var(--t)); }
+.scratch-unopened { display: grid; justify-items: center; gap: .15rem; padding: .12rem; }
+.scratch-unopened img { width: 1.2rem; height: 1.6rem; object-fit: contain; }
+.scratch-note { color: var(--text-md); font-size: calc(.12 * var(--t)); line-height: 1.6; }
+.scratch-result { color: var(--gold); font-weight: 700; padding: .1rem; border: 1px solid currentColor; }
+.scratch-paper { color: #383021; background: #f6ead0; border: .06rem solid #c79749; border-radius: .08rem; padding: .18rem; max-width: 4.5rem; margin: .12rem auto; box-shadow: 0 .05rem .16rem #0004; }
+.scratch-paper__header { display: flex; flex-wrap: wrap; gap: .08rem; justify-content: space-between; align-items: center; border-bottom: 2px solid #c79749; padding-bottom: .1rem; }
+.scratch-paper__header b { font-size: calc(.25 * var(--t)); color: #9a391e; }
+.scratch-paper__header span { font-size: calc(.13 * var(--t)); }
+.scratch-paper .scratch-paper__hint { font-size: calc(.12 * var(--t)); margin: .12rem 0; }
+.scratch-paper h3 { font-size: calc(.14 * var(--t)); margin: .14rem 0 .07rem; }
+.scratch-winning { display: grid; grid-template-columns: repeat(2, 1fr); gap: .08rem; }
+.scratch-numbers { display: grid; grid-template-columns: repeat(3, 1fr); gap: .08rem; }
+.scratch-cell { position: relative; height: .65rem; min-height: calc(.65 * var(--t)); min-width: 0; border: 1px dashed #998661; border-radius: .04rem; overflow: hidden; background: #fffbeb; }
+.scratch-cell__value { display: grid; justify-items: center; align-content: center; height: 100%; gap: .02rem; }
+.scratch-cell__value b { font-size: calc(.23 * var(--t)); line-height: 1.1; }
+.scratch-cell__value span { font-size: calc(.12 * var(--t)); }
+.scratch-match { color: #a12d14; text-decoration: underline; }
+.scratch-coating { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: crosshair; user-select: none; }
+.scratch-controls { display: flex; gap: .1rem; justify-content: center; margin-top: .15rem; }
+.scratch-paper__footer { display: flex; justify-content: space-between; align-items: center; gap: .1rem; font-size: calc(.1 * var(--t)); margin-top: .15rem; }
+.scratch-barcode { width: 1rem; height: .22rem; background: repeating-linear-gradient(90deg,#383021 0 1px,transparent 1px 3px,#383021 3px 5px,transparent 5px 7px); }
+.scratch-odds summary { cursor: pointer; padding: .08rem 0; }
+.scratch-odds__scroll { max-height: 2.4rem; overflow: auto; }
+.scratch-odds table { width: 100%; border-collapse: collapse; font-size: calc(.13 * var(--t)); }
+.scratch-odds th, .scratch-odds td { text-align: left; border-bottom: 1px solid var(--line); padding: .05rem; }
+@media (max-width: 480px) {
+  .scratch-panel { font-size: max(calc(.15 * var(--t)), 13px); }
+  .scratch-panel .btn { font-size: max(calc(.14 * var(--t)), 12px); min-height: 34px; }
+  .scratch-paper { width: 100%; max-width: 320px; padding: 12px; }
+  .scratch-paper__header b { font-size: max(calc(.25 * var(--t)), 20px); }
+  .scratch-paper__header span, .scratch-paper h3 { font-size: max(calc(.14 * var(--t)), 13px); }
+  .scratch-paper .scratch-paper__hint, .scratch-cell__value span,
+  .scratch-product > div span, .scratch-note, .scratch-odds table { font-size: max(calc(.12 * var(--t)), 12px); }
+  .scratch-cell { min-height: max(calc(.65 * var(--t)), 60px); }
+  .scratch-cell__value b { font-size: max(calc(.23 * var(--t)), 22px); }
+  .scratch-paper__footer { font-size: max(calc(.1 * var(--t)), 10px); }
+  .scratch-product { gap: .07rem; }
+  .scratch-product img { width: 35px; height: 48px; }
+  .scratch-product .btn { padding-inline: .08rem; }
+}

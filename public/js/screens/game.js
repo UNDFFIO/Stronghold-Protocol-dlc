@@ -1742,6 +1742,8 @@ function MatchScreen() {
       <div class="gm__effects">
         <${RelicCollection} key=${strip.ownerId} owner=${strip.name} relics=${collection.relics} reward=${collection.reward} round=${pub?.round || 1} shield=${collection.shield} nextShield=${collection.nextShield}
           revival=${strip.ownerId === myId ? { phase, alive, targets: revivalTargets(pub, myId), onRevive: actions.relicRevive } : null}
+          scratch=${strip.ownerId === myId ? { view: priv?.scratch, funds: priv?.funds ?? 0, round: pub?.round || 1,
+            canUse: phase === PHASE.PREP && alive && !priv?.ready, onBuy: actions.scratchBuy, onOpen: actions.scratchOpen, onClaim: actions.scratchClaim } : null}
           queuedChess=${strip.ownerId === myId ? priv?.relicChessQueue?.length || 0 : 0} />
         <div class="gm__effect-base"><${EffectsList} effects=${watchingOther && field ? (field.effects ?? null) : priv?.effects} /></div>
       </div>

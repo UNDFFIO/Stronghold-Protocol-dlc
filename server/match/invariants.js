@@ -25,6 +25,7 @@
 //   match    phase known; teamLp / boss pool within range; combat fields match the alive players
 
 import { PHASE, BOND_LAYER_CAP } from '../../shared/constants.js';
+import { getRelic } from '../../shared/relics.js';
 import { morphSlotPolicy, ruleOption } from '../../shared/plugins/rules.js';
 import { FIELD, canPlace, placeClass, positionClass, parseKey } from './board.js';
 import { computeBonds } from './bondsMeta.js';
@@ -60,6 +61,10 @@ export function collectViolations(m, { limit = 25 } = {}) {
     const diyHeld = new Map();
     if (!Number.isInteger(ps.funds) || ps.funds < 0) fail(`${id}: funds ${ps.funds}`);
     if (!Number.isInteger(ps.pendingFunds) || ps.pendingFunds < 0) fail(`${id}: pendingFunds ${ps.pendingFunds}`);
+    if (!Number.isSafeInteger(ps.scratchSeq) || ps.scratchSeq < 0) fail(`${id}: invalid scratch sequence`);
+    if (ps.scratchTicket && (!getRelic(ps.scratchTicket.relicId)?.scratchTicket
+      || !ps.relics.some((r) => r.id === 'relic_234')
+      || !Number.isInteger(ps.scratchTicket.amount) || ps.scratchTicket.amount < 0)) fail(`${id}: invalid scratch ticket`);
     if (!Number.isFinite(ps.lp)) fail(`${id}: lp ${ps.lp}`);
     if (ps.alive && m.phase !== PHASE.SETTLE && ps.lp <= 0 && m.teamLp == null && m.round > 0 && ps.bandId) fail(`${id}: alive with lp ${ps.lp}`);
     if (ps.hand.length !== gd.benchSize) fail(`${id}: hand has ${ps.hand.length} slots`);

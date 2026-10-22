@@ -1433,6 +1433,11 @@ export function botPrepBegin(m, ps) {
 export function* botPrepBeginSteps(m, ps, { delegate = false } = {}) {
   if (!ps.alive || ps.ready) return null;
   m.autoPickPersonalChoice(ps, 'bot');
+  if (ps.scratchTicket) {
+    const id = ps.scratchTicket.id;
+    ps.openScratch(id);
+    ps.claimScratch(id);
+  }
   // 1. reward offers (free)
   takeOffers(m, ps);
   yield;

@@ -63,6 +63,7 @@ test('时光之末：真实候选及合法领取；使用后仍排除同名，�
     h.toPrep(7);
     const ps = h.ps('p_0');
     ps.relics = RELICS.filter((r) => r.id !== ID).map((r) => ({ id: r.id, round: 1 }));
+    grantRelic(ps, 'relic_235');
     assert.equal(h.m.handle(ps.playerId, request()).error, 'BAD_TARGET');
     const offer = settleRelics(ps, { perfect: true, leaked: [] }, { completed: true });
     assert.deepEqual(offer.options, [ID]);

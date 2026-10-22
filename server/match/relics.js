@@ -1,4 +1,5 @@
-import { getRelic, pickRelicChoices, RELIC_TIERS } from '../../shared/relics.js';
+import { getRelic, pickRelicChoices, canReceiveRelic, RELIC_TIERS } from '../../shared/relics.js';
+import { issueScratchTicket } from './scratchTickets.js';
 import { normalizeDifficultyLevel } from '../../shared/difficulty.js';
 import { createRng, deriveSeed } from '../sim/rng.js';
 import { msg, dn } from '../../shared/i18n.js';
@@ -22,7 +23,7 @@ export function settleRelics(ps, result, { completed = false } = {}) {
   ps.dirty();
   if ((!comeback && (leaked || !result.perfect)) || ps.relicOffer) return null;
   const rng = createRng(deriveSeed(ps.m.seed, `relic-choice:${ps.seat}:${round}`));
-  const options = pickRelicChoices(round, ps.relics, rng, { comeback, multiplayer: !ps.m.isSolo });
+  const options = pickRelicChoices(round, ps.relics, rng, { comeback, multiplayer: !ps.m.isSolo, hasScratchTicket: !!ps.scratchTicket });
   if (!options.length) return null;
   ps.relicOffer = { id: `relic:${ps.seat}:${round}`, round, reason: comeback ? 'comeback' : 'perfect', options };
   return ps.relicOffer;
@@ -34,7 +35,7 @@ export function selectRelic(ps, offerId, idx) {
   if (!ps.alive || ps.left || !offer || offer.id !== offerId || offer.round !== ps.m.round
     || !Number.isInteger(idx) || idx < 0 || idx >= offer.options.length) return null;
   const r = getRelic(offer.options[idx]);
-  if (!r || (r.multiplayerOnly && ps.m.isSolo) || ps.relics.some((o) => o.id === r.id)) return null;
+  if (!canReceiveRelic(r, ps.relics, { hasScratchTicket: !!ps.scratchTicket }) || (r.multiplayerOnly && ps.m.isSolo)) return null;
   ps.relicOffer = null;
   return grantRelic(ps, r.id, { round: offer.round });
 }
@@ -42,10 +43,11 @@ export function selectRelic(ps, offerId, idx) {
 /** Shared acquisition path for choices and immediate grants; preserves one-time collectible effects. */
 export function grantRelic(ps, id, { round = ps.m.round, battleRound = round + 1 } = {}) {
   const r = getRelic(id);
-  if (!ps.alive || ps.left || !r || (r.multiplayerOnly && ps.m.isSolo)
-    || ps.relics.some((o) => o.id === id)) return null;
+  if (!ps.alive || ps.left || !canReceiveRelic(r, ps.relics, { hasScratchTicket: !!ps.scratchTicket })
+    || (r.multiplayerOnly && ps.m.isSolo)) return null;
   const reward = { id: r.id, round };
-  ps.relics.push(reward);
+  if (!ps.relics.some((o) => o.id === id)) ps.relics.push(reward);
+  if (r.scratchTicket) issueScratchTicket(ps, r, round);
   // 合法领取时一次性降低全队等级；既有战斗保留原规则，后续所有阵地共用新等级。
   if (r.difficultyReduction) {
     const reduction = ps.m.isSolo ? (r.soloDifficultyReduction ?? r.difficultyReduction) : r.difficultyReduction;

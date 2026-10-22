@@ -3,16 +3,18 @@ import assert from 'node:assert/strict';
 import { makeMatch } from './harness.js';
 import { makeBattle, enemyRec } from '../helpers/battleHarness.js';
 import { RELICS, relicIncome } from '../../shared/relics.js';
-import { settleRelics, selectRelic, previewRelicLpLoss } from '../../server/match/relics.js';
+import { settleRelics, selectRelic, previewRelicLpLoss, grantRelic } from '../../server/match/relics.js';
 import { attachAudit } from '../../server/match/audit.js';
 
 function claim(h, ps, id) {
   ps.relics = RELICS.filter((r) => r.id !== id).map((r) => ({ id: r.id, round: h.m.round }));
+  grantRelic(ps, 'relic_235');
   const offer = settleRelics(ps, { perfect: true, leaked: [] }, { completed: true });
   assert.deepEqual(offer.options, [id]);
   assert.equal(selectRelic(ps, offer.id, 0).id, id);
   assert.equal(selectRelic(ps, offer.id, 0), null);
   ps.relics = ps.relics.filter((r) => r.id === id);
+  ps.scratchTicket = null;
 }
 test('时间机器：实际抽取领取，下一场回血、低血不淘汰、护盾不消耗、仅生效一场及审计', () => {
   const h = makeMatch({ mode: 'solo', fake: true }).start();

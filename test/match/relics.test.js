@@ -4,19 +4,25 @@ import { PHASE } from '../../shared/constants.js';
 import { validateC2S } from '../../shared/protocol.js';
 import { RELICS, RELIC_TIERS, getRelic, dropWeights, pickRelic, pickRelicChoices, comebackWeights, relicModifiers, relicIncome } from '../../shared/relics.js';
 import { createRng } from '../../server/sim/rng.js';
-import { settleRelics, selectRelic } from '../../server/match/relics.js';
+import { settleRelics, selectRelic, grantRelic } from '../../server/match/relics.js';
 import { makeMatch } from './harness.js';
 import { attachAudit } from '../../server/match/audit.js';
 import { makeBattle, chessRec } from '../helpers/battleHarness.js';
+
+// Keep the consumable slot occupied when isolating an ordinary relic in an otherwise exhausted catalogue.
+function exhaustOtherRelics(ps, id) {
+  ps.relics = RELICS.filter((r) => r.id !== id).map((r) => ({ id: r.id, round: 1 }));
+  grantRelic(ps, 'relic_235');
+}
 
 test('黄金平原、第一法则：按指定品质解锁，合法领取后下场技能结束返还技力', () => {
   for (const [id, tier, round, amount] of [['relic_139', 3, 4, 2], ['relic_140', 4, 7, 4]]) {
     const h = makeMatch({ mode: 'solo', fake: true }).start();
     try {
       const ps = h.ps('p_0');
-      ps.relics = RELICS.filter((r) => r.id !== id).map((r) => ({ id: r.id, round: 1 }));
+      exhaustOtherRelics(ps, id);
       assert.equal(getRelic(id).tier, tier);
-      assert.deepEqual(pickRelicChoices(createRng(19), round - 1, ps.relics), [], '正常掉落不提前解锁');
+      assert.deepEqual(pickRelicChoices(round - 1, ps.relics, createRng(19), { hasScratchTicket: true }), [], '正常掉落不提前解锁');
       h.toPrep(round);
       const offer = settleRelics(ps, { perfect: true, leaked: [] }, { completed: true });
       assert.deepEqual(offer.options, [id]);
@@ -38,7 +44,7 @@ test('黄金平原、第一法则：按指定品质解锁，合法领取后下�
       next.unit(1).skill.activate('manual', { free: true });
       assert.equal(next.unit(1).skill.sp, amount);
       assert.deepEqual(next.b.errors, []);
-      assert.deepEqual(pickRelicChoices(createRng(19), round, ps.relics), [], '已领取不重复掉落');
+      assert.deepEqual(pickRelicChoices(round, ps.relics, createRng(19), { hasScratchTicket: true }), [], '已领取不重复掉落');
     } finally { h.m.dispose(); }
   }
 });
@@ -49,7 +55,7 @@ test('液体化肥、热辣可可、止痛片：按品质进入候选，合法�
     try {
       h.toPrep(round);
       const ps = h.ps('p_0');
-      ps.relics = RELICS.filter((r) => r.id !== id).map((r) => ({ id: r.id, round: 1 }));
+      exhaustOtherRelics(ps, id);
       assert.equal(getRelic(id).tier, tier);
       const offer = settleRelics(ps, { perfect: true, leaked: [] }, { completed: true });
       assert.deepEqual(offer.options, [id]);
@@ -80,7 +86,7 @@ test('护愈之手：史诗候选可合法领取，下场战斗生效且不重�
   try {
     h.toPrep(7);
     const ps = h.ps('p_0');
-    ps.relics = RELICS.filter((r) => r.id !== 'relic_172').map((r) => ({ id: r.id, round: 1 }));
+    exhaustOtherRelics(ps, 'relic_172');
     assert.equal(getRelic('relic_172').tier, 4);
     const offer = settleRelics(ps, { perfect: true, leaked: [] }, { completed: true });
     assert.deepEqual(offer.options, ['relic_172']);
@@ -107,7 +113,7 @@ test('原创收藏品：实际奖励池抽取与领取后下一场战斗生效',
       h.toPrep(7);
       const ps = h.ps('p_0');
       // 耗尽其他藏品，让真实服务端奖励池只剩待验证新品。
-      ps.relics = RELICS.filter((r) => r.id !== id).map((r) => ({ id: r.id, round: 1 }));
+      exhaustOtherRelics(ps, id);
       const offer = settleRelics(ps, { perfect: true, leaked: [] }, { completed: true });
       assert.deepEqual(offer.options, [id]);
       const before = relicModifiers(ps.battleInput().relics, 'WARRIOR', 'MELEE');
@@ -128,7 +134,7 @@ test('原创收藏品：实际奖励池抽取与领取后下一场战斗生效',
 });
 
 test('collection: every tier is populated, early pools cannot run out during ordinary play, definitions are immutable', () => {
-  assert.equal(RELICS.length, 52);
+  assert.equal(RELICS.length, 58);
   assert.equal(new Set(RELICS.map((r) => r.id)).size, RELICS.length);
   assert.ok(RELICS.filter((r) => r.tier === 1).length >= 9);
   for (const { tier } of RELIC_TIERS) assert.ok(RELICS.some((r) => r.tier === tier));
@@ -147,7 +153,7 @@ test('drops: locked tiers stay impossible, even when every unlocked collectible 
       assert.ok(RELIC_TIERS[r.tier - 1].unlockRound <= round);
     }
     const allUnlocked = RELICS.filter((r) => RELIC_TIERS[r.tier - 1].unlockRound <= round);
-    assert.equal(pickRelic(round, allUnlocked, rng), null, 'an exhausted pool must never promote into a locked tier');
+    assert.equal(pickRelic(round, allUnlocked, rng, { hasScratchTicket: true }), null, 'an exhausted pool must never promote into a locked tier');
   }
   assert.equal(pickRelic(0, [], createRng(1)), null);
   assert.equal(pickRelic(1.5, [], createRng(1)), null);
@@ -170,7 +176,7 @@ test('drops: one uninterrupted perfect match earns distinct, progress-gated coll
     for (let round = 1; round <= 15; round++) {
       const r = pickRelic(round, owned, rng);
       assert.ok(r, `a real 15-round run never exhausts the eligible pool, seed ${seed} round ${round}`);
-      assert.ok(!owned.some((o) => o.id === r.id));
+      assert.ok(r.scratchTicket || !owned.some((o) => o.id === r.id), 'only consumed tickets may repeat');
       owned.push({ id: r.id, round });
     }
   }

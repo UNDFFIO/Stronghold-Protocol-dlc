@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { RELICS, pickRelicChoices } from '../../shared/relics.js';
 import { createRng, deriveSeed } from '../../server/sim/rng.js';
 import { redistributeRelicWaves } from '../../server/match/relicWaves.js';
-import { settleRelics, selectRelic } from '../../server/match/relics.js';
+import { settleRelics, selectRelic, grantRelic } from '../../server/match/relics.js';
 import { buildBattleSpec, createBattleFromSpec, resultDigest } from '../../server/sim/spec.js';
 import { makeMatch } from './harness.js';
 
@@ -97,10 +97,10 @@ test('解压玩具：触发回合预览、实际波次和两端模拟均为 9 / 
 test('解压玩具：仅多人抽取，普通进度与逆风补足均过滤单人限定', () => {
   const owned = RELICS.filter((r) => r.id !== 'relic_156').map((r) => r.id);
   for (const comeback of [false, true]) {
-    assert.deepEqual(pickRelicChoices(7, owned, createRng(1), { comeback }), []);
-    assert.deepEqual(pickRelicChoices(7, owned, createRng(1), { comeback, multiplayer: true }), ['relic_156']);
+    assert.deepEqual(pickRelicChoices(7, owned, createRng(1), { comeback, hasScratchTicket: true }), []);
+    assert.deepEqual(pickRelicChoices(7, owned, createRng(1), { comeback, multiplayer: true, hasScratchTicket: true }), ['relic_156']);
   }
-  assert.deepEqual(pickRelicChoices(1, owned, createRng(1), { multiplayer: true }), []);
+  assert.deepEqual(pickRelicChoices(1, owned, createRng(1), { multiplayer: true, hasScratchTicket: true }), []);
 });
 
 test('解压玩具：奇偶数、均分余数、多人持有同时处理、重复ID与输入不变', () => {
@@ -137,6 +137,7 @@ test('解压玩具：真实服务端领取后，预览与两端战斗spec一致�
     m.wave = { ...m.wave, spawns: [{ ...m.wave.spawns[0], count: 5, time: 0, interval: 0.1 }] };
     ps.bounties = []; other.bounties = [];
     ps.relics = RELICS.filter((r) => r.id !== 'relic_156').map((r) => ({ id: r.id, round: 1 }));
+    grantRelic(ps, 'relic_235');
     assert.equal(count(m._normalOpts(ps).spawns), 5, '候选未领取不生效');
     const offer = settleRelics(ps, { perfect: true, leaked: [] }, { completed: true });
     assert.deepEqual(offer.options, ['relic_156']);

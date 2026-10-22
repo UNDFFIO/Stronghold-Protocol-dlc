@@ -20,6 +20,7 @@ import { awayStore } from '/js/ui/matchChrome.js';
 import { GAME_FILES } from '/js/ui/gameComponents.js';
 import { PHASE, GEO } from '/shared/constants.js';
 import { getRelic } from '/shared/relics.js';
+import { drawScratchTicket, scratchTier } from '/shared/scratchTickets.js';
 
 const params = new URLSearchParams(location.search);
 const SHOT = params.get('shot') === '1';
@@ -570,6 +571,36 @@ async function mockRequest(t, f = {}) {
   const pub = S.pub;
   const prepOnly = () => { if (pub.phase !== PHASE.PREP) fail('WRONG_PHASE'); if (p.ready && t !== 'g.ready') fail('ALREADY'); };
   switch (t) {
+    case 'g.scratchBuy': {
+      prepOnly();
+      const spec = scratchTier(f.tier);
+      const scratch = p.scratch ??= { seq: 0, ticket: null, lastResult: null };
+      if (!spec || !p.alive || !(p.relics || []).some((r) => r.id === 'relic_234') || scratch.ticket
+        || f.seq !== scratch.seq || pub.round < spec.unlockRound) fail('BAD_TARGET');
+      if (p.funds < spec.price) fail('NO_FUNDS');
+      p.funds -= spec.price;
+      scratch.ticket = { id: `scratch:mock:${++scratch.seq}`, tier: f.tier, relicId: spec.relicId, round: pub.round, opened: false };
+      S.scratchSecret = drawScratchTicket(f.tier, rnd);
+      if (!p.relics.some((r) => r.id === spec.relicId)) p.relics.push({ id: spec.relicId, round: pub.round });
+      refreshPrivate(); return {};
+    }
+    case 'g.scratchOpen': {
+      prepOnly();
+      const ticket = p.scratch?.ticket;
+      if (!ticket || ticket.id !== f.ticketId) fail('BAD_TARGET');
+      ticket.opened = true;
+      Object.assign(ticket, { winningNumbers: S.scratchSecret.winningNumbers, cells: S.scratchSecret.cells });
+      refreshPrivate(); return {};
+    }
+    case 'g.scratchClaim': {
+      prepOnly();
+      if (p.scratch?.lastResult?.ticketId === f.ticketId) return {};
+      const ticket = p.scratch?.ticket;
+      if (!ticket?.opened || ticket.id !== f.ticketId) fail('BAD_TARGET');
+      p.scratch.lastResult = { ticketId: ticket.id, relicId: ticket.relicId, amount: S.scratchSecret.amount, round: pub.round };
+      p.funds += S.scratchSecret.amount; p.scratch.ticket = null;
+      refreshPrivate(); return {};
+    }
     case 'g.relic': {
       const offer = p.relicOffer;
       if (pub.phase !== PHASE.SETTLE || !offer || offer.id !== f.offerId || !Number.isInteger(f.idx) || !getRelic(offer.options[f.idx])) fail('BAD_TARGET');

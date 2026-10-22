@@ -705,3 +705,7 @@ keys override and missing/invalid entries retain built-in text. Scope remains br
 room content and simulation. Pure geometry SDK helpers return frozen values and accept at most 1024 range cells.
 Forge UI mounts without an equivalent slot require an explicit manual-adaptation report, separate from script copying.
 Art/audio templates ship original CC0 sample media; the studio fills the target's first editable slot [ASSUMED].
+
+### DLC manual scratch tickets
+
+The owner's Identity Card and ticket entries open the scratch panel; a shortcut shows whether a ticket is held. Other players' collections remain read-only. Two winning-number areas and six number/prize cells have silver Canvas coatings. Mouse drag and touch strokes erase real alpha; each area reveals at 60% erased coverage, and all eight revealed areas request a single authoritative claim. The accessible Scratch all button follows the same claim flow. Local storage keyed by the server ticket identity restores strokes after closing/reloading; phase changes preserve unclaimed tickets and disable play until PREP before Ready. Actual winnings are credited only by the server. Text and revealed numbers use existing localization and number masking. The five ticket icons use realistic printed-paper designs; the Identity Card follows the collectible art style.

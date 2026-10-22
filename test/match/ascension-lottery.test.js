@@ -118,6 +118,7 @@ test('lottery acquisition keeps special collectible effects: phone reduction and
   try {
     const ps = h.ps('p_0');
     ps.relics = RELICS.filter((r) => !['relic_157', 'relic_158'].includes(r.id)).map((r) => ({ id: r.id, round: 1 }));
+    grantRelic(ps, 'relic_235'); // Occupied ticket slot keeps this test focused on the phone and time machine.
     h.m.startRound(4);
     assert.deepEqual([...ps.ascensionLottery.ids].sort(), ['relic_157', 'relic_158']);
     assert.equal(h.m.difficultyLevel, 6);
@@ -189,6 +190,7 @@ test('supply pools exclude owned collectibles and never substitute a disallowed 
     try {
       const ps = h.ps('p_0');
       ps.relics = RELICS.filter((r) => kind === 'relics' ? r.tier <= 3 : r.tier === 5).map((r) => ({ id: r.id, round: 1 }));
+      if (kind === 'relics') grantRelic(ps, 'relic_235');
       const count = ps.relics.length;
       h.m.startRound(4);
       assert.equal(ps.ascensionLottery.kind, kind);

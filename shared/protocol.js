@@ -573,6 +573,9 @@ export const C2S = {
   'g.reward': { idx: (v) => isInt(v, 0, 5) },
   'g.relic': { offerId: isId, idx: (v) => isInt(v, 0, 2) },
   'g.relicRevive': { relicId: isId, playerId: isId },
+  'g.scratchBuy': { tier: (v) => isInt(v, 1, 5), seq: (v) => isInt(v, 0, Number.MAX_SAFE_INTEGER) },
+  'g.scratchOpen': { ticketId: isId },
+  'g.scratchClaim': { ticketId: isId },
   'g.choice': { idx: (v) => isInt(v, 0, 5), choiceId: isId, $optional: ['choiceId'] },
   // a plugin interaction window (PLUGIN API v2, docs/PLUGINS.md §10b): offerId is the window's declared id, idx the
   // slot picked; g.offerRefresh redraws one slot (the window's own `refresh.perSlot` bounds how often). The host

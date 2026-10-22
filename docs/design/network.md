@@ -357,3 +357,7 @@ are entirely native and require consent [ASSUMED]; trusted classes cannot load i
 same-origin native script responses before import; all gameplay battle simulations run in Workers.
 
 Test-room admission requires `testAck:true` for both join and spectate; otherwise `TEST_CONFIRM` precedes any membership/state delivery. `g.test bond` accepts `{id,layers,count?}` (count is 0–99 extra members). All host attempts consume their per-command rate bucket, including malformed args. `[test-input ROOM]` init/call/timer JSON lines and `[test-audit ROOM]` results use the server logger. Test results have null titles and zero trophies/rewards and never enter browser records.
+
+### DLC scratch-ticket intents
+
+Only an alive, non-left, not-Ready owner in PREP can use these intents. `g.scratchBuy { tier:1..5, seq:nonnegative safe integer }` checks identity ownership, round, funds and the single unclaimed-ticket slot. Every ticket grant increments seq, invalidating a stale purchase retry. `g.scratchOpen { ticketId }` opens an owned ticket; `g.scratchClaim { ticketId }` pays its server-owned prize once and consumes it. Unknown client fields never define prizes. `m.private.scratch` carries `{ seq, ticket, lastResult }`; ticket has id, relicId, tier, round, opened, and only after opening winningNumbers/cells. LastResult has ticketId, relicId, amount and claim round. No ticket results appear in public/watch views.

@@ -5,6 +5,7 @@
 
 import { relicsView, relicOfferView, activeRelicShield, activeReverseLp } from '../relics.js';
 import { ascensionLotteryView } from '../ascensionLottery.js';
+import { scratchView } from '../scratchTickets.js';
 import { PHASE } from '../../../shared/constants.js';
 import { boardOrder, pieceDir } from '../board.js';
 import { bondList, offBondCounts } from '../bondsMeta.js';
@@ -107,6 +108,7 @@ export class PlayerViews {
       relicOffer: relicOfferView(this),
       relicChessQueue: [...this.relicChessQueue],
       ascensionLottery: ascensionLotteryView(this),
+      scratch: scratchView(this),
       relicLeakStreak: this.relicLeakStreak,
       lpShield: activeRelicShield(this),
       reverseLp: activeReverseLp(this),

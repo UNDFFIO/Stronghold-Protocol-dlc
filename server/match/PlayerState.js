@@ -133,6 +133,7 @@ import { PlayerItems } from './player/items.js';
 import { PlayerPrep } from './player/prep.js';
 import { PlayerRound } from './player/round.js';
 import { PlayerRelics } from './player/relics.js';
+import { PlayerScratchTickets } from './player/scratchTickets.js';
 import { PlayerViews } from './player/views.js';
 import { PlayerDiy, DiyStock } from './player/diy.js';
 
@@ -231,6 +232,9 @@ export class PlayerState {
     this.relicReverseLpRound = 0;
     this.eliminatedRoster = null;
     this.relicChessQueue = [];
+    this.scratchSeq = 0;
+    this.scratchTicket = null;
+    this.scratchResult = null;
     /** active bounties: { id, card, roundsLeft, chooser } */
     this.bounties = [];
     /**
@@ -269,7 +273,7 @@ export class PlayerState {
 }
 
 // the method modules, in this order (a name defined twice is an error, never a silent override)
-for (const part of [PlayerBasics, PlayerPieces, PlayerAcquire, PlayerEconomy, PlayerPlacement, PlayerItems, PlayerPrep, PlayerRound, PlayerViews, PlayerDiy, PlayerRelics]) {
+for (const part of [PlayerBasics, PlayerPieces, PlayerAcquire, PlayerEconomy, PlayerPlacement, PlayerItems, PlayerPrep, PlayerRound, PlayerViews, PlayerDiy, PlayerRelics, PlayerScratchTickets]) {
   for (const key of Reflect.ownKeys(part.prototype)) {
     if (key === 'constructor') continue;
     if (Object.prototype.hasOwnProperty.call(PlayerState.prototype, key)) throw new Error(`PlayerState.${String(key)} is defined twice`);

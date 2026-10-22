@@ -17,6 +17,7 @@ export const RELIC_TIERS = Object.freeze([
  * @property {string} [position]
  * @property {Readonly<{income: number}>} [economy]
  * @property {boolean} [reverseLpOnce]
+ * @property {boolean} [scratchTicket]
  * @property {boolean} [hideNumbers]
  * @property {string} [previewDesc]
  * @property {number} [difficultyReduction]
@@ -109,6 +110,19 @@ export const RELICS = Object.freeze([
   relic('046', N_('“璀璨悲泣”'), 5, N_('所有我方干员造成的法术伤害+30%'), N_('敌人受到的法术伤害提高 40%。'), { artsDealtMul: 1.3 }),
   relic('052', N_('老近卫军之锋'), 5, N_('所有我方近战干员的攻击力+35%'), N_('近战攻击提高 35%。'), { atkPct: 0.35 }, { position: 'MELEE' }),
   relic('055', N_('损坏的左轮弹巢'), 5, N_('所有我方远程干员的攻击力+35%'), N_('远程攻击提高 35%。'), { atkPct: 0.35 }, { position: 'RANGED' }),
+
+  relic('234', N_('身份证'), 2, N_('持有时，可消耗金币购买刮刮票，并可从收藏品奖励中获得刮刮票'),
+    N_('原创：解锁刮刮票购买与收藏品奖励。'), {}),
+  relic('235', N_('普通刮刮票'), 1, N_('使用后随机获得0～100金币，中奖率40%；仅一次，最多保留1张未兑奖刮刮票'),
+    N_('原创：2金币票，奖金与概率采用原创奖表。'), {}, { scratchTicket: true }),
+  relic('236', N_('精良刮刮票'), 2, N_('使用后随机获得0～200金币，中奖率42%；仅一次，最多保留1张未兑奖刮刮票'),
+    N_('原创：4金币票，奖金与概率采用原创奖表。'), {}, { scratchTicket: true }),
+  relic('237', N_('稀有刮刮票'), 3, N_('使用后随机获得0～300金币，中奖率44%；仅一次，最多保留1张未兑奖刮刮票'),
+    N_('原创：6金币票，奖金与概率采用原创奖表。'), {}, { scratchTicket: true }),
+  relic('238', N_('史诗刮刮票'), 4, N_('使用后随机获得0～400金币，中奖率46%；仅一次，最多保留1张未兑奖刮刮票'),
+    N_('原创：8金币票，奖金与概率采用原创奖表。'), {}, { scratchTicket: true }),
+  relic('239', N_('传说刮刮票'), 5, N_('使用后随机获得0～500金币，中奖率48%；仅一次，最多保留1张未兑奖刮刮票'),
+    N_('原创：10金币票，奖金与概率采用原创奖表。'), {}, { scratchTicket: true }),
 ]);
 
 const BY_ID = new Map(RELICS.map((r) => [r.id, r]));
@@ -157,10 +171,16 @@ export function comebackWeights(round) {
   return [0, 0, 55, 30, 15];
 }
 
-export function pickRelic(round, owned, rng, { comeback = false, multiplayer = false, tierWeights = null } = {}) {
+export function canReceiveRelic(r, owned, { hasScratchTicket = false } = {}) {
   const ids = idsOf(owned);
+  return !!r && (r.scratchTicket ? ids.has('relic_234') && !hasScratchTicket : !ids.has(r.id));
+}
+
+export function pickRelic(round, owned, rng, { comeback = false, multiplayer = false, tierWeights = null, hasScratchTicket = false, excludeIds = [] } = {}) {
+  const excluded = new Set(excludeIds);
   const weights = tierWeights ?? (comeback ? comebackWeights(round) : dropWeights(round));
-  const pools = RELIC_TIERS.map(({ tier }) => RELICS.filter((r) => r.tier === tier && !ids.has(r.id) && (!r.multiplayerOnly || multiplayer)));
+  const pools = RELIC_TIERS.map(({ tier }) => RELICS.filter((r) => r.tier === tier && !excluded.has(r.id)
+    && canReceiveRelic(r, owned, { hasScratchTicket }) && (!r.multiplayerOnly || multiplayer)));
   const total = weights.reduce((sum, w, i) => sum + (pools[i].length ? w : 0), 0);
   if (!total) return null;
   let roll = rng() * total;
@@ -173,11 +193,12 @@ export function pickRelic(round, owned, rng, { comeback = false, multiplayer = f
 }
 
 /** Three distinct, unowned candidates. A nearly exhausted eligible pool may offer fewer. */
-export function pickRelicChoices(round, owned, rng, { comeback = false, multiplayer = false } = {}) {
-  const excluded = [...idsOf(owned)];
+export function pickRelicChoices(round, owned, rng, { comeback = false, multiplayer = false, hasScratchTicket = false } = {}) {
+  const excluded = [];
   const choices = [];
   for (let i = 0; i < 3; i++) {
-    const r = pickRelic(round, excluded, rng, { comeback, multiplayer }) || (comeback ? pickRelic(round, excluded, rng, { multiplayer }) : null);
+    const opts = { comeback, multiplayer, hasScratchTicket, excludeIds: excluded };
+    const r = pickRelic(round, owned, rng, opts) || (comeback ? pickRelic(round, owned, rng, { ...opts, comeback: false }) : null);
     if (!r) break;
     choices.push(r.id);
     excluded.push(r.id);

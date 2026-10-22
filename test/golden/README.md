@@ -116,3 +116,33 @@ stand-in coverage regardless of the AI's purchases, while seed 24 still deploys 
 
 Only `roster-039` moved for the upstream 琳琅诗怀雅 S3 correction. All 290 merged scenarios pass;
 see [UPSTREAM-0.3.1.md](UPSTREAM-0.3.1.md) for the source and DLC compatibility scope.
+
+## DLC 身份证与刮刮票（2026-10-22）
+
+新增身份证改变普通收藏品档内抽样；持证后可获得可重复使用的票券，机器人在休整阶段兑奖，收益参与后续购买。重新生成全部290个场景，五个纯战斗家族未改变，matches家族以下23个场景发生变化（包含收藏品候选、资金／购买及最终摘要变化）：
+
+- `solo-FUNNY-1`
+- `solo-FUNNY-2`
+- `solo-NORMAL-1`
+- `solo-NORMAL-2`
+- `solo-HARD-1`
+- `solo-HARD-2`
+- `solo-ABYSS-1`
+- `solo-ABYSS-2`
+- `coop2-NORMAL-3`
+- `coop2-HARD-4`
+- `coop3-ABYSS-5`
+- `coop4-FUNNY-6`
+- `coop4-ABYSS-7`
+- `coop2-NORMAL-8-serverrun`
+- `solo-HARD-9-boosted`
+- `coop2-ABYSS-10-boosted`
+- `coop2-NORMAL-14-standins`
+- `coop2-NORMAL-70-diy`
+- `coop2-NORMAL-1-coverage-standins`
+- `coop2-NORMAL-5-coverage-diy`
+- `coop2-NORMAL-68-coverage-diy`
+- `coop2-NORMAL-24-coverage-diy`
+- `coop2-NORMAL-1-unowned-roster`
+
+使用独立票券随机流，不消耗商店流。号码、概率边界、重复兑奖、单张上限与手动刮擦由新增定向及浏览器测试覆盖。

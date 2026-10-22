@@ -49,6 +49,7 @@ import { bossPoolHp, hiddenEligible } from './finalAssault.js';
 import { helperOrder } from './unite.js';
 import { BAND_TURN_SECONDS } from './Match.js';
 import { relicIncome, RELIC_CHOICE_SECONDS, getRelic } from '../../shared/relics.js';
+import { scratchTier } from '../../shared/scratchTickets.js';
 
 /**
  * @param {import('./Match.js').Match} m
@@ -178,6 +179,26 @@ export function attachAudit(m, { invariants = true, limit = 200 } = {}) {
           if (!s || s.id !== k.id || s.kind !== k.kind) fail(`${id}: frozen slot ${k.i} (${k.id}) not kept in place (slot ${at} now ${s ? s.id : 'empty'})`);
         }
         for (const s of ps.shop.slots) if (s && s.frozen) fail(`${id}: slot ${s.id} still frozen after the round start`);
+      });
+      return res;
+    });
+    wrap(ps, 'buyScratch', function (orig, tier, seq) {
+      const f0 = ps.funds, s0 = ps.scratchSeq, fx = hasSpendEffects(m, ps);
+      const res = orig(tier, seq);
+      if (res?.ok) check('scratch purchase', () => {
+        if (ps.scratchSeq !== s0 + 1 || !ps.scratchTicket) fail(`${ps.playerId}: scratch purchase did not issue exactly one ticket`);
+        if (!fx && !hasSpendEffects(m, ps) && ps.funds !== f0 - scratchTier(tier).price) fail(`${ps.playerId}: scratch price mismatch`);
+      });
+      return res;
+    });
+    wrap(ps, 'claimScratch', function (orig, ticketId) {
+      const f0 = ps.funds;
+      const ticket = ps.scratchTicket;
+      const amount = ticket?.id === ticketId && ticket.opened ? ticket.amount : 0;
+      const res = orig(ticketId);
+      if (res?.ok) check('scratch claim', () => {
+        if (ps.funds !== f0 + amount) fail(`${ps.playerId}: scratch prize mismatch`);
+        if (ps.scratchTicket?.id === ticketId) fail(`${ps.playerId}: claimed ticket still held`);
       });
       return res;
     });

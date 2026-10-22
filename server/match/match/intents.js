@@ -39,6 +39,9 @@ export class MatchIntents {
       case 'g.reward': return ps.pickReward(msg.idx);
       case 'g.relic': return this.pickRelicChoice(ps, msg.offerId, msg.idx);
       case 'g.relicRevive': return this.reviveTeammate(ps, msg.relicId, msg.playerId);
+      case 'g.scratchBuy': return ps.buyScratch(msg.tier, msg.seq);
+      case 'g.scratchOpen': return ps.openScratch(msg.ticketId);
+      case 'g.scratchClaim': return ps.claimScratch(msg.ticketId);
       case 'g.choice': return msg.choiceId !== undefined
         ? this.pickPersonalChoice(ps, msg.idx, msg.choiceId)
         : this.pickCard(ps, msg.idx);
