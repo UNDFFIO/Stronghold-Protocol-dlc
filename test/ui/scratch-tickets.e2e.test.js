@@ -40,6 +40,71 @@ async function buyAndOpen(page) {
   await clickText(page, '.scratch-unopened button', '开始刮奖');
   await page.waitForSelector('.scratch-coating');
 }
+
+test('all five ticket backgrounds and square symbols load without false matches on desktop and mobile', {
+  skip: !ENABLED && 'set SP_E2E=1 and provide Chrome', timeout: 120000,
+}, async () => {
+  let page = await browser.newPage();
+  try {
+    for (const width of [1440, 390]) for (let tier = 1; tier <= 5; tier++) {
+      await page.setViewport({ width, height: width === 390 ? 844 : 1000 });
+      await openShop(page, 'fallback');
+      const selector = `.scratch-product:nth-child(${tier})`;
+      await page.click(selector); await page.waitForSelector(`${selector}.is-armed`);
+      await page.click(selector); await page.waitForSelector('.scratch-unopened');
+      await page.evaluate(() => {
+        const ticket = globalThis.__MOCK__.S().priv.scratch.tickets[0];
+        localStorage.setItem(`sp.scratch.${ticket.id}`, JSON.stringify(Object.fromEntries(
+          Array.from({ length: 7 }, (_, i) => [i, { done: true }]))));
+      });
+      await clickText(page, '.scratch-unopened button', '开始刮奖');
+      await page.waitForSelector('.scratch-coating');
+      const art = await page.$eval('.scratch-paper', async (el) => {
+        const url = getComputedStyle(el).backgroundImage.match(/url\("?([^"\)]+)"?\)/)[1];
+        const image = new Image(); image.src = url; await image.decode();
+        return { url, width: image.naturalWidth, overflow: el.scrollWidth > el.clientWidth };
+      });
+      assert.ok(art.url.endsWith(`/tier-${tier}.webp`));
+      assert.ok(art.width > 1000);
+      assert.equal(art.overflow, false);
+      assert.equal((await page.$$('.scratch-coating')).length, 1, 'seven saved regions reveal their symbols');
+      const symbols = await page.$$eval('.scratch-symbol', async (els) => {
+        const image = new Image();
+        image.src = getComputedStyle(els[0]).backgroundImage.match(/url\("?([^"\)]+)"?\)/)[1];
+        await image.decode();
+        return els.map((el) => {
+          const style = getComputedStyle(el), rect = el.getBoundingClientRect();
+          return { url: image.src, position: style.backgroundPosition, square: rect.width === rect.height,
+            label: el.getAttribute('aria-label') };
+        });
+      });
+      assert.equal(symbols.length, 8);
+      assert.ok(symbols.every((s) => s.square && s.url.endsWith(`/symbols-${tier}.webp`) && s.label));
+      assert.equal(await page.$('.scratch-cell__value .num'), null, 'matching numbers are no longer visible');
+      const values = await page.evaluate(() => {
+        const ticket = globalThis.__MOCK__.S().priv.scratch.tickets[0];
+        return [...ticket.winningNumbers, ...ticket.cells.map((c) => c.number)];
+      });
+      for (let a = 0; a < 8; a++) for (let b = 0; b < 8; b++) {
+        assert.equal(symbols[a].position === symbols[b].position, values[a] === values[b], 'symbol equality preserves the server result');
+      }
+      await page.waitForSelector('.pbanner--overlay', { hidden: true });
+      await page.screenshot({ path: `test/e2e/out/scratch-background-${tier}-${width}.png` });
+      await page.close();
+      page = await browser.newPage();
+    }
+  } finally { await page.close(); }
+});
+async function waitForClaimClose(page) {
+  await page.waitForSelector('.scratch-result');
+  const result = await page.evaluate(() => globalThis.__MOCK__.S().priv.scratch.lastResult);
+  const text = await page.$eval('.scratch-result', (el) => el.textContent);
+  assert.ok(text.includes(result.amount > 0 ? String(result.amount) : '谢谢参与'));
+  assert.equal(await page.$('.scratch-controls'), null, 'claimed ticket cannot be claimed again');
+  await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 700)));
+  assert.ok(await page.$('.scratch-result'), 'result remains readable before automatic close');
+  await page.waitForFunction(() => !document.querySelector('.scratch-panel'));
+}
 async function scratchRegion(page, region) {
   const handle = await page.$(`[data-scratch-region="${region}"] canvas`);
   const box = await handle.boundingBox();
@@ -64,6 +129,86 @@ async function waitForDebris(page, visible) {
     return painted === expected;
   }, { timeout: 3000 }, visible);
 }
+
+test('claimed ticket shows server win or loss on its face before closing', {
+  skip: !ENABLED && 'set SP_E2E=1 and provide Chrome', timeout: 60000,
+}, async () => {
+  const page = await browser.newPage();
+  try {
+    await page.setViewport({ width: 1440, height: 1000 });
+    await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
+    for (const amount of [10, 0]) {
+      await openShop(page, 'fallback'); await buyAndOpen(page);
+      await page.evaluate((amount) => {
+        const s = globalThis.__MOCK__.S();
+        s.scratchSecret[s.priv.scratch.tickets[0].id].amount = amount;
+      }, amount);
+      await clickText(page, '.scratch-controls button', '全部刮开');
+      await page.waitForSelector('.scratch-result');
+      assert.equal(await page.$eval('.scratch-result', (el) => el.textContent.trim()),
+        amount ? '本次获得10金币' : '谢谢参与，下次好运');
+      assert.equal((await page.$$('.scratch-cell')).length, 8, 'claimed face remains visible');
+      await waitForClaimClose(page);
+      assert.equal(await page.evaluate(() => globalThis.__MOCK__.S().requests.filter(([t]) => t === 'g.scratchClaim').length), 1);
+      await page.click('.scratch-shop-card'); await page.waitForSelector('.scratch-product');
+      assert.equal(await page.$('.scratch-result'), null, 'reopening does not replay the old result');
+    }
+  } finally { await page.close(); }
+});
+
+test('automatic reveal animates threshold and all cells before claiming, and cancels on close', {
+  skip: !ENABLED && 'set SP_E2E=1 and provide Chrome', timeout: 60000,
+}, async () => {
+  const page = await browser.newPage(), errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  try {
+    await page.setViewport({ width: 1440, height: 1000 });
+    await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'no-preference' }]);
+    await openShop(page, 'fallback'); await buyAndOpen(page);
+    await page.evaluate(() => {
+      const canvas = document.querySelector('.scratch-coating'), box = canvas.getBoundingClientRect();
+      for (const y of [0.2, 0.6]) {
+        canvas.dispatchEvent(new PointerEvent('pointerdown', { pointerId: 1, pointerType: 'mouse', buttons: 1,
+          clientX: box.left, clientY: box.top + box.height * y, bubbles: true }));
+        canvas.dispatchEvent(new PointerEvent('pointermove', { pointerId: 1, pointerType: 'mouse', buttons: 1,
+          clientX: box.right, clientY: box.top + box.height * y, bubbles: true }));
+      }
+    });
+    assert.ok(await page.$('[data-scratch-region="0"] .scratch-coating'), 'threshold keeps foil for animation');
+    await page.waitForSelector('[data-scratch-region="0"].is-revealed');
+    assert.equal((await page.$$('.scratch-coating')).length, 7);
+    await clickText(page, '.scratch-controls button', '全部刮开');
+    assert.equal(await page.$eval('.scratch-controls button', (el) => el.disabled), true);
+    await page.waitForFunction(() => {
+      const canvas = document.querySelector('[data-scratch-region="1"] canvas');
+      if (!canvas) return false;
+      const pixels = canvas.getContext('2d').getImageData(0, 0, 300, 100).data;
+      const erased = pixels.filter((v, i) => i % 4 === 3 && v < 128).length / 30000;
+      return erased > 0.1 && erased < 0.9;
+    });
+    assert.equal(await page.evaluate(() => globalThis.__MOCK__.S().priv.scratch.tickets.length), 1,
+      'no claim while foil is still animating');
+    await waitForDebris(page, true);
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => !document.querySelector('.scratch-panel'));
+    await page.click('.relic-icons [data-relic-id="relic_235"]');
+    await page.waitForSelector('.scratch-coating');
+    await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 1100)));
+    assert.equal(await page.evaluate(() => globalThis.__MOCK__.S().priv.scratch.tickets.length), 1,
+      'cancelled animation cannot claim a closed ticket');
+    assert.ok(await page.$('[data-scratch-region="0"].is-revealed'), 'completed cell persists');
+    await clickText(page, '.scratch-controls button', '全部刮开');
+    await page.waitForFunction(() => globalThis.__MOCK__.S().priv.scratch.tickets.length === 0);
+    await waitForClaimClose(page);
+    await page.click('.scratch-shop-card');
+    await page.waitForSelector('.scratch-product');
+    await buyAndOpen(page);
+    await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
+    await clickText(page, '.scratch-controls button', '全部刮开');
+    await page.waitForFunction(() => globalThis.__MOCK__.S().priv.scratch.tickets.length === 0);
+    assert.deepEqual(errors, []);
+  } finally { await page.close(); }
+});
 
 test('scratch debris: mouse flakes fall outside cells, expire, ignore erased foil and clear on close', {
   skip: !ENABLED && 'set SP_E2E=1 and provide Chrome', timeout: 60000,
@@ -122,7 +267,7 @@ test('scratch debris: mouse flakes fall outside cells, expire, ignore erased foi
       const el = globalThis.__scratchDebrisCanvas;
       return el.getContext('2d').getImageData(0, 0, el.width, el.height).data.some((v, i) => i % 4 === 3 && v);
     }), false, 'closing clears the transient layer');
-    await page.click('.scratch-shop-card'); await page.waitForSelector('.scratch-debris');
+    await page.click('.relic-icons [data-relic-id="relic_235"]'); await page.waitForSelector('.scratch-debris');
     await waitForDebris(page, false);
     assert.deepEqual(errors, []);
   } finally { await page.close(); }
@@ -165,14 +310,18 @@ test('shop ticket slot: unlock gate, stacked art, shared purchase flow, ready ga
     await page.waitForSelector('.scratch-unopened');
     await page.click('.scratch-panel .modal__actions button');
     await page.click('.scratch-shop-card');
-    await page.waitForSelector('.scratch-unopened');
+    await page.waitForSelector('.scratch-product');
+    assert.equal(await page.$('.scratch-unopened'), null);
+    assert.equal(await page.$('.scratch-inventory'), null);
+    assert.equal(await page.$eval('.scratch-panel', (el) => /待兑奖/.test(el.textContent)), false);
+    assert.equal(await page.$eval('.scratch-shop-card', (el) => el.textContent.trim()), '购买刮刮票');
     await page.click('.scratch-panel .modal__actions button');
     await page.evaluate(() => globalThis.__MOCK__.mutate((s) => { s.priv.ready = true; }));
-    // Ready folds the bar; unfolding may inspect the ticket but cannot use it.
+    // Ready folds the bar; unfolding may inspect purchases but cannot buy.
     await page.waitForSelector('.shopbar-tab__btn');
     await page.$eval('.shopbar-tab__btn', (el) => el.click());
     await page.click('.scratch-shop-card');
-    await page.waitForSelector('.scratch-unopened button:disabled');
+    await page.waitForSelector('.scratch-product:disabled');
     await page.click('.scratch-panel .modal__actions button');
     await page.$eval('.funds__collapse', (el) => el.click());
     await page.waitForFunction(() => !document.querySelector('.scratch-shop-card'));
@@ -276,15 +425,17 @@ test('scratch desktop: actual mouse erasure, saved progress, eight regions, one 
     assert.ok(size > panelSize * .85, 'ticket fills the former dialog width');
     await page.mouse.click(10, 10);
     await page.waitForFunction(() => !document.querySelector('.scratch-panel'));
-    await page.click('.scratch-shop-card');
+    await page.click('.relic-icons [data-relic-id="relic_235"]');
     await page.waitForSelector('[data-scratch-region="0"].is-revealed');
     assert.equal(await page.evaluate(() => globalThis.__MOCK__.S().priv.scratch.tickets[0].id), ticketId);
     for (let region = 1; region < 8; region++) await scratchRegion(page, region);
-    await page.waitForSelector('.scratch-shop');
+    await waitForClaimClose(page);
     assert.equal(await page.evaluate(() => globalThis.__MOCK__.S().requests.filter(([t]) => t === 'g.scratchClaim').length), 1);
     assert.deepEqual(await page.evaluate(() => globalThis.__MOCK__.S().priv.scratch.tickets), []);
     assert.equal(await page.$('.relic-icons [data-relic-id="relic_235"]'), null, 'claimed ticket leaves the collection');
     assert.equal(await page.evaluate((id) => localStorage.getItem(`sp.scratch.${id}`), ticketId), null, 'claimed scratch data is removed');
+    await page.click('.scratch-shop-card');
+    await page.waitForSelector('.scratch-product');
     await page.click('.scratch-product');
     await page.waitForSelector('.scratch-product.is-armed');
     await page.click('.scratch-product'); await page.waitForSelector('.scratch-unopened');
@@ -320,35 +471,32 @@ test('scratch mobile: real touch strokes, reload, phase gate, language switching
     const saved = await page.evaluate(() => ({ priv: structuredClone(globalThis.__MOCK__.S().priv), secret: structuredClone(globalThis.__MOCK__.S().scratchSecret) }));
     await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForSelector('.relic-icons__heading');
     await page.evaluate((saved) => globalThis.__MOCK__.mutate((s) => { s.pub.round = 7; s.priv = saved.priv; s.scratchSecret = saved.secret; }), saved);
-    await page.click('.scratch-shop-card'); await page.waitForSelector('.scratch-coating');
+    await page.click('.relic-icons [data-relic-id="relic_235"]'); await page.waitForSelector('.scratch-coating');
     const coverage = await page.$eval('[data-scratch-region="0"] canvas', (e) => {
       const a = e.getContext('2d').getImageData(0, 0, 300, 100).data; let n = 0; for (let i = 3; i < a.length; i += 4) if (a[i] < 128) n++; return n;
     });
     assert.ok(coverage > 0, 'partial touch scratches survive reload');
     await page.evaluate(() => globalThis.__MOCK__.mutate((s) => { s.priv.ready = true; }));
-    await page.waitForSelector('.shopbar-tab__btn');
-    await page.$eval('.shopbar-tab__btn', (el) => el.click());
-    await page.click('.scratch-shop-card');
     await page.waitForSelector('.scratch-controls button:disabled');
     await page.evaluate(async () => {
       const { initLang, switchLang } = await import('/js/ui/lang.js'); await initLang(); await switchLang('en');
       globalThis.__MOCK__.mutate((s) => { s.priv.ready = false; });
     });
-    await page.waitForSelector('.scratch-shop-card');
+    await page.waitForSelector('.relic-icons [data-relic-id="relic_235"]');
     await page.evaluate(() => {
-      if (!document.querySelector('.scratch-panel')) document.querySelector('.scratch-shop-card').click();
+      if (!document.querySelector('.scratch-panel')) document.querySelector('.relic-icons [data-relic-id="relic_235"]').click();
     });
-    await page.waitForFunction(() => document.querySelector('.scratch-panel')?.textContent.includes('Winning numbers'));
+    await page.waitForFunction(() => document.querySelector('.scratch-panel')?.textContent.includes('Winning symbols'));
     await page.screenshot({ path: 'test/e2e/out/scratch-mobile.png' });
     assert.equal(await page.$eval('.scratch-panel', (e) => e.getBoundingClientRect().right <= innerWidth), true);
     await page.focus('.scratch-controls button'); await page.keyboard.press('Enter');
-    await page.waitForSelector('.scratch-shop');
+    await page.waitForFunction(() => !document.querySelector('.scratch-panel'));
     assert.equal(await page.evaluate(() => globalThis.__MOCK__.S().requests.filter(([t]) => t === 'g.scratchClaim').length), 1);
   } finally { await page.close(); }
 });
 
 
-test('multiple tickets: buy while holding, switch and claim independently; one combined Ready prompt cancels or keeps best', {
+test('multiple tickets: buy while holding, claim independently; one combined Ready prompt cancels or keeps best', {
   skip: !ENABLED && 'set SP_E2E=1 and provide Chrome', timeout: 60000,
 }, async () => {
   const page = await browser.newPage(), errors = [];
@@ -357,7 +505,10 @@ test('multiple tickets: buy while holding, switch and claim independently; one c
     await page.setViewport({ width: 1920, height: 1080 });
     await openShop(page);
     for (const tier of [1, 5, 1]) {
-      if (await page.$('.scratch-inventory')) await page.click('.scratch-inventory button');
+      if (await page.$('.scratch-unopened')) {
+        await page.click('.scratch-panel .modal__actions button');
+        await page.click('.scratch-shop-card');
+      }
       await page.waitForSelector('.scratch-product');
       const selector = '.scratch-product:nth-child(' + tier + ')';
       await page.click(selector); await page.waitForSelector(selector + '.is-armed'); await page.click(selector);
@@ -366,7 +517,7 @@ test('multiple tickets: buy while holding, switch and claim independently; one c
     const tickets = await page.evaluate(() => structuredClone(globalThis.__MOCK__.S().priv.scratch.tickets));
     assert.equal(tickets.length, 3);
     assert.equal(await page.evaluate(() => globalThis.__MOCK__.S().priv.funds), 86);
-    await page.click('.scratch-inventory button:last-child');
+    assert.equal(await page.$('.scratch-inventory'), null);
     await clickText(page, '.scratch-unopened button', '开始刮奖');
     await page.waitForSelector('.scratch-coating');
     await clickText(page, '.scratch-controls button', '全部刮开');

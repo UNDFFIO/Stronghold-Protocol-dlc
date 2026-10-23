@@ -285,7 +285,7 @@ Screens: **Title** (season art backdrop, 开始 → nickname), **Lobby** (独立
 
 盟约栏支持「收起／展开盟约」（GitHub #142）：收起时隐藏完整列表并关闭由列表打开的浮层，让原图标区域的指针事件到达棋盘，只保留至少 44×44 CSS px 的恢复按钮。折叠状态在本局阶段变化、观看队友时保留；展开后仍按当前观看对象显示最新盟约。按钮支持 Enter / Space，聚焦按钮时 Space 不触发准备或暂停。
 
-The expanded shop adds a scratch-ticket entry after the item offers and before the funds column only when the owner holds 身份证 (`relic_234`). Five existing ticket icons form a stacked illustration. Clicking opens the existing purchase/scratch dialog without charging funds; an outstanding ticket changes the entry label to 刮刮票 · 待兑奖. The entry is separate from server shop slots and does not participate in refresh, stock, two-tap purchases or W-buy. The collection shortcut remains available with the shop folded or absent (DLC; [COLLECTIBLES.md](../COLLECTIBLES.md)).
+The expanded shop adds a scratch-ticket entry after the item offers and before the funds column only when the owner holds 身份证 (`relic_234`). Five existing ticket icons form a stacked illustration. Clicking always opens purchases without charging funds, including when tickets are held; the label stays 购买刮刮票. The panel has no unclaimed count or held-ticket switcher. Held tickets open through their collection icons. The entry is separate from server shop slots and does not participate in refresh, stock, two-tap purchases or W-buy. The collection shortcut remains available with the shop folded or absent (DLC; [COLLECTIBLES.md](../COLLECTIBLES.md)).
 
 The bottom-left in-match button group is temporarily hidden and inert when its actual rectangle overlaps the expanded shop row. Its layout footprint is retained to avoid visibility oscillation. Shop folding/removal, slot changes and viewport resizing recheck the overlap; the group returns automatically when clear (maintainer-requested DLC UI fix). No fixed slot-count threshold is used.
 
@@ -718,15 +718,35 @@ Art/audio templates ship original CC0 sample media; the studio fills the target'
 
 ### DLC manual scratch tickets
 
+The scratch face uses five original printed-paper backgrounds matching the ticket icons: orange-gold stars,
+green clovers, blue-gold shooting stars, magenta diamonds, and red-gold dragons. Runtime WebP images ship in
+`public/images/scratch-tickets/`; PNG originals and generation prompts live in `tools/assets/scratch-backgrounds/`.
+Labels, prize amounts and all eight silver coatings remain live localized UI over the decorative background.
+Matching numbers are displayed as square pictograms: celebration objects, lucky garden, celestial symbols,
+jewelry, and Chinese good fortune for tiers I–V respectively. Each transparent atlas contains nine distinct
+symbols. The sorted unique values on a ticket are mapped to distinct atlas cells, rotated by the lowest value
+modulo nine; equal values share a symbol and unequal values cannot create a false visual match. Server outcomes,
+prizes and saved strokes are unchanged. Original atlases and prompts live in `tools/assets/scratch-symbols/`;
+runtime WebP atlases ship alongside the backgrounds. Hidden symbols remain hidden from screen readers until revealed.
+
 The purchase dialog displays five ticket cards in a three-column grid (three above, two below; two columns on phones). The whole card is clickable: the first tap shows 确认购买 / 再次点击 and the second tap on the same card buys it. Selecting another card or tapping outside the cards cancels the previous confirmation; a phase, round, ticket or purchase-sequence change also clears it. Existing funds, unlock-round and phase gates still apply. The dialog omits the funds readout, previous-claim result banner, explanatory footer and full-prize-table disclosure (maintainer-requested simplified layout).
 
-The owner's Identity Card and ticket entries open the scratch panel; a shortcut shows whether a ticket is held. Other players' collections remain read-only. Two winning-number areas and six number/prize cells have silver Canvas coatings. Mouse drag and touch strokes erase real alpha; each area reveals at 60% erased coverage, and all eight revealed areas request a single authoritative claim. The accessible Scratch all button follows the same claim flow. Local storage keyed by the server ticket identity restores strokes after closing/reloading; the panel lists each held ticket separately and permits switching tickets or returning to purchases while tickets remain. Ready uses the existing funds confirmation, combining both warnings when needed (including one unused ticket and funds-retaining bands). Confirmed Ready or the prep deadline keeps only the oldest highest-tier ticket; play is disabled until PREP before Ready. Actual winnings are credited only by the server. Text and revealed numbers use existing localization and number masking. The five ticket icons use realistic printed-paper designs; the Identity Card follows the collectible art style.
+The owner's shop shortcut opens purchases, and ticket collection icons open held tickets directly. Other players' collections remain read-only. Two winning-symbol areas and six symbol/prize cells have silver Canvas coatings. Mouse drag and touch strokes erase real alpha; each area reveals at 60% erased coverage, and all eight revealed areas request a single authoritative claim. The accessible Scratch all button follows the same claim flow. Local storage keyed by the server ticket identity restores strokes after closing/reloading; held tickets reopen through their collection icons, while the shop entry always opens purchases without a held-ticket list. Ready uses the existing funds confirmation, combining both warnings when needed (including one unused ticket and funds-retaining bands). Confirmed Ready or the prep deadline keeps only the oldest highest-tier ticket; play is disabled until PREP before Ready. Actual winnings are credited only by the server. Text and symbol accessibility labels use existing localization; prize amounts remain numeric. The five ticket icons use realistic printed-paper designs; the Identity Card follows the collectible art style.
 
 Newly erased foil emits silver-grey flakes along mouse and touch strokes. One pointer-transparent Canvas layer per
 ticket lets flakes tumble, fall beyond cell edges and fade within 0.9 seconds, including after an area reveals.
 At most 160 flakes are alive; animation stops when they expire and is cancelled and cleared when switching tickets
-or closing the panel. Restored strokes and Scratch all do not emit flakes. Reduced-motion preferences suppress the
-effect and immediately clear any active flakes; reveal progress and authoritative claiming are unchanged.
+or closing the panel. Restored strokes do not emit flakes. Reaching 60% coverage automatically sweeps the remaining
+foil away from left to right over 450 ms, emitting flakes only for newly erased foil. Scratch all uses the same sweep,
+staggered by 65 ms per cell, and disables repeated activation. Cells count as revealed only after their animation ends;
+all eight must finish before claiming. Closing the panel cancels pending sweeps and retains the saved manual strokes
+and completed cells. Reduced-motion preferences skip sweeps and suppress and clear flakes, including when enabled
+during an animation; authoritative claiming is unchanged.
+
+After the server confirms a claim, keep that ticket's revealed face and show its awarded coin amount or the no-prize
+message prominently for 2.5 seconds, then close the dialog. Hide claim controls during this result display. Other held
+tickets do not replace the claimed face, and reopening purchases does not replay an earlier result. Manual closing
+cancels the pending close timer.
 
 ### DLC solo collectible debug panel
 

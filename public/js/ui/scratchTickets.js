@@ -98,8 +98,10 @@ function ScratchDebris({ emitRef }) {
   return html`<canvas ref=${canvas} class="scratch-debris" aria-hidden="true" />`;
 }
 
-function ScratchCoating({ region, progress, disabled, onChange, onScratch, children }) {
+function ScratchCoating({ region, progress, disabled, revealAll, onChange, onScratch, children }) {
   const canvas = useRef(null), pointer = useRef(null), strokes = useRef([]), coverage = useRef(0);
+  const [revealing, setRevealing] = useState(false);
+  const animating = useRef(false);
   const done = progress?.done === true;
   useEffect(() => {
     if (done || !canvas.current) return;
@@ -117,8 +119,41 @@ function ScratchCoating({ region, progress, disabled, onChange, onScratch, child
     // Only recreate the foil on mount / language changes, never on every stroke.
   }, [done, t('刮开此处')]);
 
+  useEffect(() => {
+    if (done || (!revealing && !revealAll)) return;
+    animating.current = true;
+    pointer.current = null;
+    const surface = canvas.current, ctx = surface.getContext('2d', { willReadFrequently: true });
+    const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const start = performance.now() + (revealing ? 0 : region * 65);
+    let frame = 0, previous = 0;
+    const finish = () => {
+      cancelAnimationFrame(frame);
+      ctx.clearRect(0, 0, 300, 100);
+      onChange(region, { done: true });
+    };
+    const paint = (now) => {
+      const fraction = Math.max(0, Math.min(1, (now - start) / 450));
+      const edge = fraction * 300;
+      if (edge > previous) {
+        ctx.clearRect(previous, 0, edge - previous, 100);
+        const ratio = erasedRatio(ctx.getImageData(0, 0, 300, 100).data);
+        if (ratio > coverage.current) onScratch(surface, [fraction, 0, fraction, 1], ratio - coverage.current);
+        coverage.current = ratio;
+        previous = edge;
+      }
+      if (fraction === 1) finish();
+      else frame = requestAnimationFrame(paint);
+    };
+    const motionChanged = () => { if (motion.matches) finish(); };
+    motion.addEventListener('change', motionChanged);
+    if (motion.matches) finish();
+    else frame = requestAnimationFrame(paint);
+    return () => { cancelAnimationFrame(frame); motion.removeEventListener('change', motionChanged); };
+  }, [done, revealing, revealAll]);
+
   const move = (e) => {
-    if (disabled || done) return;
+    if (disabled || done || animating.current || revealAll) return;
     if (e.pointerType === 'mouse') {
       if (!(e.buttons & 1)) { pointer.current = null; return; }
       // A held left button may enter from outside this coating or from another region.
@@ -138,13 +173,14 @@ function ScratchCoating({ region, progress, disabled, onChange, onScratch, child
     if (ratio > coverage.current) onScratch(canvas.current, line, ratio - coverage.current);
     coverage.current = ratio;
     const revealed = ratio >= 0.6;
-    onChange(region, revealed ? { done: true } : { strokes: strokes.current });
+    onChange(region, { strokes: strokes.current });
+    if (revealed) { animating.current = true; setRevealing(true); }
   };
   return html`<div class=${`scratch-cell${done ? ' is-revealed' : ''}`} data-scratch-region=${region}>
     <div class="scratch-cell__value" aria-hidden=${!done}>${children}</div>
     ${done ? null : html`<canvas ref=${canvas} width="300" height="100" class="scratch-coating" aria-label=${t('按住并拖动刮开涂层')}
       onPointerDown=${(e) => {
-        if (disabled || (e.pointerType === 'mouse' && e.button !== 0)) return;
+        if (disabled || animating.current || revealAll || (e.pointerType === 'mouse' && e.button !== 0)) return;
         if (e.pointerType !== 'mouse') e.currentTarget.setPointerCapture(e.pointerId);
         pointer.current = { id: e.pointerId }; move(e);
       }} onPointerMove=${move} onPointerLeave=${(e) => { if (e.pointerType === 'mouse') pointer.current = null; }}
@@ -159,8 +195,9 @@ function erase(ctx, line) {
   ctx.clearRect(line[2] * 300 + 22, line[3] * 100 - 8, 3, 2);
 }
 
-function ScratchFace({ ticket, context, busy, run }) {
+function ScratchFace({ ticket, context, busy, run, result }) {
   const [progress, setProgress] = useState(() => loadScratchProgress(ticket.id));
+  const [revealingAll, setRevealingAll] = useState(false);
   const liveProgress = useRef(progress);
   const attempted = useRef(false);
   const debris = useRef(null);
@@ -168,10 +205,10 @@ function ScratchFace({ ticket, context, busy, run }) {
   const all = Array.from({ length: 8 }, (_, i) => progress[i]?.done === true).every(Boolean);
   useEffect(() => { attempted.current = false; }, [context.canUse]);
   useEffect(() => {
-    if (!all || !context.canUse || attempted.current) return;
+    if (result || !all || !context.canUse || attempted.current) return;
     attempted.current = true;
     void run(() => context.onClaim(ticket.id));
-  }, [all, context.canUse]);
+  }, [all, context.canUse, result]);
   const change = (region, value) => {
     const next = { ...liveProgress.current, [region]: value };
     liveProgress.current = next;
@@ -179,29 +216,36 @@ function ScratchFace({ ticket, context, busy, run }) {
     // Canvas paints strokes directly; only a newly completed area needs a component render.
     if (value.done) setProgress(next);
   };
-  const revealAll = () => {
-    const next = Object.fromEntries(Array.from({ length: 8 }, (_, i) => [i, { done: true }]));
-    liveProgress.current = next; saveProgress(ticket.id, next); setProgress(next);
+  const revealAll = () => setRevealingAll(true);
+  // Rank distinct values instead of taking number % 9: different numbers must never look like a match.
+  const numbers = [...new Set([...ticket.winningNumbers, ...ticket.cells.map((cell) => cell.number)])].sort((a, b) => a - b);
+  const symbol = (number, matched = false) => {
+    const index = (numbers.indexOf(number) + numbers[0]) % 9;
+    return html`<span class=${`scratch-symbol${matched ? ' scratch-match' : ''}`} role="img"
+      aria-label=${t('图案 {index}', { index: index + 1 })}
+      style=${`background-position: ${(index % 3) * 50}% ${Math.floor(index / 3) * 50}%`} />`;
   };
   return html`<div class=${`scratch-paper relic-tier-${ticket.tier}`}>
     <div class="scratch-paper__header"><b>${t('好运刮刮票')}</b><span>${roman(ticket.tier)} · ${t(RELIC_TIERS[ticket.tier - 1].name)}</span></div>
-    <p class="scratch-paper__hint">${t('号码相同，即中得该号码下方的奖金')}</p>
-    <h3>${t('中奖号码')}</h3><div class="scratch-winning">
+    <p class="scratch-paper__hint">${t('图案相同，即中得该图案下方的奖金')}</p>
+    <h3>${t('中奖图案')}</h3><div class="scratch-winning">
       ${ticket.winningNumbers.map((number, i) => html`<${ScratchCoating} key=${i} region=${i} progress=${liveProgress.current[i]}
-        disabled=${!context.canUse || busy} onChange=${change} onScratch=${scratch}><b class="num">${number}</b><//>`)}
+        disabled=${!context.canUse || busy} revealAll=${revealingAll} onChange=${change} onScratch=${scratch}>${symbol(number)}<//>`)}
     </div>
-    <h3>${t('我的号码与奖金')}</h3><div class="scratch-numbers">
+    <h3>${t('我的图案与奖金')}</h3><div class="scratch-numbers">
       ${ticket.cells.map((cell, i) => html`<${ScratchCoating} key=${i} region=${i + 2} progress=${liveProgress.current[i + 2]}
-        disabled=${!context.canUse || busy} onChange=${change} onScratch=${scratch}>
-        <b class=${`num${all && ticket.winningNumbers.includes(cell.number) ? ' scratch-match' : ''}`}>${cell.number}</b>
+        disabled=${!context.canUse || busy} revealAll=${revealingAll} onChange=${change} onScratch=${scratch}>
+        ${symbol(cell.number, all && ticket.winningNumbers.includes(cell.number))}
         <span>${t('{amount}金币', { amount: cell.amount })}</span><//>`)}
     </div>
     <div class="scratch-paper__footer"><span aria-hidden="true" class="scratch-barcode"></span><span>${t('本票仅可兑奖一次')}</span></div>
-    <div class="scratch-controls">
-      <${Button} size="sm" disabled=${!context.canUse || busy || all} onClick=${revealAll}>${t('全部刮开')}<//>
+    ${result ? html`<div class=${`scratch-result${result.amount > 0 ? ' scratch-result--win' : ''}`} role="status" aria-live="polite">
+      ${result.amount > 0 ? t('本次获得{amount}金币', { amount: result.amount }) : t('谢谢参与，下次好运')}
+    </div>` : html`<div class="scratch-controls">
+      <${Button} size="sm" disabled=${!context.canUse || busy || all || revealingAll} onClick=${revealAll}>${t('全部刮开')}<//>
       ${all ? html`<${Button} size="sm" variant="primary" disabled=${!context.canUse || busy}
         onClick=${() => run(() => context.onClaim(ticket.id))}>${busy ? t('兑奖中…') : t('兑奖')}<//>` : null}
-    </div>
+    </div>`}
     <${ScratchDebris} emitRef=${debris} />
   </div>`;
 }
@@ -209,7 +253,7 @@ function ScratchFace({ ticket, context, busy, run }) {
 /** An unlocked shop entry, not a purchase: prices and all action gates stay in ScratchPanel. */
 export function ScratchShopCard({ context }) {
   const [open, setOpen] = useState(false);
-  const label = context.view?.tickets?.length ? t('刮刮票 · 待兑奖') : t('购买刮刮票');
+  const label = t('购买刮刮票');
   return html`<button type="button" class="scratch-shop-card" aria-label=${label} aria-haspopup="dialog" aria-expanded=${open}
     onClick=${() => setOpen(true)}>
     <span class="scratch-shop-card__stack" aria-hidden="true">
@@ -218,15 +262,27 @@ export function ScratchShopCard({ context }) {
     </span>
     <span class="scratch-shop-card__label">${label}</span>
   </button>
-  ${open ? html`<${ScratchPanel} context=${context} onClose=${() => setOpen(false)} />` : null}`;
+  ${open ? html`<${ScratchPanel} context=${context} initialTicketId=${null} onClose=${() => setOpen(false)} />` : null}`;
 }
 
 export function ScratchPanel({ context, onClose, initialTicketId }) {
   const [busy, setBusy] = useState(false);
   const [armed, setArmed] = useState(null);
   const [selectedId, setSelectedId] = useState(initialTicketId);
+  const displayedTicket = useRef(null), close = useRef(onClose);
+  close.current = onClose;
   const tickets = context.view?.tickets ?? [];
-  const ticket = selectedId === null ? null : tickets.find((t) => t.id === selectedId) ?? tickets.at(-1);
+  const result = context.view?.lastResult;
+  const claimed = result?.ticketId === displayedTicket.current?.id ? result : null;
+  // Keep the actual claimed face while the server removes it from inventory.
+  const ticket = claimed ? displayedTicket.current
+    : selectedId === null ? null : tickets.find((t) => t.id === selectedId) ?? tickets.at(-1);
+  if (ticket?.opened) displayedTicket.current = ticket;
+  useEffect(() => {
+    if (!claimed) return;
+    const timer = setTimeout(() => close.current(), 2500);
+    return () => clearTimeout(timer);
+  }, [claimed?.ticketId]);
   useEffect(() => { setArmed(null); }, [context.canUse, context.round, context.view?.seq, ticket?.id]);
   useEffect(() => {
     if (armed == null) return;
@@ -234,7 +290,6 @@ export function ScratchPanel({ context, onClose, initialTicketId }) {
     window.addEventListener('pointerdown', disarm, true);
     return () => window.removeEventListener('pointerdown', disarm, true);
   }, [armed]);
-  const result = context.view?.lastResult;
   useEffect(() => {
     if (result?.ticketId) {
       try { localStorage.removeItem(progressKey(result.ticketId)); } catch { /* Storage may be unavailable. */ }
@@ -250,13 +305,7 @@ export function ScratchPanel({ context, onClose, initialTicketId }) {
     class=${`scratch-panel${face ? ' scratch-panel--face' : ''}`} width="min(8.8rem, 94vw)"
     onClose=${onClose} actions=${face ? null : html`<${Button} size="sm" onClick=${onClose}>${t('关闭')}<//>`}>
     ${!context.canUse ? html`<p role="status">${t('未准备的休整阶段可购买、刮票与兑奖')}</p>` : null}
-    ${tickets.length ? html`<div class="scratch-inventory">
-      <${Button} size="sm" onClick=${() => setSelectedId(null)}>${t('购买刮刮票')}<//>
-      <span>${t('待兑奖：{n} 张', { n: tickets.length })}</span>
-      ${tickets.map((held, i) => html`<${Button} key=${held.id} size="sm" variant=${ticket?.id === held.id ? 'primary' : 'secondary'}
-        onClick=${() => setSelectedId(held.id)}>${i + 1} · ${t(getRelic(held.relicId).name)}<//>`)}
-    </div>` : null}
-    ${ticket ? (ticket.opened ? html`<${ScratchFace} key=${ticket.id} ticket=${ticket} context=${context} busy=${busy} run=${run} />`
+    ${ticket ? (ticket.opened ? html`<${ScratchFace} key=${ticket.id} ticket=${ticket} context=${context} busy=${busy} run=${run} result=${claimed} />`
       : html`<div class="scratch-unopened"><${Img} src=${relicIconUrl(data.get('assets'), ticket.relicId)} />
         <b>${t(getRelic(ticket.relicId).name)}</b><${Button} variant="primary" disabled=${!context.canUse || busy}
           onClick=${() => run(() => context.onOpen(ticket.id))}>${t('开始刮奖')}<//></div>`)
