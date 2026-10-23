@@ -29,7 +29,7 @@ test('图鉴跨局保存本人领取的藏品，候选、队友和观战藏品�
 
 test('挂载时补录当前对局；损坏或过期存档按有效定义去重', () => {
   assert.deepEqual(journalIds(null), []);
-  assert.deepEqual(journalIds(['relic_002', {}, 'unknown', 'relic_003', 'relic_002']), ['relic_003', 'relic_002']);
+  assert.deepEqual(journalIds(['relic_002', {}, 'unknown', 'relic_007', 'relic_008', 'relic_009', 'relic_003', 'relic_002']), ['relic_003', 'relic_002']);
   const source = createStore({ match: { private: { relics: [{ id: 'relic_001' }] } } });
   const target = createStore({ ids: [] });
   const stop = installRelicJournal({ source, target, persist: () => {} });

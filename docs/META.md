@@ -60,6 +60,10 @@ matches, or 2 in solo matches (`Match.isSolo`), with a floor of 0. Human/alive s
 Choices and immediate grants share this path; different owners' acquisitions stack. Existing battles retain their
 rules; subsequent BattleSpecs use the new level. The reduction persists for this match only (COLLECTIBLES.md).
 
+### DLC: Same-tier duplicate effects
+
+同品质、同作用对象且机制完全相同的收藏品仅保留数值最高者。移除普通品质地形图（relic_007，防御+10%）、林间夜话（relic_009，防御+12%）和神音海螺（relic_008，最大生命+15%）；保留异铁小圆盾（防御+15%）和教堂救济餐券（最大生命+20%）。共享定义、图鉴和奖励池共用这份56件清单，旧ID不可发放且不再提供属性，旧图鉴记录按有效定义过滤。不同品质、作用对象或机制的藏品保留；品质权重、解锁回合与叠加规则不变。
+
 ### DLC: Negative collectible quality
 
 The maintainer-defined Negative quality uses internal tier 6 with `normalDrop: false` and no unlock round. All shared random collectible draws exclude it, including normal, comeback and Ascension lottery rewards, even with explicit tier weights. Direct grants by ID remain available through the existing acquisition validation. It is separate from strength tiers I–V, uses a red `!` badge and red collection accents, and is omitted from drop odds. This adds quality support only; existing collectibles and five-tier probabilities are unchanged. See [COLLECTIBLES.md](COLLECTIBLES.md).

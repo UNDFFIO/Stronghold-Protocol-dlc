@@ -6,7 +6,7 @@ import { DataSource } from '../../server/sim/simdata.js';
 import { buildBattleSpec, createBattleFromSpec, resultDigest } from '../../server/sim/spec.js';
 
 const ATK = 'relic_003';
-const HP = 'relic_008';
+const HP = 'relic_010';
 const DEF = 'relic_047';
 const GUARD_ATK = 'relic_145';
 const SP = 'relic_038';
@@ -127,8 +127,8 @@ test('relics: trusted IDs give real operator attributes and damage; duplicate, u
   h.step();
   const u = h.unit(1);
   close(u.s.atk, 540, 'ATK +8%');
-  close(u.s.maxHp, 2300, 'HP +15%');
-  close(u.hp, 2300, 'initial deployment at full augmented HP');
+  close(u.s.maxHp, 2400, 'HP +20%');
+  close(u.hp, 2400, 'initial deployment at full augmented HP');
   close(u.s.def, 230, 'DEF +15%');
   const enemy = h.spawn('r_dummy', { pos: [10, 5] });
   const before = enemy.hp;
@@ -171,8 +171,8 @@ test('relics: death, redeployment and repeated installation preserve one copy of
     close(u.s.atk, 665, 'the bonus survives death');
     assert.ok(h.runUntil(() => u.alive && u.deployed, 2), 'the operator redeploys');
     close(u.s.atk, 665, 'redeployment keeps the original attack bonus');
-    close(u.s.maxHp, 2300, 'redeployment keeps the original max HP');
-    close(u.hp, 2300, 'redeployment restores full augmented HP');
+    close(u.s.maxHp, 2400, 'redeployment keeps the original max HP');
+    close(u.hp, 2400, 'redeployment restores full augmented HP');
     assert.equal(u.buffs.filter((b) => b.key.startsWith('relic:')).length, 1);
     healthy(h);
   }
@@ -211,8 +211,8 @@ test('relics: normal-to-unite carry preserves the HP ratio without multiplying t
   g.step();
   const joined = g.unit(1);
   close(joined.s.atk, 665, 'a fresh shared-field battle receives the same bonus once');
-  close(joined.s.maxHp, 2300, 'shared-field max HP stays equal');
-  close(joined.hp, 920, 'the carried HP ratio uses augmented max HP');
+  close(joined.s.maxHp, 2400, 'shared-field max HP stays equal');
+  close(joined.hp, 960, 'the carried HP ratio uses augmented max HP');
   healthy(g);
 
   const down = fight(relics, { kind: 'unite', players: [player(relics, [{ ...piece(), carryState: { hpPct: 0, down: true } }])] });
@@ -220,7 +220,7 @@ test('relics: normal-to-unite carry preserves the HP ratio without multiplying t
   assert.ok(!down.unit(1).alive, 'a knocked-down carried operator is forced out at shared-field start');
   assert.ok(down.runUntil(() => down.unit(1).alive, 2));
   close(down.unit(1).s.atk, 665, 'forced-exit redeployment also retains one copy');
-  close(down.unit(1).hp, 2300, 'forced-exit redeployment restores full HP');
+  close(down.unit(1).hp, 2400, 'forced-exit redeployment restores full HP');
   healthy(down);
 });
 
@@ -246,7 +246,7 @@ test('relics: passive regeneration scales from augmented max HP in the real tick
   const u = h.unit(1);
   u.hp = 1000;
   h.run(1);
-  close(u.hp, 1000 + 50 + 2300 * 0.02, '1 second heals 50 HP plus 2% of augmented max HP');
+  close(u.hp, 1000 + 50 + 2400 * 0.02, '1 second heals 50 HP plus 2% of augmented max HP');
   healthy(h);
 });
 
@@ -261,7 +261,7 @@ test('收藏品：固定回血与百分比回血完整相加，物理与法术�
   const u = h.unit(1);
   u.hp = 1000;
   h.run(1);
-  close(u.hp, 1000 + 100 + 2300 * 0.02, '两件藏品的固定回血合计 100 点，与 2% 最大生命回血均完整生效');
+  close(u.hp, 1000 + 100 + 2400 * 0.02, '两件藏品的固定回血合计 100 点，与 2% 最大生命回血均完整生效');
   const enemy = h.spawn('r_dummy', { pos: [10, 5] });
   for (const type of ['phys', 'arts']) {
     const before = enemy.hp;
@@ -286,7 +286,7 @@ test('relics: a JSON battle spec reconstructs the same bonuses and result on ser
   const browser = createBattleFromSpec(JSON.parse(JSON.stringify(spec)), new DataSource(JSON.parse(JSON.stringify(raw)), null), { quiet: true });
   server.step(); browser.step();
   close(server.allyUnits[0].s.atk, 540, 'server spec gives the bonus');
-  close(browser.allyUnits[0].s.maxHp, 2300, 'browser spec gives the HP bonus');
+  close(browser.allyUnits[0].s.maxHp, 2400, 'browser spec gives the HP bonus');
   server.runToEnd(30); browser.runToEnd(30);
   assert.equal(server.result().killed, 1, 'the real operator defeats the target');
   assert.equal(resultDigest(server.result()).hash, resultDigest(browser.result()).hash);

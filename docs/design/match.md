@@ -100,6 +100,8 @@ Economy/shop/pool/merge/hand rules: exactly as research 00-INDEX §3–§4 (inco
 
 **DLC / upstream 0.3.0 compatibility:** gameplay-plugin match hosts forward the selected `difficultyLevel` to the match and its BattleSpecs; bot rehearsal specs carry it as well. Detached normal-field previews use the same collectible-redistributed wave as live combat without consuming the match RNG. The upstream expandable temp queue, persistent reward offers and doubled co-op DIY stock remain in force, including collectible grants and revival (META.md, "DLC integration with upstream 0.3.0").
 
+**DLC 同品质同效果去重（维护者决定，2026-10-23）：** 同品质、同作用对象且机制完全相同的收藏品仅保留数值最高者。移除普通品质地形图（relic_007，防御+10%）、林间夜话（relic_009，防御+12%）和神音海螺（relic_008，最大生命+15%）；保留异铁小圆盾（防御+15%）和教堂救济餐券（最大生命+20%）。共享定义、图鉴和奖励池共用这份56件清单，旧ID不可发放且不再提供属性，旧图鉴记录按有效定义过滤。不同品质、作用对象或机制的藏品保留；品质权重、解锁回合与叠加规则不变。
+
 **DLC 负面收藏品品质（维护者决定）：** 新增独立于 I–V 强度的“负面”品质，内部编号为 6，`normalDrop: false`，没有解锁回合。普通作战、逆风补给、超限补给及共用随机抽取入口一律排除该品质，显式权重也不能解锁，常规概率及现有藏品不变；指定 ID 的直接发放仍受统一领取校验。界面以红色 `!`、红色品质文字和侧边线标识，不作为 VI 档展示，也不列入掉落概率表。见 [COLLECTIBLES.md](../COLLECTIBLES.md)。
 
 **DLC 超限补给（维护者决定，2026-10-15）：** 所有超限等级（含 0 级）在第 4 回合开始时，为每名存活且未离场玩家独立抽取并立即发放一次奖励，四类各 25%：15 金币、2 名累计层数最高盟约的随机干员、3 件不同收藏品、1 件「稀有藏品」。三件收藏品每件先按普通 5%、精良 65%、稀有 30% 抽品质，再在该品质可用藏品中均匀抽取；「稀有藏品」是奖励类别名称，只发放 1 件传说品质收藏品，不恢复目标生命值。两类藏品均排除已持有与单人不适用项；某品质耗尽时按剩余合格品质归一化，不补入指定范围外的品质，全部耗尽则不发放。三列滚轮在三件奖励时分别显示实际的三件藏品，在单件传说奖励时重复显示同一件，重复图案不增加发放数量或效果。普通作战与逆风补给掉落概率不变。

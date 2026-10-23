@@ -45,9 +45,6 @@ export const RELIC_ICON_FILES = Object.freeze({
   "relic_001": "rogue_6_relic_legacy_22.png", // 精选兽肉罐头
   "relic_047": "rogue_6_relic_legacy_12.png", // 异铁小圆盾
   "relic_038": "rogue_6_relic_legacy_2.png", // 香草沙士汽水
-  "relic_008": "rogue_6_relic_legacy_29.png", // 神音海螺
-  "relic_007": "rogue_6_relic_legacy_28.png", // 地形图
-  "relic_009": "rogue_6_relic_legacy_30.png", // 林间夜话
   "relic_010": "rogue_6_relic_legacy_31.png", // 教堂救济餐券
   "relic_103": "rogue_6_relic_legacy_128.png", // 设计师量尺
   "relic_004": "rogue_6_relic_legacy_25.png", // 尖叫樱桃

@@ -163,8 +163,28 @@ test('淬毒匕首：稀有候选合法领取，下场战斗自动转换，候�
   } finally { h.m.dispose(); }
 });
 
+test('collection: weaker same-tier duplicates cannot be drawn or granted', () => {
+  const removed = ['relic_007', 'relic_009', 'relic_008'];
+  for (const id of removed) assert.equal(getRelic(id), null, id);
+  assert.deepEqual(RELICS.filter((r) => r.tier === 1 && r.mods.defPct).map((r) => r.id), ['relic_047']);
+  assert.deepEqual(RELICS.filter((r) => r.tier === 1 && r.mods.hpPct).map((r) => r.id), ['relic_010']);
+  const owned = RELICS.filter((r) => !removed.includes(r.id)).map((r) => r.id);
+  for (const comeback of [false, true]) {
+    assert.deepEqual(pickRelicChoices(15, owned, createRng(7), { comeback, multiplayer: true, hasScratchTicket: true }), []);
+  }
+  assert.deepEqual(relicModifiers(removed, 'WARRIOR', 'MELEE'), {});
+  const h = makeMatch({ mode: 'solo', fake: true }).start();
+  try {
+    h.toPrep(1);
+    const ps = h.ps('p_0');
+    for (const id of removed) assert.equal(grantRelic(ps, id), null, id);
+    assert.deepEqual(ps.relics, []);
+    for (const id of ['relic_047', 'relic_010']) assert.equal(grantRelic(ps, id).id, id);
+  } finally { h.m.dispose(); }
+});
+
 test('collection: every tier is populated, early pools cannot run out during ordinary play, definitions are immutable', () => {
-  assert.equal(RELICS.length, 59);
+  assert.equal(RELICS.length, 56);
   assert.equal(new Set(RELICS.map((r) => r.id)).size, RELICS.length);
   assert.ok(RELICS.filter((r) => r.tier === 1).length >= 9);
   for (const { tier } of RELIC_TIERS.filter((t) => t.normalDrop !== false)) assert.ok(RELICS.some((r) => r.tier === tier));
@@ -215,7 +235,7 @@ test('drops: one uninterrupted perfect match earns distinct, progress-gated coll
 test('balance: duplicate IDs, forged payloads, profession and position add without cumulative caps', () => {
   const all = RELICS.map((r) => r.id);
   const mods = relicModifiers(all, 'WARRIOR', 'MELEE');
-  const expected = { atkPct: 1.23, hpPct: 1.4, defPct: 1.22, aspd: 35, spRecoveryFlat: 0.75, hpRegen: 100, hpRegenRatio: 0.02, dodgePhys: 0.22, dodgeArts: 0.27, physDealtMul: 1.7, artsDealtMul: 1.6, healingTakenMul: 1.1, artsTakenMul: 0.1, physTakenMul: 0.1, defResClear: 1 };
+  const expected = { atkPct: 1.23, hpPct: 1.25, defPct: 1, aspd: 35, spRecoveryFlat: 0.75, hpRegen: 100, hpRegenRatio: 0.02, dodgePhys: 0.22, dodgeArts: 0.27, physDealtMul: 1.7, artsDealtMul: 1.6, healingTakenMul: 1.1, artsTakenMul: 0.1, physTakenMul: 0.1, defResClear: 1 };
   Object.assign(expected, { lowHpAtkPct: 1.5, lowHpSpRecoveryFlat: 2 });
   assert.deepEqual(Object.keys(mods).sort(), Object.keys(expected).sort());
   for (const [key, value] of Object.entries(expected)) assert.ok(Math.abs(mods[key] - value) < 1e-9, key);
