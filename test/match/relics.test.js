@@ -15,6 +15,75 @@ function exhaustOtherRelics(ps, id) {
   grantRelic(ps, 'relic_235');
 }
 
+test('河谷祭祈：史诗R7解锁，候选不生效，合法领取后下场增强爆发', () => {
+  const h = makeMatch({ mode: 'solo', fake: true }).start();
+  try {
+    const ps = h.ps('p_0');
+    const id = 'relic_134';
+    exhaustOtherRelics(ps, id);
+    assert.equal(getRelic(id).tier, 4);
+    assert.deepEqual(pickRelicChoices(6, ps.relics, createRng(19), { hasScratchTicket: true }), []);
+    h.toPrep(7);
+    const offer = settleRelics(ps, { perfect: true, leaked: [] }, { completed: true });
+    assert.deepEqual(offer.options, [id]);
+    const damage = () => {
+      const input = ps.battleInput();
+      const f = makeBattle({ players: [{ ...input, relics: input.relics.filter((r) => r === id), units: [] }],
+        defs: { enemies: { target: enemyRec({ key: 'target', hp: 100000, speed: 0 }) } }, autoFinish: false });
+      f.step();
+      const e = f.spawn('target');
+      const hp = e.hp;
+      f.b.dealDamage(null, e, { type: 'element', element: 'burn', amount: 1000 });
+      assert.deepEqual(f.b.errors, []);
+      return hp - e.hp;
+    };
+    assert.equal(damage(), 7000);
+    assert.equal(selectRelic(ps, 'forged', 0), null);
+    assert.equal(selectRelic(ps, offer.id, 0).id, id);
+    assert.equal(selectRelic(ps, offer.id, 0), null);
+    assert.equal(damage(), 26600);
+    assert.deepEqual(pickRelicChoices(7, ps.relics, createRng(19), { hasScratchTicket: true }), []);
+  } finally { h.m.dispose(); }
+});
+
+test('四件击倒/部署藏品：普通R1候选，合法领取后下场生效并排除已持有', () => {
+  for (const id of ['relic_116', 'relic_117', 'relic_118', 'relic_119']) {
+    const h = makeMatch({ mode: 'solo', fake: true }).start();
+    try {
+      const ps = h.ps('p_0');
+      exhaustOtherRelics(ps, id);
+      assert.equal(getRelic(id).tier, 1);
+      h.toPrep(1);
+      const offer = settleRelics(ps, { perfect: true, leaked: [] }, { completed: true });
+      assert.deepEqual(offer.options, [id]);
+      assert.equal(ps.battleInput().relics.includes(id), false);
+      const probe = () => {
+        const input = ps.battleInput();
+        const f = makeBattle({ players: [{ ...input, relics: input.relics.filter((r) => r === id), units: [
+          { uid: 1, kind: 'chess', chessId: 'reward_op', row: 10, col: 4 },
+        ] }], defs: { chess: { reward_op: chessRec({ id: 'reward_op', position: 'RANGED', rangeGrid: [[0, 0]],
+          skill: { spCost: 20, initSp: 0, spType: 'INCREASE_WHEN_ATTACK', trigger: { rule: 'NEVER' } },
+          stats: { maxHp: 2000, atk: 500 } }) },
+        enemies: { reward_target: enemyRec({ key: 'reward_target', hp: 100, speed: 0 }) } }, autoFinish: false });
+        f.step();
+        const u = f.unit(1);
+        u.hp = 1000;
+        const e = f.spawn('reward_target', { pos: [2, 4] });
+        f.b.dealDamage(u, e, { amount: 1000, type: 'true' });
+        assert.deepEqual(f.b.errors, []);
+        return { aspd: u.s.aspd, sp: u.skill.sp, hp: u.hp, shield: u.findBuff('relic:119')?.shield ?? 0 };
+      };
+      assert.deepEqual(probe(), { aspd: 100, sp: 0, hp: 1000, shield: 0 });
+      assert.equal(selectRelic(ps, 'forged', 0), null);
+      assert.equal(selectRelic(ps, offer.id, 0).id, id);
+      assert.equal(selectRelic(ps, offer.id, 0), null);
+      assert.deepEqual(probe(), { aspd: id === 'relic_116' ? 200 : 100, sp: id === 'relic_117' ? 2 : 0,
+        hp: id === 'relic_118' ? 1200 : 1000, shield: id === 'relic_119' ? 2000 : 0 });
+      assert.deepEqual(pickRelicChoices(1, ps.relics, createRng(19), { hasScratchTicket: true }), []);
+    } finally { h.m.dispose(); }
+  }
+});
+
 test('黄金平原、第一法则：按指定品质解锁，合法领取后下场技能结束返还技力', () => {
   for (const [id, tier, round, amount] of [['relic_139', 3, 4, 2], ['relic_140', 4, 7, 4]]) {
     const h = makeMatch({ mode: 'solo', fake: true }).start();
@@ -184,7 +253,7 @@ test('collection: weaker same-tier duplicates cannot be drawn or granted', () =>
 });
 
 test('collection: every tier is populated, early pools cannot run out during ordinary play, definitions are immutable', () => {
-  assert.equal(RELICS.length, 56);
+  assert.equal(RELICS.length, 63);
   assert.equal(new Set(RELICS.map((r) => r.id)).size, RELICS.length);
   assert.ok(RELICS.filter((r) => r.tier === 1).length >= 9);
   for (const { tier } of RELIC_TIERS.filter((t) => t.normalDrop !== false)) assert.ok(RELICS.some((r) => r.tier === tier));

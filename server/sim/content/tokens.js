@@ -1329,7 +1329,7 @@ function yanyouKit(bb, raw) {
         }, { owner: unit });
       }
       // "即将受到元素损伤前取消此元素损伤"
-      battle.on('elementHit', (ctx) => { if (ctx.target === unit) ctx.dmg.cancel = true; }, { owner: unit });
+      battle.on('elementHit', (ctx) => { if (ctx.target === unit && !unit.mem.relicYanyou) ctx.dmg.cancel = true; }, { owner: unit });
       let auraAcc = YANYOU_AURA_EVERY;
       battle.on('tick', ({ dt }) => {
         if (!unit.alive || !unit.deployed) return;
@@ -1404,7 +1404,7 @@ function airTile(battle, playerId, taken) {
  * 自身攻击力、生命值增加召唤自身的玩家场地上的所有【炎】盟约干员攻击力、生命值的30%（最终加算）". atkMul (9 炎: ×1.5,
  * [ASSUMED] on the whole ATK) and dmgTakenMul (9 炎: 0.1) are applied as a persistent buff. Returns the spawned units.
  */
-export function spawnYanyou(battle, playerId, { atk, hp, atkMul = 1, dmgTakenMul = 1, count = 1 } = {}) {
+export function spawnYanyou(battle, playerId, { atk, hp, atkMul = 1, dmgTakenMul = 1, count = 1, at = null } = {}) {
   const rec = battle.data.rawToken?.(TOKEN_IDS.yanyou) ?? battle.data.rawEnemy?.(TOKEN_IDS.yanyou) ?? null;
   if (!rec) return [];
   const def = yanyouFallbackDef(battle);
@@ -1417,10 +1417,10 @@ export function spawnYanyou(battle, playerId, { atk, hp, atkMul = 1, dmgTakenMul
   if (num(hp, 0) > 0) stats.maxHp = num(base.maxHp, 0) + num(hp, 1);
   const ps = battle.getPlayer(playerId);
   for (let i = 0; i < n; i++) {
-    const tile = airTile(battle, playerId, taken);
+    const tile = at ?? airTile(battle, playerId, taken);
     if (!tile) break;
     taken.add(tile[0] * COLS + tile[1]);
-    const u = battle.spawnToken(playerId, TOKEN_IDS.yanyou, tile[0], tile[1], { ...(def ? { def } : {}), stats, dir: ps ? ps.dir : 'RIGHT' });
+    const u = battle.spawnToken(playerId, TOKEN_IDS.yanyou, tile[0], tile[1], { ...(def ? { def } : {}), stats, airborne: !!at, dir: ps ? ps.dir : 'RIGHT' });
     if (!u) continue;
     const mods = {};
     if (num(atkMul, 1) !== 1 && num(atkMul, 1) >= 0) mods.atkMul = num(atkMul, 1);

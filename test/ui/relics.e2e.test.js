@@ -108,6 +108,13 @@ test('时光之末：自己的列表按钮复活队友、显示已使用，观�
 });
 
 for (const item of [
+  { id: 'relic_116', name: '“撕咬的渴望”', tier: '普通', phrases: ['击倒敌人时', '+100', '2秒'], shot: 'biting-desire' },
+  { id: 'relic_117', name: '异香角', tier: '普通', phrases: ['击倒敌人时', '2点技力'], shot: 'fragrant-horn' },
+  { id: 'relic_118', name: '渴血钳兽', tier: '普通', phrases: ['击倒敌人时', '10%'], shot: 'bloodthirsty-pincer' },
+  { id: 'relic_119', name: '“庇护”', tier: '普通', phrases: ['高台干员', '部署时', '100%', '屏障'], shot: 'shelter' },
+  { id: 'relic_132', name: '天师锦囊', tier: '普通', phrases: ['首次部署', '炎佑', '激活炎盟约'], shot: 'sachet' },
+  { id: 'relic_133', name: '冰中火', tier: '普通', phrases: ['元素损伤', '元素伤害', '+75%'], shot: 'ice-fire' },
+  { id: 'relic_134', name: '河谷祭祈', tier: '史诗', phrases: ['凋亡', '灼燃', '神经', '侵蚀', '爆发效果增强'], shot: 'river-prayer' },
   { id: 'relic_240', name: '淬毒匕首', tier: '稀有', phrases: ['110%', '防御结算前', '5次', '每秒1次', '独立叠加'], shot: 'poison-dagger' },
   { id: 'relic_139', name: '黄金平原', tier: '稀有', phrases: ['技能结束时', '2点技力'], shot: 'golden-plains' },
   { id: 'relic_140', name: '第一法则', tier: '史诗', phrases: ['技能结束时', '4点技力'], shot: 'first-law' },

@@ -1,7 +1,8 @@
 // Collection bonuses are resolved from shared, trusted definitions. A single persistent buff contains the
 // collection modifiers, so death, redeployment and re-installation never multiply the same bonuses.
 import { getRelic, relicModifiers } from '../../../shared/relics.js';
-import { passiveBuff, playerOps, onField, inRange } from './support/index.js';
+import { passiveBuff, playerOps, onField, inRange, unitBonds } from './support/index.js';
+import { spawnYanyou } from './tokens.js';
 import { RESIST_STATUSES } from '../buffs.js';
 
 const KEY = 'relic:collection';
@@ -9,6 +10,78 @@ const healingHandInstalled = new WeakSet();
 const fertilizerInstalled = new WeakSet();
 const skillEndSpInstalled = new WeakSet();
 const poisonDaggerInstalled = new WeakSet();
+const riverPrayerInstalled = new WeakSet();
+const killRelicsInstalled = new WeakSet();
+const sachetInstalled = new WeakSet();
+const iceFireInstalled = new WeakSet();
+
+function installSachet(battle, byPlayer) {
+  if (sachetInstalled.has(battle)) return;
+  sachetInstalled.add(battle);
+  const used = new Set();
+  battle.on('deploy', ({ unit }) => {
+    if (unit.kind !== 'op' || !byPlayer.get(unit.ownerId)?.includes('relic_132')
+      || used.has(unit.ownerId) || !unitBonds(unit).includes('yanShip')) return;
+    used.add(unit.ownerId);
+    // PRTS integrated-strategy variant: base stats, no Yan stat inheritance or elemental immunity.
+    // [ASSUMED] Once per owner per battle; current Yan membership includes bond-granting equipment.
+    for (const y of spawnYanyou(battle, unit.ownerId, { at: [unit.tileR, unit.tileC] })) y.mem.relicYanyou = true;
+  });
+}
+
+function installIceFire(battle) {
+  if (iceFireInstalled.has(battle)) return;
+  iceFireInstalled.add(battle);
+  // One field-wide enemy intake bonus; repeated IDs/holders never multiply the same collectible.
+  const apply = (unit) => {
+    if (unit.side === 'enemy') passiveBuff(battle, unit, 'relic:133', { elemTakenMul: 1.75, elementalTakenMul: 1.75 });
+  };
+  for (const unit of battle.enemies) apply(unit);
+  battle.on('enemySpawn', ({ enemy }) => apply(enemy));
+}
+
+function installKillRelics(battle, byPlayer) {
+  if (![...byPlayer.values()].some((ids) => ids.some((id) => ['relic_116', 'relic_117', 'relic_118', 'relic_119'].includes(id)))
+    || killRelicsInstalled.has(battle)) return;
+  killRelicsInstalled.add(battle);
+  // A kill hook precedes enemy survival/revival checks; death confirms an actual knock-out.
+  battle.on('death', ({ unit: victim, killer, reason }) => {
+    if (reason !== 'killed' || victim.side !== 'enemy' || killer?.kind !== 'op' || !onField(killer) || killer.removed || killer.hp <= 0) return;
+    const ids = byPlayer.get(killer.ownerId);
+    if (!ids) return;
+    if (ids.includes('relic_116')) battle.addBuff(killer, {
+      key: 'relic:116', duration: 2, mods: { aspd: 100 },
+    });
+    // [ASSUMED] An ordinary SP gift: respects active-skill/noSp locks and the skill's charge cap.
+    if (ids.includes('relic_117')) killer.skill.gainSp(2, 'relic');
+    if (ids.includes('relic_118')) battle.heal(killer, killer, killer.s.maxHp * 0.1, { self: true });
+  });
+  const deployments = new WeakMap();
+  const originalPositions = new WeakMap();
+  for (const u of battle.allyUnits) originalPositions.set(u, u.def?.position);
+  battle.on('deploy', ({ unit: u }) => {
+    if (u.kind !== 'op' || !byPlayer.get(u.ownerId)?.includes('relic_119') || !onField(u) || u.removed) return;
+    if (!originalPositions.has(u)) originalPositions.set(u, u.def?.position);
+    // PRTS: current and original deployment types must both be RANGED; a melee unit on a high tile is excluded.
+    if (originalPositions.get(u) !== 'RANGED' || u.def?.position !== 'RANGED' || deployments.get(u) === u.deploySeq) return;
+    deployments.set(u, u.deploySeq);
+    battle.addBuff(u, { key: 'relic:119', shield: u.s.maxHp, shieldPriority: -1000, duration: Infinity });
+  });
+}
+
+function installRiverPrayer(battle) {
+  if (riverPrayerInstalled.has(battle)) return;
+  riverPrayerInstalled.add(battle);
+  // PRTS 河谷祭祈 (No.134): every enemy receives the four burst enhancements, regardless of fill source.
+  // One field-wide effect, even if several players hold it. Ally bursts and the legacy gauge are unchanged.
+  battle.on('elementBurst', ({ target, element, config }) => {
+    if (target.side !== 'enemy') return;
+    if (element === 'apoptosis') { config.elemDps *= 2.5; config.atkMul = 0.7; }
+    else if (element === 'burn') { config.elemDamage *= 3.8; config.resDown += 20; }
+    else if (element === 'neural') { config.elemDamage *= 2; config.elemDps = 1000; }
+    else if (element === 'erosion') { config.defDown += 120; config.physTicks = 10; config.physTickDamage = 1500; }
+  });
+}
 
 function installPoisonDagger(battle, owners) {
   if (!owners.size || poisonDaggerInstalled.has(battle)) return;
@@ -125,6 +198,9 @@ export function install(battle) {
     if (ids.length) byPlayer.set(ps.playerId, ids);
   }
   if (!byPlayer.size) return;
+  if ([...byPlayer.values()].some((ids) => ids.includes('relic_133'))) installIceFire(battle);
+  installSachet(battle, byPlayer);
+  if ([...byPlayer.values()].some((ids) => ids.includes('relic_134'))) installRiverPrayer(battle);
   installHealingHand(battle, new Set([...byPlayer].filter(([, ids]) => ids.includes('relic_172')).map(([pid]) => pid)));
   installFertilizer(battle, new Set([...byPlayer].filter(([, ids]) => ids.includes('relic_125')).map(([pid]) => pid)));
   installSkillEndSp(battle, byPlayer);
@@ -142,4 +218,5 @@ export function install(battle) {
   for (const pid of byPlayer.keys()) for (const unit of playerOps(battle, pid)) apply(unit);
   // Covers future operators too; the same key replaces the passive instead of stacking it on redeploy.
   battle.on('deploy', ({ unit }) => apply(unit));
+  installKillRelics(battle, byPlayer);
 }

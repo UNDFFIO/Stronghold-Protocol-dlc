@@ -691,7 +691,7 @@ per source — DoTs and slows do that on purpose; a damage-taken / DEF / RES mod
 ## 3. Buffs, mods, statuses
 
 `battle.addBuff(unit, { key, duration=Infinity, refresh='replace'|'extend'|'stack'|'independent'|'keep', stacks, maxStacks,
-mods, flags, onTick(ctx), interval, onExpire(ctx), onRemove(ctx), tags, shield, shieldHits, shieldType, persist, visible, data, allowDead })`
+mods, flags, onTick(ctx), interval, onExpire(ctx), onRemove(ctx), tags, shield, shieldHits, shieldType, shieldPriority=0, persist, visible, data, allowDead })`
 - `replace`: new instance replaces the old; `extend`: keep the longer remaining time, take the new mods; `stack`: +stacks
   up to maxStacks, timer reset; `independent`: separate timers, at most `maxStacks` alive (oldest dropped); `keep`: ignore.
 - Additive mods scale with stacks (`value × stacks`), `*Mul` mods multiply (`value ^ stacks`).
@@ -699,7 +699,8 @@ mods, flags, onTick(ctx), interval, onExpire(ctx), onRemove(ctx), tags, shield, 
 - `shield` = HP absorbed (consumed, buff removed when empty); `shieldHits` = number of damage instances fully negated;
   `shieldType` ('phys' | 'arts' | 'true' | 'elemental') = a 屏障 that absorbs that damage type only (夜莺 S2 法术护盾 "能吸收…
   法术伤害"), or a list of them = those types only (机械师's 屏障 `['phys', 'arts']`: BlockDamage PHYSICAL_AND_MAGICAL — true
-  damage passes); none = every type (PRTS 术语释义 屏障 "若无特殊说明，屏障可吸收全种类伤害"). Shields are spent oldest first.
+  damage passes); none = every type (PRTS 术语释义 屏障 "若无特殊说明，屏障可吸收全种类伤害"). HP shields spend higher
+  `shieldPriority` first, then oldest first at equal priority; the collectible “庇护” uses -1000.
 - `visible: true` emits `['status', id, key, 1/0]` client events. `battle.removeBuff(unit, key|buff)`.
 
 **Mod keys** — additive: `atkFlat atkPct atkFinal defFlat defPct hpFlat hpPct resFlat aspd batPct blockCnt rangeExtend
@@ -960,7 +961,7 @@ registration order. `battle.off(handle)` / `battle.off(name, fn)` / `battle.offO
 | `statusApplied` | `{ source, target, status, duration, value, entered }` | after immunity check; `duration` = final (after 抵抗 / weight); `entered` = newly started (not a refresh) |
 | `blocked` | `{ blocker, enemy }` | enemy became blocked |
 | `enemySpawn` / `enemyLeak` | `{ enemy }` | |
-| `elementBurst` | `{ source, target, element }` | before the burst's lock/effects; same-element fills of `target` are already refused |
+| `elementBurst` | `{ source, target, element, config }` | before the burst's lock/effects; mutable `config` is a per-burst copy of the side-specific constants; same-element fills of `target` are already refused |
 | `palsyTrigger` | `{ enemy, buff, keep }` | a 麻痹 stack interrupts the enemy's normal attack ("触发麻痹"), before the stack is used: set `keep` to leave it (真言 噤声限域); a handler may kill the enemy (its turn ends) |
 | `dodge` | `{ source, target, dmg }` | an attack was dodged |
 | `boomerangCaught` | `{ unit, attackId, isSkill, x, y }` | a 回环射手 boomerang came back to its thrower (`ai.js throwBoomerang`; `isSkill` = thrown by a skill attack): 娜仁图亚 LPS-Y "每回收5次回旋投射物", S3 "投射物全部回收时" |
@@ -1763,3 +1764,15 @@ The optional `public/js/battle/operatorTraits.js` loader adapter attaches operat
 ### DLC Poison Dagger conversion
 
 `content/relics.js` installs owner-scoped `damageConvert {source,target,dmg,cancel}` for relic_240. The damage pipeline emits it after the original hit hooks and Physical dodge, before DEF/RES, hit-count handling and shields; setting cancel consumes the original instance. Each hit adds a separate five-second target buff with one Arts tick per second (first after one second), capturing Physical boosts and the hit multiplier, then using live Arts/general multipliers, RES and shields without another dodge. Poison ticks retain their Arts type after weakness-damage hooks and never split into new poison layers. Target death removes the buff; source death does not cancel it. Optional snapshot `poison: [[enemyId, activeLayerCount]]` is display-only and omitted when empty; nine-field unit tuples remain unchanged. Interpolation samples counts stepwise and clears absent values; model, impostor and fallback tint mix toward green-black (#082010) by n/(n+3). See [COLLECTIBLES.md](COLLECTIBLES.md).
+
+
+河谷祭祈（relic_134，史诗）的战场级增强见[COLLECTIBLES.md](COLLECTIBLES.md)。elementBurst钩子新增可修改的config：每次复制当前阵营的爆发配置，修改仅作用于此次爆发，不改变共享ELEMENT常量；可调整伤害、减益、额外持续伤害。神经额外每秒元素伤害与侵蚀0.03秒十次物理伤害均为无来源dot，依附原爆发锁，冷却移除即停止。
+
+
+No.116–119的击倒/部署效果见[收藏品规则](COLLECTIBLES.md)：death（reason=killed）确认真实击倒，deploySeq区分真实部署。Buff新增shieldPriority（默认0），生命值屏障优先消耗高优先级，同优先级按现有顺序消耗；“庇护”为-1000。不改变护盾次数优先于生命屏障的既有规则。
+
+### 天师锦囊与冰中火（2026-10-24）
+
+`relic_132` 在持有者每场战斗首个炎盟约干员的 `deploy` 事件中原位召唤一只集成战略版炎佑，后续部署不再触发；与炎盟约自身的强化召唤独立。`spawnYanyou({ at: [r, c] })` 使用 `spawnToken({ airborne: true })`，仅飞行召唤物可与干员共享部署格且不写入地面占格；移动和死亡保留原占格单位。锦囊炎佑使用基础属性，没有炎干员属性继承及元素损伤免疫；攻击、灼燃附伤、光环及喷火复用已有机制。[ASSUMED] 以当前炎盟约归属（含赋予盟约的装备）判断触发干员。
+
+`relic_133` 对本战场现有与后续生成的敌人安装幂等持久增益：`elemTakenMul: 1.75` 与 `elementalTakenMul: 1.75`，分别用于元素损伤累计和元素伤害，包含队友及无来源伤害，不影响我方。多人持有或重复安装不叠加，与其他元素脆弱独立相乘。

@@ -1,4 +1,10 @@
 {
+  "天师锦囊": "Celestial Master’s Sachet",
+  "冰中火": "Fire in Ice",
+  "每场战斗首次部署我方炎盟约干员时，在其位置召唤一只炎佑（仅在激活炎盟约后可获得）": "Once per battle, deploying your first Yan-bond Operator summons a Yanyou at their position (obtainable only while the Yan bond is active)",
+  "首次部署炎国干员时，在其位置召唤一只炎佑。": "Deploying the first Yan Operator summons a Yanyou at their position.",
+  "敌人受到的元素损伤和元素伤害+75%": "Enemies take +75% Elemental buildup and Elemental damage",
+  "敌人受到的元素损伤和元素伤害+75%。": "Enemies take +75% Elemental buildup and Elemental damage.",
   "离线导入（不下载官方数据表）": "Import offline (do not download official data tables)",
   "_meta": {
     "type": "lang",
@@ -2629,5 +2635,20 @@
   "当前不可调试，请等待整备阶段并取消准备。": "Debugging is unavailable. Wait for preparation and cancel ready.",
   "搜索收藏品名称或 ID": "Search collectible name or ID",
   "选择收藏品": "Choose a collectible",
-  "添加收藏品": "Add collectible"
+  "添加收藏品": "Add collectible",
+  "河谷祭祈": "River Valley Prayer",
+  "我方凋亡、灼燃、神经和侵蚀损伤的爆发效果增强": "Allied Necrosis, Burn, Nervous Impairment and Corrosion bursts are enhanced",
+  "我方凋亡、灼燃、神经和侵蚀损伤的爆发效果增强。": "Allied Necrosis, Burn, Nervous Impairment and Corrosion bursts are enhanced.",
+  "“撕咬的渴望”": "“Craving to Bite”",
+  "我方干员击倒敌人时，攻击速度+100，持续2秒": "When an allied Operator defeats an enemy, gain +100 ASPD for 2 seconds",
+  "我方干员击倒敌人时，攻击速度+100，持续2秒。": "When an allied Operator defeats an enemy, gain +100 ASPD for 2 seconds.",
+  "异香角": "Fragrant Horn",
+  "我方干员击倒敌人时，获得2点技力": "When an allied Operator defeats an enemy, recover 2 SP",
+  "我方干员击倒敌人时，获得2点技力。": "When an allied Operator defeats an enemy, recover 2 SP.",
+  "渴血钳兽": "Bloodthirsty Pincerbeast",
+  "我方干员击倒敌人时，回复最大生命值的10%": "When an allied Operator defeats an enemy, restore 10% of their maximum HP",
+  "我方干员击倒敌人时，回复10%最大生命。": "When an allied Operator defeats an enemy, restore 10% of their maximum HP.",
+  "“庇护”": "“Shelter”",
+  "我方高台干员部署时立刻获得最大生命值100%的屏障": "Allied high-ground Operators immediately gain a barrier equal to 100% of their maximum HP on deployment",
+  "高台干员部署时立刻获得最大生命100%的屏障。": "Allied high-ground Operators immediately gain a barrier equal to 100% of their maximum HP on deployment."
 }

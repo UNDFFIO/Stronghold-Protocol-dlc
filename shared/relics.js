@@ -17,6 +17,7 @@ export const RELIC_TIERS = Object.freeze([
  * @typedef {Object} RelicExtras
  * @property {string} [profession]
  * @property {string} [position]
+ * @property {string} [requiredBond]
  * @property {Readonly<{income: number}>} [economy]
  * @property {boolean} [reverseLpOnce]
  * @property {boolean} [scratchTicket]
@@ -44,6 +45,18 @@ const relic = (number, name, tier, desc, sourceEffect, mods, extra = {}) => Obje
 
 // Tiers describe the adapted strength, rather than the original rarity. "All" means the owner's operators only.
 export const RELICS = Object.freeze([
+  relic('132', N_('天师锦囊'), 1, N_('每场战斗首次部署我方炎盟约干员时，在其位置召唤一只炎佑（仅在激活炎盟约后可获得）'),
+    N_('首次部署炎国干员时，在其位置召唤一只炎佑。'), {}, { requiredBond: 'yanShip' }),
+  relic('133', N_('冰中火'), 1, N_('敌人受到的元素损伤和元素伤害+75%'),
+    N_('敌人受到的元素损伤和元素伤害+75%。'), {}),
+  relic('116', N_('“撕咬的渴望”'), 1, N_('我方干员击倒敌人时，攻击速度+100，持续2秒'),
+    N_('我方干员击倒敌人时，攻击速度+100，持续2秒。'), {}),
+  relic('117', N_('异香角'), 1, N_('我方干员击倒敌人时，获得2点技力'),
+    N_('我方干员击倒敌人时，获得2点技力。'), {}),
+  relic('118', N_('渴血钳兽'), 1, N_('我方干员击倒敌人时，回复最大生命值的10%'),
+    N_('我方干员击倒敌人时，回复10%最大生命。'), {}),
+  relic('119', N_('“庇护”'), 1, N_('我方高台干员部署时立刻获得最大生命值100%的屏障'),
+    N_('高台干员部署时立刻获得最大生命100%的屏障。'), {}),
   relic('158', N_('时间机器'), 1, N_('下一场战斗中，扣除的目标生命值改为等量增加（仅生效一场）'),
     N_('原创：下一场战斗目标生命值扣除变为增加。'), {}, { reverseLpOnce: true }),
   relic('003', N_('橙味风暴'), 1, N_('所有我方干员的攻击力+8%'), N_('携带名额 +1；四种形态攻击提高 1/3/5/7%。'), { atkPct: 0.08 }),
@@ -90,6 +103,8 @@ export const RELICS = Object.freeze([
   relic('156', N_('解压玩具'), 3, N_('多人模式的普通作战中，自身阵地出现的敌人数量减半（向下取整），减少的敌人均分给其他存活且未离场的玩家；每名持有者各有10%概率改为集中敌人：随机一名触发者承受所有敌人，未持有者各保留1个，其他持有者不出现敌人（替代减半效果，首领波次不生效）'),
     N_('原创：普通作战敌人减半转移，10% 概率集中敌人。'), {}, { multiplayerOnly: true, redistributeEnemies: true }),
 
+  relic('134', N_('河谷祭祈'), 4, N_('我方凋亡、灼燃、神经和侵蚀损伤的爆发效果增强'),
+    N_('我方凋亡、灼燃、神经和侵蚀损伤的爆发效果增强。'), {}),
   relic('140', N_('第一法则'), 4, N_('我方干员技能结束时获得4点技力'),
     N_('我方干员技能结束时获得 4 点技力。'), {}, { skillEndSp: 4 }),
   relic('172', N_('护愈之手'), 4, N_('我方医疗干员攻击范围内的我方干员免疫异常状态，溢出的治疗量转化为等量屏障（上限为受治疗者最大生命值的100%）'),
@@ -172,16 +187,17 @@ export function comebackWeights(round) {
   return [0, 0, 55, 30, 15];
 }
 
-export function canReceiveRelic(r, owned, { hasScratchTicket = false } = {}) {
+export function canReceiveRelic(r, owned, { hasScratchTicket = false, bonds = {} } = {}) {
   const ids = idsOf(owned);
-  return !!r && (r.scratchTicket ? ids.has('relic_234') && !hasScratchTicket : !ids.has(r.id));
+  return !!r && (!r.requiredBond || bonds[r.requiredBond]?.active === true)
+    && (r.scratchTicket ? ids.has('relic_234') && !hasScratchTicket : !ids.has(r.id));
 }
 
-export function pickRelic(round, owned, rng, { comeback = false, multiplayer = false, tierWeights = null, hasScratchTicket = false, excludeIds = [] } = {}) {
+export function pickRelic(round, owned, rng, { comeback = false, multiplayer = false, tierWeights = null, hasScratchTicket = false, excludeIds = [], bonds = {} } = {}) {
   const excluded = new Set(excludeIds);
   const weights = tierWeights ?? (comeback ? comebackWeights(round) : dropWeights(round));
   const pools = RELIC_TIERS.map(({ tier, normalDrop }) => normalDrop === false ? [] : RELICS.filter((r) => r.tier === tier && !excluded.has(r.id)
-    && canReceiveRelic(r, owned, { hasScratchTicket }) && (!r.multiplayerOnly || multiplayer)));
+    && canReceiveRelic(r, owned, { hasScratchTicket, bonds }) && (!r.multiplayerOnly || multiplayer)));
   const total = weights.reduce((sum, w, i) => sum + (pools[i].length ? w : 0), 0);
   if (!total) return null;
   let roll = rng() * total;
@@ -194,11 +210,11 @@ export function pickRelic(round, owned, rng, { comeback = false, multiplayer = f
 }
 
 /** Three distinct, unowned candidates. A nearly exhausted eligible pool may offer fewer. */
-export function pickRelicChoices(round, owned, rng, { comeback = false, multiplayer = false, hasScratchTicket = false } = {}) {
+export function pickRelicChoices(round, owned, rng, { comeback = false, multiplayer = false, hasScratchTicket = false, bonds = {} } = {}) {
   const excluded = [];
   const choices = [];
   for (let i = 0; i < 3; i++) {
-    const opts = { comeback, multiplayer, hasScratchTicket, excludeIds: excluded };
+    const opts = { comeback, multiplayer, hasScratchTicket, bonds, excludeIds: excluded };
     const r = pickRelic(round, owned, rng, opts) || (comeback ? pickRelic(round, owned, rng, { ...opts, comeback: false }) : null);
     if (!r) break;
     choices.push(r.id);

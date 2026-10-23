@@ -229,7 +229,7 @@ export function leaderHitCancelled(battle, target, amount) {
  * Absorb damage with shields on `target`. Returns the remaining amount. `type` = the damage type: a shield buff with a
  * `shieldType` absorbs only that type (夜莺 S2 "屏障能吸收…法术伤害") — or, a list of types, only those (机械师's 屏障:
  * BlockDamage PHYSICAL_AND_MAGICAL, buff_template_data mcnist_t_2 / mcnist_s_2_shield: ['phys', 'arts']); one without
- * absorbs every type (PRTS 术语释义 屏障 "若无特殊说明，屏障可吸收全种类伤害"). Older shields first (buff order:
+ * absorbs every type (PRTS 术语释义 屏障 "若无特殊说明，屏障可吸收全种类伤害"). Higher shieldPriority first, then older shields (buff order:
  * "优先消耗先生成的屏障").
  */
 export function absorbShields(battle, target, amount, type = null) {
@@ -247,16 +247,23 @@ export function absorbShields(battle, target, amount, type = null) {
       break;
     }
   }
-  for (let i = 0; i < target.buffs.length && rest > 0; i++) {
-    const b = target.buffs[i];
-    if (b.shield > 0 && absorbs(b)) {
+  // Keep the usual in-place walk when all priorities are zero. Stable sorting preserves equal-priority order.
+  const ordered = target.buffs.some((b) => b.shield > 0 && b.shieldPriority !== 0)
+    ? target.buffs.filter((b) => b.shield > 0).sort((a, b) => b.shieldPriority - a.shieldPriority) : null;
+  const shields = ordered ?? target.buffs;
+  for (let i = 0; i < shields.length && rest > 0; i++) {
+    const b = shields[i];
+    if (b.shield > 0 && absorbs(b) && (!ordered || target.buffs.includes(b))) {
       const take = Math.min(b.shield, rest);
       b.shield -= take;
       rest -= take;
       changed = true;
       if (b.shield <= 1e-9) {
         b.shield = 0;
-        if (!b.mods && !b.flags && !(b.shieldHits > 0)) { battle._removeBuffAt(target, i); i--; }
+        if (!b.mods && !b.flags && !(b.shieldHits > 0)) {
+          battle._removeBuffAt(target, ordered ? target.buffs.indexOf(b) : i);
+          if (!ordered) i--;
+        }
       }
     }
   }
@@ -542,15 +549,18 @@ export function elementBurst(battle, source, target, el) {
 
 function resolveBurst(battle, source, target, el) {
   const cfg = ELEMENT[el];
+  const enemy = target.side === 'enemy';
+  // A fresh config per burst lets content enhance the official effects without mutating shared constants.
+  const c = { ...(enemy ? cfg.enemy : cfg.ally) };
   target.elem[el] = target.gaugeMax;
   // the cooldown's end restores every element of the unit ("随后单位所有种类的元素值恢复至最大值")
   const reset = () => { for (const k of ELEMENT_ORDER) if (k in target.elem) target.elem[k] = 0; };
   battle.fx('burst', { x: target.x, y: target.y, id: target.id, element: el });
-  if (battle._hooks.elementBurst) battle.emit('elementBurst', { source, target, element: el });
+  if (battle._hooks.elementBurst) battle.emit('elementBurst', { source, target, element: el, config: c });
   if (!target.alive) { reset(); return; }
   const tags = ['burst', el];
   // 无来源 damage credited to `source` (header)
-  const hit = (amount, type) => battle.dealDamage(source, target, { amount, type, element: el, canDodge: false, sourceless: true, tags });
+  const hit = (amount, type, dot = false) => battle.dealDamage(source, target, { amount, type, element: el, canDodge: false, sourceless: true, tags: dot ? [...tags, 'dot'] : tags });
   const lock = (duration, extra = {}) => {
     if (!(duration > 0)) { reset(); return null; }
     return battle.addBuff(target, { key: `${el}Burst`, duration, visible: true, onExpire: reset, onRemove: reset, ...extra, flags: { burstLock: true, ...(extra.flags || {}) } });
@@ -562,14 +572,12 @@ function resolveBurst(battle, source, target, el) {
     });
     return;
   }
-  const enemy = target.side === 'enemy';
-  const c = enemy ? cfg.enemy : cfg.ally;
   if (el === 'burn') {
     lock(c.duration, { mods: { resFlat: -c.resDown } });
     if (enemy) hit(c.elemDamage, 'elemental'); else hit(c.damage, c.type);
   } else if (el === 'neural') {
     // PRTS 元素: the status first ("立刻获得等时长的眩晕" / "获得3层麻痹"), then the hit
-    lock(c.duration);
+    lock(c.duration, enemy && c.elemDps ? { interval: 1, onTick: () => hit(c.elemDps, 'elemental', true) } : {});
     if (enemy) {
       battle.applyStatus(target, 'palsy', { value: c.palsy, source });
       if (target.alive) hit(c.elemDamage, 'elemental');
@@ -581,9 +589,9 @@ function resolveBurst(battle, source, target, el) {
     if (enemy) {
       // 50 % 虚弱, 800 元素伤害 per second; each second the 虚弱 drops to 50 % × 剩余时间 ÷ 总持续时间 (PRTS 元素)
       lock(c.duration, {
-        mods: { atkMul: 1 - c.weaken }, interval: 1,
+        mods: { atkMul: (1 - c.weaken) * (c.atkMul ?? 1) }, interval: 1,
         onTick: ({ buff }) => {
-          buff.mods = { atkMul: 1 - c.weaken * Math.max(0, buff.timeLeft) / c.duration };
+          buff.mods = { atkMul: (1 - c.weaken * Math.max(0, buff.timeLeft) / c.duration) * (c.atkMul ?? 1) };
           target.markDirty();
           hit(c.elemDps, 'elemental');
         },
@@ -605,7 +613,11 @@ function resolveBurst(battle, source, target, el) {
     }
   } else if (el === 'erosion') {
     // the permanent DEF cut lands first, then the hit; both sides then have their cooldown (operators 10 s, enemies 8 s)
-    lock(c.duration);
+    let ticks = 0;
+    lock(c.duration, c.physTicks ? { interval: 0.03, onTick: () => {
+      // The buff accumulator catches up intervals shorter than one frame; only the first ten produce hits.
+      if (ticks < c.physTicks && target.alive) { ticks++; hit(c.physTickDamage, 'phys', true); }
+    } } : {});
     battle.addBuff(target, { key: 'erosionDown', refresh: 'stack', stacks: 1, maxStacks: 1e6, mods: { defFlat: -c.defDown }, visible: true });
     if (enemy) hit(c.elemDamage, 'elemental'); else hit(c.damage, c.type);
   }

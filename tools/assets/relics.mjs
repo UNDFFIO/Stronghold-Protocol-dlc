@@ -33,6 +33,13 @@ export async function prepareCustomRelicIcons(assetsRoot) {
 }
 
 export const RELIC_ICON_FILES = Object.freeze({
+  "relic_132": "rogue_6_relic_fight_20.png", // 天师锦囊，No.132，核对于 2026-10-24
+  "relic_133": "rogue_6_relic_fight_21.png", // 冰中火，No.133
+  "relic_116": "rogue_6_relic_fight_4.png", // “撕咬的渴望”，No.116，核对于 2026-10-24
+  "relic_117": "rogue_6_relic_fight_5.png", // 异香角，No.117
+  "relic_118": "rogue_6_relic_fight_6.png", // 渴血钳兽，No.118
+  "relic_119": "rogue_6_relic_fight_7.png", // “庇护”，No.119
+  "relic_134": "rogue_6_relic_fight_22.png", // 河谷祭祈，No.134，核对于 2026-10-24
   "relic_139": "rogue_6_relic_fight_27.png", // 黄金平原，No.139，核对于 2026-10-14
   "relic_140": "rogue_6_relic_fight_28.png", // 第一法则，No.140
   "relic_125": "rogue_6_relic_fight_13.png", // 液体化肥，No.125，核对于 2026-10-14
