@@ -78,7 +78,7 @@
 // plan. No npm ci, no MANIFEST.json. Not a release asset: the maintainer offers it for download elsewhere (DEPLOY §7).
 //
 // --out defaults to <tmp>/stronghold-protocol-release and must be outside the repository. --no-install skips npm ci
-// (no node_modules, no public/vendor: a test build). Zipping needs `zip` (or a bsdtar `tar`, e.g. Windows 10+).
+// (no node_modules, no public/vendor: a test build). Zipping uses `zip`, Windows PowerShell/.NET, or bsdtar.
 
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -642,21 +642,30 @@ export function packageOutIsUnsafe(out, root = REPO) {
 }
 
 /**
- * Zip `cwd`/`folder` (FOLDER unless named: the asset pack's folder) into `zipPath`: Info-ZIP `zip`, else a bsdtar
- * `tar --format zip` (Windows 10+, macOS). bsdtar writes
- * the names in UTF-8 (flag bit 11) only when told: its default is the system code page, which loses a name it cannot
- * spell (卫戍 becomes ?? on Windows code page 1252) and leaves no UTF-8 copy for a reader.
+ * Zip `cwd`/`folder` (FOLDER unless named: the asset pack's folder) into `zipPath`: Info-ZIP `zip`, else Windows
+ * PowerShell's .NET ZipFile or a bsdtar `tar --format zip`. Always request UTF-8 names. Windows' bsdtar 3.8.9 crashes
+ * on Chinese filenames under the runner's system locale, even with zip:hdrcharset=UTF-8.
  */
 export function zipFolder(cwd, zipPath, folder = FOLDER) {
   // deflate everything: storing PNG / MP3 as they are made the full zip 8.5 MB larger and saved no real time
   const z = spawnSync('zip', ['-q', '-r', '-X', zipPath, folder], { cwd, stdio: 'inherit' });
   if (!z.error && z.status === 0) return;
-  // Windows bsdtar otherwise writes non-ASCII names in the system code page.
-  const t = spawnSync('tar', ['-c', '--format', 'zip', '--options', 'zip:hdrcharset=UTF-8', '-f', zipPath, folder], { cwd, stdio: 'inherit' });
+  const windows = process.platform === 'win32';
+  const command = windows ? 'powershell.exe' : 'tar';
+  // Discard a partial archive from a failed zip invocation: ZipFile requires a new destination.
+  if (windows && isFile(zipPath)) fs.unlinkSync(zipPath);
+  // Windows PowerShell targets older .NET defaults: explicitly use ZIP's forward-slash separators.
+  const args = windows ? ['-NoProfile', '-NonInteractive', '-Command',
+    "[AppContext]::SetSwitch('Switch.System.IO.Compression.ZipFile.UseBackslash', $false); Add-Type -AssemblyName System.IO.Compression.FileSystem; [IO.Compression.ZipFile]::CreateFromDirectory($env:SP_PACKAGE_ZIP_SOURCE, $env:SP_PACKAGE_ZIP_DEST, [IO.Compression.CompressionLevel]::Optimal, $true, [Text.Encoding]::UTF8)"]
+    : ['-c', '--format', 'zip', '--options', 'zip:hdrcharset=UTF-8', '-f', zipPath, folder];
+  // Paths are passed as environment values, never interpolated into PowerShell code.
+  const t = spawnSync(command, args, { cwd, stdio: 'inherit', ...(windows ? { env: { ...process.env,
+    SP_PACKAGE_ZIP_SOURCE: path.resolve(cwd, folder), SP_PACKAGE_ZIP_DEST: path.resolve(zipPath),
+  } } : {}) });
   if (t.error || t.status !== 0 || !isFile(zipPath)) {
-    const details = [['zip', z], ['tar', t]].map(([command, result]) =>
+    const details = [['zip', z], [command, t]].map(([command, result]) =>
       `${command}: status=${result.status}, signal=${result.signal}, error=${result.error?.message || 'none'}`);
-    throw new Error(`zipping failed: install \`zip\` (or a bsdtar \`tar\`)\n${details.join('\n')}\ncwd=${cwd}\narchive exists=${isFile(zipPath)}`);
+    throw new Error(`zipping failed: need \`zip\`, Windows PowerShell/.NET or bsdtar\n${details.join('\n')}\ncwd=${cwd}\narchive exists=${isFile(zipPath)}`);
   }
 }
 

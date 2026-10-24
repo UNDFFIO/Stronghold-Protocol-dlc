@@ -111,7 +111,9 @@ test('MANIFEST.json and UPDATE.json pass the personal-info scan: paths are scann
 // Bases and a whole round trip on a temporary checkout (tools/package.mjs, --no-install)
 
 const hasZipTool = !spawnSync('zip', ['-v'], { encoding: 'utf8' }).error
-  || /bsdtar/.test(spawnSync('tar', ['--version'], { encoding: 'utf8' }).stdout || '');
+  || (process.platform === 'win32'
+    ? spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', '$PSVersionTable.PSVersion.ToString()']).status === 0
+    : /bsdtar/.test(spawnSync('tar', ['--version'], { encoding: 'utf8' }).stdout || ''));
 const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13]);
 
 function fakeCheckout(version) {
@@ -297,7 +299,7 @@ test('a base folder: npm\'s files are compared like the stage\'s, per-machine an
 });
 
 test('the zip reader: stored and deflated entries, zip64, UTF-8 names; damaged and foreign zips are refused', { skip: !hasZipTool && 'no zip / tar' }, () => {
-  const dir = tmp('zip');
+  const dir = tmp("zip-中文-'quote");
   try {
     put(dir, `${FOLDER}/package.json`, '{"version":"0.2.0"}');
     put(dir, `${FOLDER}/public/assets/卫戍 a.png`, Buffer.alloc(5000, 7));
@@ -307,8 +309,8 @@ test('the zip reader: stored and deflated entries, zip64, UTF-8 names; damaged a
       const z = spawnSync('zip', ['-q', '-r', ...args, name, FOLDER], { cwd: dir });
       if (!z.error && z.status === 0) zipped.push(name);
     };
-    // plain.zip is what tools/package.mjs writes (zip, else bsdtar); the other two need Info-ZIP
-    // Like runTool, give the packager piped stdio: inheriting the Windows test runner's handles can fail to spawn tar.
+    // plain.zip is what tools/package.mjs writes (zip, Windows .NET, or bsdtar); the other two need Info-ZIP.
+    // Like runTool, give the packager piped stdio for its native compression child.
     const plain = spawnSync(process.execPath, ['--input-type=module', '-e', `
       import { zipFolder } from ${JSON.stringify(new URL('../tools/package.mjs', import.meta.url).href)};
       zipFolder(process.argv[1], process.argv[2]);

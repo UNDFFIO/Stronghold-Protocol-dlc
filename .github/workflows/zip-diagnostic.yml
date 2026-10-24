@@ -24,5 +24,4 @@ jobs:
           Get-Command zip,tar -All -ErrorAction SilentlyContinue | Format-Table Name,Source
           tar --version
       - run: npm ci --no-audit --no-fund
-      - run: node tools/zip-diagnostic.mjs
-      - run: node --test test/update-package.test.js
+      - run: node --test test/update-package.test.js test/package.test.js test/update-boot.test.js
