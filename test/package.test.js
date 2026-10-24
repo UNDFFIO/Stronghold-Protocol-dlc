@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url';
 import {
   ASSET_PACK_README, AUTHOR_TEST_FILES, FOLDER, REFUSE, RUNTIME_RESEARCH, assetPackName, assetPackPlan, assetPackReadme, entryProblems,
   importableArt, isRefused, packageOutIsUnsafe, parseArgs, plan, playerPackageJson, rewritePlayerDoc, resolveSpecifier, scanFiles,
-  selectTracked,
+  selectTracked, zipFolder,
 } from '../tools/package.mjs';
 import { hash16 } from '../server/http/assetIndex.js';
 import { rewriteManifest } from '../server/http/assetViews.js';
@@ -248,10 +248,29 @@ test('scans and guards: home paths and the account name in shipped files (art to
   }
 });
 
-// tools/package.mjs zips with `zip`, else with a bsdtar `tar --format zip` (Windows 10+, macOS; GNU tar cannot)
+// tools/package.mjs zips with `zip`, else Windows PowerShell/.NET or bsdtar (GNU tar cannot write ZIP).
 const hasZipTool = !spawnSync('zip', ['-v'], { encoding: 'utf8' }).error
-  || /bsdtar/.test(spawnSync('tar', ['--version'], { encoding: 'utf8' }).stdout || '');
+  || (process.platform === 'win32'
+    ? spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', '$PSVersionTable.PSVersion.ToString()']).status === 0
+    : /bsdtar/.test(spawnSync('tar', ['--version'], { encoding: 'utf8' }).stdout || ''));
 const hasUnzip = !spawnSync('unzip', ['-h'], { encoding: 'utf8' }).error;
+
+test('zipping a missing source reports both native command failures without creating an archive', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sp-package-zip-error-'));
+  const zip = path.join(dir, 'out.zip');
+  try {
+    assert.throws(() => zipFolder(path.join(dir, 'missing'), zip), (error) => {
+      assert.match(error.message, /zip: status=null, signal=null, error=spawnSync zip/);
+      assert.match(error.message, process.platform === 'win32'
+        ? /powershell\.exe: status=null, signal=null, error=spawnSync powershell\.exe/
+        : /tar: status=null, signal=null, error=spawnSync tar/);
+      return true;
+    });
+    assert.equal(fs.existsSync(zip), false);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
 
 test('a --no-install build of the temporary checkout zips exactly the plan in one Stronghold-Protocol/ folder', { skip: !hasZipTool && 'no zip / tar' }, () => {
   const { dir } = fakeCheckout();
