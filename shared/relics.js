@@ -20,6 +20,7 @@ export const RELIC_TIERS = Object.freeze([
  * @property {string} [requiredBond]
  * @property {Readonly<{income: number}>} [economy]
  * @property {boolean} [reverseLpOnce]
+ * @property {number} [battleChoiceBonus]
  * @property {boolean} [scratchTicket]
  * @property {boolean} [hideNumbers]
  * @property {string} [previewDesc]
@@ -67,6 +68,8 @@ export const RELICS = Object.freeze([
   relic('010', N_('教堂救济餐券'), 1, N_('所有我方干员的最大生命值+20%'), N_('部署名额 +2；四种形态生命提高 6/7/8/10%。'), { hpPct: 0.2 }),
   relic('103', N_('设计师量尺'), 1, N_('所有我方干员的物理闪避率+10%'), N_('物理闪避增加 15%。'), { dodgePhys: 0.1 }),
 
+  relic('195', N_('四叶草化石'), 2, N_('战斗后掉落收藏品时，增加一个可选项'),
+    N_('我方在得偿所愿节点和战斗后掉落战利品时，增加一个可选项'), {}, { battleChoiceBonus: 1 }),
   relic('159', N_('木棍'), 2, N_('从下一回合休整期起，每回合额外获得2资金，持有期间界面数字以■显示（仅影响显示）'),
     N_('原创：每回合额外 2 金币，持有者界面数字遮蔽。'), {}, { economy: Object.freeze({ income: 2 }), hideNumbers: true,
       previewDesc: N_('从下一回合休整期起，每回合额外获得2资金') }),
@@ -201,11 +204,11 @@ export function pickRelic(round, owned, rng, { multiplayer = false, tierWeights 
   return null;
 }
 
-/** Three distinct, unowned candidates. A nearly exhausted eligible pool may offer fewer. */
-export function pickRelicChoices(round, owned, rng, { leaked = false, multiplayer = false, hasScratchTicket = false, bonds = {} } = {}) {
+/** Distinct, unowned candidates (three by default). A nearly exhausted eligible pool may offer fewer. */
+export function pickRelicChoices(round, owned, rng, { leaked = false, multiplayer = false, hasScratchTicket = false, bonds = {}, count = 3 } = {}) {
   const excluded = [];
   const choices = [];
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < count; i++) {
     const opts = { multiplayer, hasScratchTicket, bonds, excludeIds: excluded, tierWeights: dropWeights(round, { leaked }) };
     const r = pickRelic(round, owned, rng, opts);
     if (!r) break;

@@ -15,7 +15,8 @@ export function settleRelics(ps, result, { completed = false, lpLoss = 0 } = {})
   if (lpLoss > 5 || ps.relicOffer) return null;
   const rng = createRng(deriveSeed(ps.m.seed, `relic-choice:${ps.seat}:${round}`));
   const leaked = result.leaked.some((l) => l && l.counted !== false);
-  const options = pickRelicChoices(round, ps.relics, rng, { leaked, multiplayer: !ps.m.isSolo, hasScratchTicket: ps.scratchTickets.length > 0, bonds: ps.bonds });
+  const count = 3 + [...new Set(ps.relics.map((r) => r.id))].reduce((sum, id) => sum + (getRelic(id)?.battleChoiceBonus || 0), 0);
+  const options = pickRelicChoices(round, ps.relics, rng, { count, leaked, multiplayer: !ps.m.isSolo, hasScratchTicket: ps.scratchTickets.length > 0, bonds: ps.bonds });
   if (!options.length) return null;
   ps.relicOffer = { id: `relic:${ps.seat}:${round}`, round, reason: 'lowLoss', leaked, options };
   ps.dirty();

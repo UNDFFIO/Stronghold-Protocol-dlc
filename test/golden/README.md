@@ -169,3 +169,9 @@ see [UPSTREAM-0.3.1.md](UPSTREAM-0.3.1.md) for the source and DLC compatibility 
 - `coop2-NORMAL-5-coverage-diy`
 - `coop2-NORMAL-68-coverage-diy`
 - `coop2-NORMAL-1-unowned-roster`
+
+## PR #1 合并 master（2026-10-24）
+
+将 master 的四叶草化石与本分支的实际损血门槛、漏怪品质降低规则合并。四叶草持有者符合损血门槛时提供四个候选，漏怪仍降低品质，已移除的逆风补给和护盾不恢复。新增精良藏品及额外候选影响同种子抽样、后续编队与经济；重算全部290个场景后，仅 matches 家族相对合并前 PR 分支的以下23个场景移动，其余五个战斗家族不变：
+
+`solo-FUNNY-1`、`solo-FUNNY-2`、`solo-NORMAL-1`、`solo-NORMAL-2`、`solo-HARD-1`、`solo-HARD-2`、`solo-ABYSS-1`、`solo-ABYSS-2`、`coop2-NORMAL-3`、`coop2-HARD-4`、`coop3-ABYSS-5`、`coop4-FUNNY-6`、`coop4-ABYSS-7`、`coop2-NORMAL-8-serverrun`、`solo-HARD-9-boosted`、`coop2-ABYSS-10-boosted`、`coop2-NORMAL-14-standins`、`coop2-NORMAL-70-diy`、`coop2-NORMAL-1-coverage-standins`、`coop2-NORMAL-5-coverage-diy`、`coop2-NORMAL-68-coverage-diy`、`coop2-NORMAL-24-coverage-diy`、`coop2-NORMAL-1-unowned-roster`。

@@ -14,6 +14,60 @@ function exhaustOtherRelics(ps, id) {
   grantRelic(ps, 'relic_235');
 }
 
+test('四叶草化石：R1精良可领取，持有后战后四选一，第四项可领取且不会跨局保留', () => {
+  const h = makeMatch({ mode: 'solo', fake: true }).start();
+  try {
+    const ps = h.ps('p_0');
+    const id = 'relic_195';
+    assert.equal(getRelic(id).tier, 2);
+    exhaustOtherRelics(ps, id);
+    h.toPrep(1);
+    const offer = settleRelics(ps, { perfect: true, leaked: [] }, { completed: true });
+    assert.deepEqual(offer.options, [id]);
+    assert.equal(ps.relics.some((r) => r.id === id), false);
+    assert.equal(selectRelic(ps, 'forged', 0), null);
+    assert.equal(selectRelic(ps, offer.id, 0).id, id);
+    assert.equal(selectRelic(ps, offer.id, 0), null);
+    ps.relics = ps.relics.filter((r) => r.id === id);
+    h.toPrep(2);
+    const next = settleRelics(ps, { perfect: true, leaked: [] }, { completed: true });
+    assert.equal(next.options.length, 4);
+    assert.equal(new Set(next.options).size, 4);
+    assert.ok(!next.options.includes(id));
+    assert.equal(selectRelic(ps, next.id, 4), null);
+    assert.equal(selectRelic(ps, next.id, 3).id, next.options[3]);
+    assert.equal(ps.relics.length, 2);
+    assert.equal(settleRelics(ps, { perfect: true, leaked: [] }, { completed: true }), null);
+    // Other reward sources still use the default three candidates.
+    assert.equal(pickRelicChoices(2, ps.relics, createRng(10)).length, 3);
+  } finally { h.m.dispose(); }
+  const fresh = makeMatch({ mode: 'solo', fake: true }).start();
+  try { assert.deepEqual(fresh.ps('p_0').relics, []); } finally { fresh.m.dispose(); }
+});
+
+test('四叶草化石：仅持有者增加候选，重复ID不叠加，漏怪降级和不足四件仍遵守奖池规则', () => {
+  const h = makeMatch({ humans: 2, fake: true }).start();
+  try {
+    const owner = h.ps('p_0'), teammate = h.ps('p_1');
+    grantRelic(owner, 'relic_195');
+    owner.relics.push({ id: 'relic_195', round: 1 });
+    h.toPrep(3);
+    assert.equal(settleRelics(owner, { perfect: true, leaked: [] }, { completed: true }).options.length, 4);
+    assert.equal(settleRelics(teammate, { perfect: true, leaked: [] }, { completed: true }).options.length, 3);
+    owner.relicOffer = null;
+    h.toPrep(4);
+    const leaked = settleRelics(owner, { perfect: false, leaked: [{ counted: true }] }, { completed: true });
+    assert.equal(leaked.reason, 'lowLoss');
+    assert.equal(leaked.leaked, true);
+    assert.equal(leaked.options.length, 4);
+    assert.ok(leaked.options.every((id) => getRelic(id).tier <= 2));
+    owner.relicOffer = null;
+    exhaustOtherRelics(owner, 'relic_004');
+    h.toPrep(5);
+    assert.deepEqual(settleRelics(owner, { perfect: true, leaked: [] }, { completed: true }).options, ['relic_004']);
+  } finally { h.m.dispose(); }
+});
+
 test('河谷祭祈：史诗R7解锁，候选不生效，合法领取后下场增强爆发', () => {
   const h = makeMatch({ mode: 'solo', fake: true }).start();
   try {
@@ -252,7 +306,7 @@ test('collection: weaker same-tier duplicates cannot be drawn or granted', () =>
 });
 
 test('collection: every tier is populated, early pools cannot run out during ordinary play, definitions are immutable', () => {
-  assert.equal(RELICS.length, 63);
+  assert.equal(RELICS.length, 64);
   assert.equal(new Set(RELICS.map((r) => r.id)).size, RELICS.length);
   assert.ok(RELICS.filter((r) => r.tier === 1).length >= 9);
   for (const { tier } of RELIC_TIERS.filter((t) => t.normalDrop !== false)) assert.ok(RELICS.some((r) => r.tier === tier));

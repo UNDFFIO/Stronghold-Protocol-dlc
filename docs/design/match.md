@@ -2,6 +2,8 @@
 
 Part of [DESIGN.md](../DESIGN.md) (the index; section numbers are global).
 
+**DLC 四叶草化石（2026-10-24，维护者决定）：** No.195 为 II 精良收藏品，合法领取后仅为持有者战后实际损血不超过 5 的奖励增加一个候选（三选一变四选一），每次仍只领取一件。重复 ID 不叠加，候选不足时仅提供剩余合格项，超限补给直接发放数量不变。见 [COLLECTIBLES.md](../COLLECTIBLES.md)。
+
 ## 6. Match & meta (server/match)
 
 DLC Ascension protocols are cumulative and defined in `shared/difficulty.js`. Level 2, Death Embers, leaves a

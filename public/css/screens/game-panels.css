@@ -900,6 +900,8 @@ button.bpop__harmony:hover { border-style: solid; color: #fff; }
 
 .relic-choice__rule { color: var(--text-md); font-size: max(calc(.17 * var(--t)), 10px); line-height: 1.65; margin: 0 0 .18rem; }
 .relic-choice__cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .16rem; }
+.relic-choice__cards--four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 767px) { .relic-choice__cards--four { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .relic-choice__card { display: flex; flex-direction: column; align-items: center; gap: .1rem; padding: .18rem .14rem .12rem; min-width: 0; background: rgba(0, 0, 0, .3); border: 1px solid var(--line-2); border-top: 3px solid var(--relic-tone); color: var(--text-hi); cursor: pointer; text-align: center; }
 .relic-choice__card:hover, .relic-choice__card:focus-visible { border-color: var(--relic-tone); background: rgba(78, 216, 175, .07); outline: 1px solid var(--relic-tone); outline-offset: 1px; }
 .relic-choice__card:disabled { cursor: default; opacity: .65; }

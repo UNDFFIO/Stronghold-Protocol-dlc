@@ -46,6 +46,10 @@ server/match/
 Completed battles offer one collectible from three choices when the surviving, present player's actual LP loss is at most 5, including zero. Normal settlement passes the loss after the per-round cap, co-op rescue and LP effects; healing counts as zero loss. Boss settlement uses the player's loss of their shared-pool allocation and still requires a victorious Final Assault that unlocks Hidden Core. Missing, synthetic and duplicate results never grant extra rewards. Consecutive-leak compensation, promoted quality draws and next-round shield grants are removed. No-leak tier weights and unlock rounds are unchanged. Counted personal leaks shift each candidate down one quality tier, floored at Common, even after co-op rescue. `dropWeights(round, { leaked: true })` combines I+II into I and shifts III/IV/V into II/III/IV before exhausted-tier normalization. Leaking rewards cannot be Legendary; unrelated explicit reward pools are unchanged. Source: maintainer request, 2026-10-24.
 
 
+### DLC: Four-Leaf Clover Fossil
+
+四叶草化石（No.195，II 精良）合法领取后，持有者战后收藏品奖励（单次作战实际损血不超过 5）增加一个候选，三选一变为四选一，仍只领取一件。相同 ID 不重复叠加，候选不足时展示剩余合格项；超限补给的直接发放数量不变。官方图标及来源见 [COLLECTIBLES.md](COLLECTIBLES.md)。
+
 ### DLC: Ascension supplies
 
 `server/match/ascensionLottery.js` grants once at the start of round 4 to each surviving, present Ascension player
