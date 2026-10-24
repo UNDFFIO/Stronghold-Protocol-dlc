@@ -1,11 +1,58 @@
 // Single-player collectible debugging. All changes are applied and checked by the match server.
-import { useState } from '../../vendor/hooks.module.js';
-import { html, Button } from './components.js';
+import { useLayoutEffect, useRef, useState } from '../../vendor/hooks.module.js';
+import { html, Button, Icon } from './components.js';
+import { Img } from './gameComponents.js';
+import { relicIconUrl } from './assetUrls.js';
+import { data } from '../data.js';
 import { RELICS, canReceiveRelic, getRelic } from '../../../shared/relics.js';
 import { tierName } from './relicPanel.js';
 import { t } from '../../../shared/i18n.js';
 
 export function RelicDebugPanel({ relics, canEdit, onChange }) {
+  const panelRef = useRef(null);
+  const dragRef = useRef(null);
+  const positionRef = useRef(null);
+  const [position, setPosition] = useState(null);
+  const movePanel = (x, y) => {
+    const rect = panelRef.current.getBoundingClientRect();
+    const next = {
+      x: Math.max(0, Math.min(x, window.innerWidth - rect.width)),
+      y: Math.max(0, Math.min(y, window.innerHeight - rect.height)),
+    };
+    positionRef.current = next;
+    setPosition((prev) => prev?.x === next.x && prev?.y === next.y ? prev : next);
+  };
+  useLayoutEffect(() => {
+    const fit = () => {
+      const pos = positionRef.current;
+      if (pos) movePanel(pos.x, pos.y);
+    };
+    window.addEventListener('resize', fit);
+    const observer = new ResizeObserver(fit);
+    observer.observe(panelRef.current);
+    return () => { window.removeEventListener('resize', fit); observer.disconnect(); };
+  }, []);
+  const startDrag = (event) => {
+    if (event.button !== 0 || event.target.closest('button') || dragRef.current) return;
+    const rect = panelRef.current.getBoundingClientRect();
+    dragRef.current = { id: event.pointerId, dx: event.clientX - rect.left, dy: event.clientY - rect.top };
+    event.currentTarget.setPointerCapture(event.pointerId);
+    movePanel(rect.left, rect.top);
+    event.preventDefault();
+    event.stopPropagation();
+  };
+  const dragPanel = (event) => {
+    const drag = dragRef.current;
+    if (!drag || drag.id !== event.pointerId) return;
+    movePanel(event.clientX - drag.dx, event.clientY - drag.dy);
+    event.stopPropagation();
+  };
+  const endDrag = (event) => {
+    if (dragRef.current?.id !== event.pointerId) return;
+    dragRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    event.stopPropagation();
+  };
   const [query, setQuery] = useState('');
   const [id, setId] = useState('');
   const [busy, setBusy] = useState(false);
@@ -19,18 +66,30 @@ export function RelicDebugPanel({ relics, canEdit, onChange }) {
     setBusy(true);
     try { await onChange(relicId, action); } finally { setBusy(false); }
   };
-  return html`<aside class="relic-debug" aria-label=${t('收藏品调试')}>
-    <button type="button" class="relic-debug__heading" aria-expanded=${!collapsed} onClick=${() => setCollapsed(!collapsed)}>
-      ${t('收藏品调试')} <span>${collapsed ? '+' : '−'}</span>
-    </button>
+  return html`<aside ref=${panelRef} class="relic-debug" aria-label=${t('收藏品调试')}
+    style=${position ? { position: 'fixed', left: `${position.x}px`, top: `${position.y}px` } : undefined}>
+    <header class="relic-debug__heading" title=${t('拖动标题栏移动窗口')}
+      onPointerDown=${startDrag} onPointerMove=${dragPanel} onPointerUp=${endDrag}
+      onPointerCancel=${endDrag} onLostPointerCapture=${() => { dragRef.current = null; }}>
+      <span>${t('收藏品调试')}</span>
+      <button type="button" aria-label=${t('收藏品调试')} aria-expanded=${!collapsed}
+        onClick=${() => setCollapsed(!collapsed)}>${collapsed ? '+' : '−'}</button>
+    </header>
     ${collapsed ? null : html`<div class="relic-debug__body">
       <p>${t('仅整备阶段未准备时可操作；移除不会撤销已结算的一次性收益。')}</p>
       ${!canEdit ? html`<p role="status">${t('当前不可调试，请等待整备阶段并取消准备。')}</p>` : null}
       <input type="search" aria-label=${t('搜索收藏品名称或 ID')} placeholder=${t('搜索收藏品名称或 ID')}
         value=${query} onInput=${(e) => setQuery(e.currentTarget.value)} />
-      <select aria-label=${t('选择收藏品')} value=${selected?.id || ''} onChange=${(e) => setId(e.currentTarget.value)}>
-        ${available.map((r) => html`<option key=${r.id} value=${r.id}>${t(r.name)} · ${tierName(r.tier)} · ${r.id}</option>`)}
-      </select>
+      <div class="relic-debug__grid" role="group" aria-label=${t('选择收藏品')}>
+        ${available.map((r) => html`<button key=${r.id} type="button"
+          class=${`relic-debug__pick relic-tier-${r.tier}`} data-relic-id=${r.id}
+          aria-pressed=${selected?.id === r.id} title=${`${t(r.name)} · ${tierName(r.tier)} · ${r.id}`}
+          onClick=${() => setId(r.id)}>
+          <span class="relic-debug__art" aria-hidden="true"><${Img} src=${relicIconUrl(data.get('assets'), r.id)}
+            fallback=${html`<${Icon} name="key" />`} /></span>
+          <span>${t(r.name)}</span>
+        </button>`)}
+      </div>
       ${selected ? html`<p>${t(selected.desc)}</p>` : null}
       <${Button} size="sm" disabled=${!canEdit || busy || !selected} onClick=${() => change(selected.id, 'add')}>${t('添加收藏品')}<//>
       <ul class="relic-debug__owned">
