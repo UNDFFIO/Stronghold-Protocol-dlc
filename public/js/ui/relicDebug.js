@@ -1,5 +1,6 @@
 // Single-player collectible debugging. All changes are applied and checked by the match server.
-import { useLayoutEffect, useRef, useState } from '../../vendor/hooks.module.js';
+import { useState } from '../../vendor/hooks.module.js';
+import { usePanelDrag } from './usePanelDrag.js';
 import { html, Button, Icon } from './components.js';
 import { Img } from './gameComponents.js';
 import { relicIconUrl } from './assetUrls.js';
@@ -9,50 +10,7 @@ import { tierName } from './relicPanel.js';
 import { t } from '../../../shared/i18n.js';
 
 export function RelicDebugPanel({ relics, canEdit, onChange }) {
-  const panelRef = useRef(null);
-  const dragRef = useRef(null);
-  const positionRef = useRef(null);
-  const [position, setPosition] = useState(null);
-  const movePanel = (x, y) => {
-    const rect = panelRef.current.getBoundingClientRect();
-    const next = {
-      x: Math.max(0, Math.min(x, window.innerWidth - rect.width)),
-      y: Math.max(0, Math.min(y, window.innerHeight - rect.height)),
-    };
-    positionRef.current = next;
-    setPosition((prev) => prev?.x === next.x && prev?.y === next.y ? prev : next);
-  };
-  useLayoutEffect(() => {
-    const fit = () => {
-      const pos = positionRef.current;
-      if (pos) movePanel(pos.x, pos.y);
-    };
-    window.addEventListener('resize', fit);
-    const observer = new ResizeObserver(fit);
-    observer.observe(panelRef.current);
-    return () => { window.removeEventListener('resize', fit); observer.disconnect(); };
-  }, []);
-  const startDrag = (event) => {
-    if (event.button !== 0 || event.target.closest('button') || dragRef.current) return;
-    const rect = panelRef.current.getBoundingClientRect();
-    dragRef.current = { id: event.pointerId, dx: event.clientX - rect.left, dy: event.clientY - rect.top };
-    event.currentTarget.setPointerCapture(event.pointerId);
-    movePanel(rect.left, rect.top);
-    event.preventDefault();
-    event.stopPropagation();
-  };
-  const dragPanel = (event) => {
-    const drag = dragRef.current;
-    if (!drag || drag.id !== event.pointerId) return;
-    movePanel(event.clientX - drag.dx, event.clientY - drag.dy);
-    event.stopPropagation();
-  };
-  const endDrag = (event) => {
-    if (dragRef.current?.id !== event.pointerId) return;
-    dragRef.current = null;
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
-    event.stopPropagation();
-  };
+  const { panelRef, position, startDrag, dragPanel, endDrag, cancelDrag } = usePanelDrag();
   const [query, setQuery] = useState('');
   const [id, setId] = useState('');
   const [busy, setBusy] = useState(false);
@@ -70,7 +28,7 @@ export function RelicDebugPanel({ relics, canEdit, onChange }) {
     style=${position ? { position: 'fixed', left: `${position.x}px`, top: `${position.y}px` } : undefined}>
     <header class="relic-debug__heading" title=${t('拖动标题栏移动窗口')}
       onPointerDown=${startDrag} onPointerMove=${dragPanel} onPointerUp=${endDrag}
-      onPointerCancel=${endDrag} onLostPointerCapture=${() => { dragRef.current = null; }}>
+      onPointerCancel=${endDrag} onLostPointerCapture=${cancelDrag}>
       <span>${t('收藏品调试')}</span>
       <button type="button" aria-label=${t('收藏品调试')} aria-expanded=${!collapsed}
         onClick=${() => setCollapsed(!collapsed)}>${collapsed ? '+' : '−'}</button>

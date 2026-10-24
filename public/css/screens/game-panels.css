@@ -981,9 +981,9 @@ button.bpop__harmony:hover { border-style: solid; color: #fff; }
 .relic-debug__body p { margin: 0; }
 .relic-debug__body input { width: 100%; min-width: 0; color: inherit; background: #17251e; border: 1px solid var(--line-2); padding: .08rem; font: inherit; }
 .relic-debug__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 6px; max-height: min(2.4rem, 32vh); overflow: auto; min-height: 0; }
-.relic-debug__pick { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 4px; min-width: 0; padding: 6px; border: 1px solid var(--relic-tone); background: color-mix(in srgb, var(--relic-tone) 24%, #101916); color: var(--text-hi); font: inherit; overflow-wrap: anywhere; cursor: pointer; }
-.relic-debug__pick:hover { background: color-mix(in srgb, var(--relic-tone) 40%, #101916); }
-.relic-debug__pick[aria-pressed="true"] { background: color-mix(in srgb, var(--relic-tone) 48%, #101916); box-shadow: inset 0 0 0 2px var(--relic-tone); }
+.relic-debug__pick { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 4px; min-width: 0; padding: 6px; border: 1px solid var(--relic-tone); background: #101916; background: color-mix(in srgb, var(--relic-tone) 24%, #101916); color: var(--text-hi); font: inherit; overflow-wrap: anywhere; cursor: pointer; }
+.relic-debug__pick:hover { background: #253b31; background: color-mix(in srgb, var(--relic-tone) 40%, #101916); }
+.relic-debug__pick[aria-pressed="true"] { background: #304c3e; background: color-mix(in srgb, var(--relic-tone) 48%, #101916); box-shadow: inset 0 0 0 2px var(--relic-tone); }
 .relic-debug__pick:focus-visible { outline: 2px solid var(--text-hi); outline-offset: -3px; }
 .relic-debug__art { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; flex: none; }
 .relic-debug__art img { width: 100%; height: 100%; object-fit: contain; }
