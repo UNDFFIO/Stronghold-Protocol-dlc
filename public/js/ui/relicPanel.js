@@ -173,10 +173,12 @@ export function RelicChoice({ offer, deadline = 0, onChoose }) {
     if (!ok) { setBusy(null); setFailed(true); }
   };
   const remain = secondsLeft(deadline);
-  return html`<${Modal} open=${true} title=${comeback ? tr('逆风补给 · 藏品三选一') : tr('无漏怪奖励 · 藏品三选一')}
+  return html`<${Modal} open=${true} title=${cards.length === 4
+    ? (comeback ? tr('逆风补给 · 藏品四选一') : tr('无漏怪奖励 · 藏品四选一'))
+    : (comeback ? tr('逆风补给 · 藏品三选一') : tr('无漏怪奖励 · 藏品三选一'))}
     micro="RELIC CHOICE" width="min(9rem, 94vw)" tone=${comeback ? 'gold' : 'mint'} class="relic-choice" closeOnBackdrop=${false}>
     <p class="relic-choice__rule">${comeback ? tr('连续三回合漏怪：本次候选稀有度提升一档（最高传说），下回合获得 2 点护盾，抵消两点扣血。') : tr('本回合没有漏怪：从以下收藏品中选择一件。')}</p>
-    <div class="relic-choice__cards">
+    <div class=${`relic-choice__cards${cards.length === 4 ? ' relic-choice__cards--four' : ''}`}>
       ${cards.map((r, idx) => r ? html`<button key=${r.id} type="button" class=${`relic-choice__card relic-tier-${r.tier}`}
         disabled=${busy != null} aria-label=${tr('选择{name}，{1}，{2}', { name: tr(r.name), 1: tierName(r.tier), 2: tr(r.previewDesc || r.desc) })} data-relic-id=${r.id} onClick=${() => pick(idx)}>
         <span class="relic-choice__art"><${Img} src=${relicIconUrl(data.get('assets'), r.id)} fallback=${html`<${Icon} name="key" />`} /></span>

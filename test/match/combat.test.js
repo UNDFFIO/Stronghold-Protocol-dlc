@@ -104,6 +104,10 @@ test('elimination: LP ≤ 0 → out, copies back to the pool; everyone out → R
   assert.equal(m.pool.left(id), left + 1);
   assert.equal(m.publicView().players.find((p) => p.playerId === 'p_0').status, 'dead');
   assert.deepEqual(m.handle('p_0', { t: 'g.refresh' }), { error: 'ELIMINATED' });
+  // Keep the survivor's random reward from reversing the lethal LP loss under test.
+  const offer = h.ps('p_1').relicOffer;
+  assert.ok(offer);
+  m.handle('p_1', { t: 'g.relic', offerId: offer.id, idx: offer.options.findIndex((id) => id !== 'relic_158') });
   h.drive(() => m.phase === PHASE.PREP && m.round === 2);
   assert.equal(a.funds, 0, 'eliminated players get no income');
   // the survivor keeps playing; now kill them too

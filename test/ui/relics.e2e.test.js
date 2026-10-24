@@ -28,6 +28,37 @@ async function closed(page) {
   await page.waitForSelector('.relic-panel', { hidden: true });
 }
 
+test('四叶草化石：桌面与手机展示四选一，第四项可领取', {
+  skip: !ENABLED && 'set SP_E2E=1 and provide system Chrome', timeout: 120000,
+}, async () => {
+  for (const [width, height] of [[1920, 1080], [390, 844], [844, 390]]) {
+    const page = await browser.newPage();
+    try {
+      await page.setViewport({ width, height });
+      await page.goto(`${base}/dev/game-mock.html?shot=1&phase=PREP`, { waitUntil: 'domcontentloaded' });
+      await page.waitForSelector('.relic-icons__heading');
+      await page.evaluate(() => {
+        globalThis.__MOCK__.setPhase('SETTLE');
+        globalThis.__MOCK__.mutate((s) => {
+          s.priv.relics = [{ id: 'relic_195', round: 1 }];
+          s.priv.relicOffer = { id: 'ui:four', round: 2, reason: 'perfect', options: ['relic_001', 'relic_002', 'relic_003', 'relic_004'] };
+          s.pub.relicChoosing = true; s.pub.deadline = 0;
+        });
+      });
+      await page.waitForSelector('.relic-choice__cards--four');
+      assert.match(await page.$eval('.relic-choice', (el) => el.textContent), /无漏怪奖励 · 藏品四选一/);
+      assert.equal((await page.$$('.relic-choice__card')).length, 4);
+      const card = await page.$('.relic-choice__card:last-child');
+      await card.evaluate((el) => el.scrollIntoView({ block: 'center' }));
+      const box = await card.boundingBox();
+      assert.ok(box.x >= 0 && box.x + box.width <= width, `${width}: fourth card fits`);
+      await card.click();
+      await page.waitForFunction(() => !document.querySelector('.relic-choice'));
+      assert.equal(await page.evaluate(() => globalThis.__MOCK__.S().priv.relics.at(-1).id), 'relic_004');
+    } finally { await page.close(); }
+  }
+});
+
 test('护愈之手：收藏栏显示官方图标、史诗档位与完整效果', {
   skip: !ENABLED && 'set SP_E2E=1 and provide system Chrome', timeout: 180000,
 }, async () => {
@@ -114,6 +145,7 @@ for (const item of [
   { id: 'relic_119', name: '“庇护”', tier: '普通', phrases: ['高台干员', '部署时', '100%', '屏障'], shot: 'shelter' },
   { id: 'relic_132', name: '天师锦囊', tier: '普通', phrases: ['首次部署', '炎佑', '激活炎盟约'], shot: 'sachet' },
   { id: 'relic_133', name: '冰中火', tier: '普通', phrases: ['元素损伤', '元素伤害', '+75%'], shot: 'ice-fire' },
+  { id: 'relic_195', name: '四叶草化石', tier: '精良', phrases: ['战斗后掉落收藏品时', '增加一个可选项'], shot: 'clover-fossil' },
   { id: 'relic_134', name: '河谷祭祈', tier: '史诗', phrases: ['凋亡', '灼燃', '神经', '侵蚀', '爆发效果增强'], shot: 'river-prayer' },
   { id: 'relic_240', name: '淬毒匕首', tier: '稀有', phrases: ['110%', '防御结算前', '5次', '每秒1次', '独立叠加'], shot: 'poison-dagger' },
   { id: 'relic_139', name: '黄金平原', tier: '稀有', phrases: ['技能结束时', '2点技力'], shot: 'golden-plains' },

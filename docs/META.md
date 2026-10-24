@@ -41,6 +41,10 @@ server/match/
 
 ## 1. Match flow
 
+### DLC: Four-Leaf Clover Fossil
+
+四叶草化石（No.195，II 精良）合法领取后，持有者战后收藏品奖励（无漏怪及逆风补给）增加一个候选，三选一变为四选一，仍只领取一件。相同 ID 不重复叠加，候选不足时展示剩余合格项；超限补给的直接发放数量不变。官方图标及来源见 [COLLECTIBLES.md](COLLECTIBLES.md)。
+
 ### DLC: Ascension supplies
 
 `server/match/ascensionLottery.js` grants once at the start of round 4 to each surviving, present Ascension player

@@ -33,6 +33,7 @@ export async function prepareCustomRelicIcons(assetsRoot) {
 }
 
 export const RELIC_ICON_FILES = Object.freeze({
+  "relic_195": "rogue_6_relic_legacy_113.png", // 四叶草化石，No.195，核对于 2026-10-24
   "relic_132": "rogue_6_relic_fight_20.png", // 天师锦囊，No.132，核对于 2026-10-24
   "relic_133": "rogue_6_relic_fight_21.png", // 冰中火，No.133
   "relic_116": "rogue_6_relic_fight_4.png", // “撕咬的渴望”，No.116，核对于 2026-10-24

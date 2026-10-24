@@ -164,6 +164,9 @@ test('Final Assault + Hidden Core with a 999-layer 炎 board (real sim, server-r
   h.start();
   h.toPrep(14);
   const ps = h.ps('p_0');
+  // Isolate the hit ceiling from random between-stage collectible damage conversions.
+  const battleInput = ps.battleInput.bind(ps);
+  ps.battleInput = () => ({ ...battleInput(), relics: [] });
   for (const p of [...ps.board.values()]) if (p.kind === 'chess') ps.returnCopies(p);
   ps.board.clear();
   const used = new Set();

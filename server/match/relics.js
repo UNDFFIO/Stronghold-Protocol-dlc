@@ -23,7 +23,8 @@ export function settleRelics(ps, result, { completed = false } = {}) {
   ps.dirty();
   if ((!comeback && (leaked || !result.perfect)) || ps.relicOffer) return null;
   const rng = createRng(deriveSeed(ps.m.seed, `relic-choice:${ps.seat}:${round}`));
-  const options = pickRelicChoices(round, ps.relics, rng, { comeback, multiplayer: !ps.m.isSolo, hasScratchTicket: ps.scratchTickets.length > 0, bonds: ps.bonds });
+  const count = 3 + [...new Set(ps.relics.map((r) => r.id))].reduce((sum, id) => sum + (getRelic(id)?.battleChoiceBonus || 0), 0);
+  const options = pickRelicChoices(round, ps.relics, rng, { count, comeback, multiplayer: !ps.m.isSolo, hasScratchTicket: ps.scratchTickets.length > 0, bonds: ps.bonds });
   if (!options.length) return null;
   ps.relicOffer = { id: `relic:${ps.seat}:${round}`, round, reason: comeback ? 'comeback' : 'perfect', options };
   return ps.relicOffer;
