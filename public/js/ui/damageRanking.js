@@ -1,4 +1,5 @@
-import { useEffect, useLayoutEffect, useRef, useState } from '../../vendor/hooks.module.js';
+import { useEffect, useRef, useState } from '../../vendor/hooks.module.js';
+import { usePanelDrag } from './usePanelDrag.js';
 import { html, useTicker } from './components.js';
 import { DAMAGE_TYPES } from '../../../shared/damageRanking.js';
 import { net } from '../net.js';
@@ -12,53 +13,7 @@ const number = (n) => Math.round(n || 0).toLocaleString('zh-CN');
 export function DamageRanking({ ownerId, ownerName, fieldId, combat, prep, round, previous = [] }) {
   const [open, setOpen] = useState(false);
   const frames = useRef(new Map());
-  const panelRef = useRef(null);
-  const dragRef = useRef(null);
-  const positionRef = useRef(null);
-  const [position, setPosition] = useState(null);
-  const movePanel = (x, y) => {
-    const rect = panelRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    const next = {
-      x: Math.max(8, Math.min(x, window.innerWidth - rect.width - 8)),
-      y: Math.max(8, Math.min(y, window.innerHeight - rect.height - 8)),
-    };
-    positionRef.current = next;
-    setPosition((prev) => prev?.x === next.x && prev?.y === next.y ? prev : next);
-  };
-  useLayoutEffect(() => {
-    if (!open) { dragRef.current = null; return; }
-    const fit = () => {
-      const pos = positionRef.current;
-      if (pos) movePanel(pos.x, pos.y);
-    };
-    fit();
-    window.addEventListener('resize', fit);
-    const observer = typeof ResizeObserver === 'function' ? new ResizeObserver(fit) : null;
-    if (panelRef.current) observer?.observe(panelRef.current);
-    return () => { window.removeEventListener('resize', fit); observer?.disconnect(); };
-  }, [open]);
-  const startDrag = (event) => {
-    if (event.button !== 0 || event.target.closest('button') || dragRef.current) return;
-    const rect = panelRef.current.getBoundingClientRect();
-    dragRef.current = { id: event.pointerId, dx: event.clientX - rect.left, dy: event.clientY - rect.top };
-    event.currentTarget.setPointerCapture(event.pointerId);
-    movePanel(rect.left, rect.top);
-    event.preventDefault();
-    event.stopPropagation();
-  };
-  const dragPanel = (event) => {
-    const drag = dragRef.current;
-    if (!drag || drag.id !== event.pointerId) return;
-    movePanel(event.clientX - drag.dx, event.clientY - drag.dy);
-    event.stopPropagation();
-  };
-  const endDrag = (event) => {
-    if (dragRef.current?.id !== event.pointerId) return;
-    dragRef.current = null;
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
-    event.stopPropagation();
-  };
+  const { panelRef, position, startDrag, dragPanel, endDrag, cancelDrag } = usePanelDrag(open, 8);
   useTicker(open && combat ? 200 : 0);
   useEffect(() => { frames.current.clear(); }, [round]);
   useEffect(() => {
@@ -86,7 +41,7 @@ export function DamageRanking({ ownerId, ownerName, fieldId, combat, prep, round
     ${open ? html`<section ref=${panelRef} class="damage-rank__panel" role="dialog" aria-label=${t('干员伤害排行')} data-testid="damage-ranking"
       style=${position ? { position: 'fixed', left: `${position.x}px`, top: `${position.y}px`, bottom: 'auto', right: 'auto' } : undefined}>
       <header title=${t('拖动标题栏移动窗口')} onPointerDown=${startDrag} onPointerMove=${dragPanel}
-        onPointerUp=${endDrag} onPointerCancel=${endDrag} onLostPointerCapture=${() => { dragRef.current = null; }}><div><strong>${t('干员伤害排行')}</strong><small>${combat ? t('当前战斗') : prep ? t('上一次战斗') : t('暂无战斗数据')} · ${ownerName || t('你自己')}</small></div>
+        onPointerUp=${endDrag} onPointerCancel=${endDrag} onLostPointerCapture=${cancelDrag}><div><strong>${t('干员伤害排行')}</strong><small>${combat ? t('当前战斗') : prep ? t('上一次战斗') : t('暂无战斗数据')} · ${ownerName || t('你自己')}</small></div>
         <button type="button" aria-label=${t('关闭伤害排行')} onClick=${() => setOpen(false)}>×</button></header>
       <div class="damage-rank__legend">${DAMAGE_TYPES.map((type) => html`<span><i class=${`damage-rank__${type}`} />${t(LABELS[type])}</span>`)}</div>
       <div class="damage-rank__rows">${rows.length ? rows.map((r, i) => html`<div class="damage-rank__row" key=${r.id ?? r.uid}>

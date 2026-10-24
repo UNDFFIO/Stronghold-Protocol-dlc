@@ -53,6 +53,7 @@ import { ScreenFitSection } from './screenFit.js';
 import { askPersistStorage, importSupport, storagePersisted } from '../assetCache.js';
 import { assetImport, pruneImportedAssets } from '../assetPack.js';
 import { cosmetics } from '../cosmetics.js';
+import { isLocalAccess } from './gameLogic/localAccess.js';
 
 const cx = (...p) => p.flat().filter(Boolean).join(' ');
 
@@ -503,7 +504,7 @@ export function SettingsModal({ open, onClose, solo = false }) {
       <p class="set-hint">${t('弹药类技能开启时，在弹药条下方显示剩余弹药 / 总弹药数（如 13/14）；秘术师的血条下方显示储存的攻击能量 / 上限（如 2/3）。官方界面没有这些数字。')}</p>
       <${Toggle} label=${t('作战统计')} micro="COMBAT STATS" value=${s.combatMetrics} onChange=${(v) => updateSettings({ combatMetrics: v })} />
       <p class="set-hint">${t('打开后，对局左下角可以查看自己干员的伤害、治疗和 DPS / HPS。官方界面没有这个窗口。改变玩法的插件对局在 Worker 里演算，统计不到，按钮不显示。')}</p>
-      ${solo ? html`<${Toggle} label=${t('收藏品调试')} micro="RELIC DEBUG" value=${s.relicDebug} onChange=${(v) => updateSettings({ relicDebug: v })} />
+      ${solo && isLocalAccess() ? html`<${Toggle} label=${t('收藏品调试')} micro="RELIC DEBUG" value=${s.relicDebug} onChange=${(v) => updateSettings({ relicDebug: v })} />
         <p class="set-hint">${t('在单人局内显示收藏品调试面板，可在整备阶段添加或移除收藏品。')}</p>` : null}
       <${Toggle} label=${t('部署时收起商店')} micro="DEPLOY FOLD" value=${s.prepDeployFold} onChange=${(v) => updateSettings({ prepDeployFold: v })} />
       <p class="set-hint">${t('拖起干员、装备或召唤物，以及放下后选择朝向时，临时收起商店并放大棋盘。关闭后，拿起时既不改变商店的收起状态，也不缩放镜头。')}</p>

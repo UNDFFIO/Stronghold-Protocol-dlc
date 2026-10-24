@@ -100,6 +100,7 @@ import { DamageRanking } from '../ui/damageRanking.js';
 import { EffectsList } from '../ui/effectsList.js';
 import { RelicCollection, RelicChoice, ownerRelics, revivalTargets } from '../ui/relicPanel.js';
 import { RelicDebugPanel } from '../ui/relicDebug.js';
+import { isLocalAccess } from '../ui/gameLogic/localAccess.js';
 import { AscensionLottery } from '../ui/ascensionLottery.js';
 import { CombatHud } from '../ui/combatHud.js';
 import { CombatMetricsPanel } from '../ui/combatMetrics.js';
@@ -1867,7 +1868,7 @@ function MatchScreen() {
     ${replace ? html`<${EquipReplaceDialog} request=${replace.request} getItem=${gd.item}
       onConfirm=${(uid) => closeReplace(uid)} onCancel=${() => closeReplace(null)} />` : null}
 
-    ${solo && !spectator && playerSettings.relicDebug ? html`<${RelicDebugPanel} relics=${priv?.relics || []}
+    ${solo && !spectator && isLocalAccess() && playerSettings.relicDebug ? html`<${RelicDebugPanel} relics=${priv?.relics || []}
       canEdit=${phase === PHASE.PREP && alive && !priv?.ready && conn.status === 'online'} onChange=${actions.relicDebug} />` : null}
     <${SettingsModal} open=${settingsOpen} onClose=${() => setSettingsOpen(false)} solo=${solo && !spectator} />
     <${DownedPlate} open=${downed} onWatch=${() => setDowned(false)} onLeave=${() => { setDowned(false); setExitOpen(true); }} />
