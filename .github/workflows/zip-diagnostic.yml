@@ -1,0 +1,27 @@
+name: Windows ZIP diagnostic
+
+on:
+  push:
+    branches: [codex/fix-windows-zip-ci]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  zip:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - name: Compression tools
+        shell: pwsh
+        run: |
+          Get-Command zip,tar -All -ErrorAction SilentlyContinue | Format-Table Name,Source
+          tar --version
+      - run: npm ci --no-audit --no-fund
+      - run: node --test test/update-package.test.js

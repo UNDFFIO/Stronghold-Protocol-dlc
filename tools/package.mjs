@@ -653,7 +653,11 @@ export function zipFolder(cwd, zipPath, folder = FOLDER) {
   if (!z.error && z.status === 0) return;
   // Windows bsdtar otherwise writes non-ASCII names in the system code page.
   const t = spawnSync('tar', ['-c', '--format', 'zip', '--options', 'zip:hdrcharset=UTF-8', '-f', zipPath, folder], { cwd, stdio: 'inherit' });
-  if (t.error || t.status !== 0 || !isFile(zipPath)) throw new Error('zipping failed: install `zip` (or a bsdtar `tar`)');
+  if (t.error || t.status !== 0 || !isFile(zipPath)) {
+    const details = [['zip', z], ['tar', t]].map(([command, result]) =>
+      `${command}: status=${result.status}, signal=${result.signal}, error=${result.error?.message || 'none'}`);
+    throw new Error(`zipping failed: install \`zip\` (or a bsdtar \`tar\`)\n${details.join('\n')}\ncwd=${cwd}\narchive exists=${isFile(zipPath)}`);
+  }
 }
 
 const isLib = (f) => f.startsWith('node_modules/') || f.startsWith('public/vendor/');
