@@ -72,6 +72,33 @@ after(async () => {
   if (srv) await srv.close();
 });
 
+test('四叶草化石 over websockets: fourth choice is claimable and invalid requests retain the offer', async () => {
+  FakeBattle.reset();
+  FakeBattle.script = () => ({ duration: 1 });
+  const c = await player('Clover');
+  await ok(c, { t: 'room.create', mode: 'solo', difficulty: 'FUNNY' });
+  await c.waitFor('room.state');
+  await ok(c, { t: 'room.start' });
+  await c.waitFor('m.public', (p) => p.phase === 'INFO_CHECK');
+  await ok(c, { t: 'g.infoReady' });
+  await c.waitFor('m.public', (p) => p.phase === 'BAND_DRAFT');
+  await ok(c, { t: 'g.band', bandId: 'band_sarkazb' });
+  await c.waitFor('m.public', (p) => p.phase === 'PREP' && p.round === 1, 10000);
+  await ok(c, { t: 'g.relicDebug', relicId: 'relic_195', action: 'add' });
+  await ok(c, { t: 'g.ready', ready: true });
+  const { relicOffer: offer } = await c.waitFor('m.private', (p) => !!p.relicOffer, 10000);
+  assert.equal(offer.options.length, 4);
+  assert.equal((await c.request({ t: 'g.relic', offerId: offer.id, idx: 4 })).t, 'error');
+  const forged = await c.request({ t: 'g.relic', offerId: 'forged', idx: 3 });
+  assert.equal(forged.code, 'BAD_TARGET');
+  await ok(c, { t: 'g.relic', offerId: offer.id, idx: 3 });
+  const selected = await c.waitFor('m.private', (p) => !p.relicOffer && p.relics?.length === 2, 10000);
+  assert.equal(selected.relics.at(-1).id, offer.options[3]);
+  assert.equal((await c.request({ t: 'g.relic', offerId: offer.id, idx: 3 })).t, 'error');
+  await c.waitFor('m.public', (p) => p.phase === 'PREP' && p.round === 2, 15000);
+  await ok(c, { t: 'room.leave' });
+});
+
 test('solo over websockets: briefing → band → prep → buy/place/ready → combat → settle → round 2 → leave', async () => {
   FakeBattle.reset();
   FakeBattle.script = () => ({ duration: 1 });

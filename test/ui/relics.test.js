@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { RELICS } from '../../shared/relics.js';
-import { RelicList, relicEntries, relicOdds, ownerRelics, revivalTargets, tierName } from '../../public/js/ui/relicPanel.js';
+import { RelicList, relicEntries, relicPreview, relicOdds, ownerRelics, revivalTargets, tierName } from '../../public/js/ui/relicPanel.js';
 import { liveLp } from '../../public/js/ui/hud.js';
 import { LpTower } from '../../public/js/ui/gameComponents.js';
 import { rowLp } from '../../public/js/ui/teamPanel.js';
@@ -34,6 +34,43 @@ test('the full collection renders every acquired effect and round beyond the ten
     assert.ok(text.includes(`第 ${i + 1} 回合获得`));
   }
   assert.equal(cards.filter((v) => v.props.class.includes('is-new')).length, 1);
+});
+
+test('HUD preview fits three five-row columns and reserves More only beyond fifteen entries', () => {
+  for (const count of [0, 1, 5, 6, 14, 15, 16, 64]) {
+    const entries = Array.from({ length: count }, (_, i) => ({ id: `relic-${i}`, tier: 1, round: i + 1 }));
+    const before = structuredClone(entries);
+    const { visible, hidden } = relicPreview(entries);
+    assert.equal(visible.length, count > 15 ? 14 : count);
+    assert.equal(hidden, count - visible.length);
+    assert.ok(visible.length + (hidden ? 1 : 0) <= 15);
+    assert.deepEqual(visible, entries.slice(0, visible.length), 'same-tier records keep acquisition order');
+    assert.deepEqual(entries, before, 'preview must not mutate the full collection');
+  }
+});
+
+test('HUD preview prioritizes negative quality, then descending rarity, leaving unknown records last', () => {
+  const entries = relicEntries(RELICS.map((r) => ({ id: r.id, round: 1 })));
+  const negative = { id: 'negative-fixture', tier: 6, round: 2 };
+  const unknown = { id: 'future-relic', round: 3 };
+  const input = [unknown, ...entries, negative];
+  const { visible, hidden } = relicPreview(input);
+  assert.equal(visible[0], negative);
+  assert.equal(visible.length, 14);
+  assert.equal(hidden, input.length - 14);
+  assert.ok(visible.every((r, i) => i === 0 || r.tier <= visible[i - 1].tier));
+  assert.deepEqual(visible.slice(1), entries.filter((r) => r.tier === 5).concat(entries.filter((r) => r.tier === 4)).slice(0, 13));
+  assert.deepEqual(relicPreview([unknown, { tier: 1 }]).visible, [{ tier: 1 }, unknown]);
+});
+
+test('full collection keeps hidden scratch tickets actionable without adding actions to the journal', () => {
+  let opened;
+  const props = { relics: [{ id: 'relic_235', round: 1 }], onScratch: (id) => { opened = id; } };
+  const action = [...walk(RelicList(props))].find((v) => v.props?.['data-relic-id'] === 'relic_235');
+  assert.ok(action);
+  action.props.onClick();
+  assert.equal(opened, 'relic_235');
+  assert.ok(![...walk(RelicList({ ...props, history: true }))].some((v) => v.props?.['data-relic-id']));
 });
 
 test('older empty payloads explain how to obtain a relic; unknown ids remain visible without fabricating effects', () => {

@@ -571,7 +571,7 @@ export const C2S = {
   // unequip (DESIGN §34.15): one equipped item back to the hand, else the visible temp window. Official rooms refuse it.
   'g.unequip': { itemUid: isUid },
   'g.reward': { idx: (v) => isInt(v, 0, 5) },
-  'g.relic': { offerId: isId, idx: (v) => isInt(v, 0, 2) },
+  'g.relic': { offerId: isId, idx: (v) => isInt(v, 0, 3) },
   'g.relicDebug': { relicId: isId, action: (v) => v === 'add' || v === 'remove' },
   'g.relicRevive': { relicId: isId, playerId: isId },
   'g.scratchBuy': { tier: (v) => isInt(v, 1, 5), seq: (v) => isInt(v, 0, Number.MAX_SAFE_INTEGER) },

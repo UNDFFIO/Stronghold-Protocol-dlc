@@ -290,7 +290,8 @@ test('phone/desktop: icons wrap, tooltips stay clear of three-choice dialogs, an
         assert.equal(await page.$eval('.tooltip .efftip > p', (e) => e.textContent), first.desc);
       }
       // Keyboard focus and touch long-press share the same Tooltip as other components; a tap opens the list.
-      await page.click('.effect--relic');
+      if (width === 640) await page.tap('.effect--relic');
+      else await page.click('.effect--relic');
       await page.waitForSelector('.relic-panel');
       assert.equal(await page.$$eval('.relic-panel .relic-card', (els) => els.length), 2);
       await closeWithEscape(page);
@@ -375,11 +376,15 @@ test('phone/desktop: icons wrap, tooltips stay clear of three-choice dialogs, an
         return { visible: last.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)), clearOfCost: r.right < dp.left, bottom: r.bottom };
       });
       assert.ok(combatBounds.visible && combatBounds.clearOfCost && combatBounds.bottom <= height, `${width}: battle HUD covers a collectible`);
+      const combatFirstName = await page.evaluate(async () => {
+        const { getRelic } = await import('/shared/relics.js');
+        return getRelic(document.querySelector('.relic-icons__grid [data-relic-id]').dataset.relicId).name;
+      });
       if (width === 640) {
         const r = await page.$eval('.effect--relic', (e) => { const b = e.getBoundingClientRect(); return { x: b.x + b.width / 2, y: b.y + b.height / 2 }; });
         await page.touchscreen.touchStart(r.x, r.y);
       } else await page.hover('.effect--relic');
-      await page.waitForFunction((name) => document.querySelector('.tooltip.is-shown .efftip > b')?.textContent === name, {}, first.name);
+      await page.waitForFunction((name) => document.querySelector('.tooltip.is-shown .efftip > b')?.textContent === name, {}, combatFirstName);
       await page.screenshot({ path: `${OUT}/relic-icons-combat-${width === 640 ? 'phone' : 'desktop'}.png` });
       if (width === 640) await page.touchscreen.touchEnd();
       else await page.mouse.move(0, 0);
@@ -450,6 +455,10 @@ test('phone/desktop: icons wrap, tooltips stay clear of three-choice dialogs, an
         const result = store.get().match.result;
         store.patch('match', { result: { ...result, players: result.players.map((p) => ({ ...p, relics: p.playerId === 'p1' ? own : own.slice(0, 2) })) } });
       });
+      await page.waitForSelector('.settle__next');
+      await page.click('.settle__next');
+      await page.waitForSelector('.steam__detail');
+      await page.click('.steam__detail');
       await page.waitForSelector('.rcard__relics');
       assert.match(await page.$eval('.rcard.is-self .rcard__relics > summary', (el) => el.textContent), /本局收藏品 · 15/);
       await page.click('.rcard.is-self .rcard__relics > summary');
@@ -459,6 +468,70 @@ test('phone/desktop: icons wrap, tooltips stay clear of three-choice dialogs, an
     } catch (err) {
       await page.screenshot({ path: `${OUT}/relic-icons-failed-${width}.png` });
       throw err;
+    } finally { await page.close(); }
+  }
+});
+
+test('收藏栏：最多三列、更多入口、稀有度优先及隐藏票券可用（桌面／手机）', {
+  skip: !ENABLED && 'set SP_E2E=1 and provide system Chrome', timeout: 120000,
+}, async () => {
+  for (const [width, height] of [[1920, 1080], [640, 360]]) {
+    const page = await browser.newPage();
+    const errors = []; page.on('pageerror', (e) => errors.push(e.message));
+    try {
+      await page.setViewport({ width, height, hasTouch: width < 768, isMobile: width < 768 });
+      await page.goto(`${base}/dev/game-mock.html?shot=1&phase=PREP`, { waitUntil: 'domcontentloaded' });
+      await page.waitForSelector('.relic-icons__heading');
+      for (const count of [15, 16, 64]) {
+        const expected = await page.evaluate(async (count) => {
+          const { RELICS } = await import('/shared/relics.js');
+          const chosen = RELICS.slice(0, count);
+          globalThis.__MOCK__.mutate((s) => { s.priv.relics = chosen.map((r) => ({ id: r.id, round: 1 })); });
+          return [...chosen].sort((a, b) => b.tier - a.tier).slice(0, count > 15 ? 14 : 15).map((r) => r.id);
+        }, count);
+        await page.waitForFunction((expected) => JSON.stringify([...document.querySelectorAll('.relic-icons__grid [data-relic-id]')]
+          .map((e) => e.dataset.relicId)) === JSON.stringify(expected), {}, expected);
+        assert.equal(!!await page.$('.relic-icons__more'), count > 15);
+        const grid = await page.$eval('.relic-icons__grid', (el) => {
+          const frames = [...el.querySelectorAll('.effect')].map((e) => e.getBoundingClientRect());
+          const more = el.querySelector('.relic-icons__more');
+          const r = more?.getBoundingClientRect();
+          return { columns: new Set(frames.map((r) => Math.round(r.left))).size,
+            rows: new Set(frames.map((r) => Math.round(r.top))).size,
+            equalFrames: frames.every((r) => r.width === frames[0].width && r.height === frames[0].height),
+            reachable: !more || more.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)),
+            inViewport: frames.every((r) => r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight),
+            label: more?.getAttribute('aria-label'), dots: more?.textContent.trim() };
+        });
+        assert.equal(grid.columns, 3); assert.equal(grid.rows, 5);
+        assert.ok(grid.equalFrames && grid.reachable && grid.inViewport, JSON.stringify(grid));
+        if (count > 15) {
+          assert.equal(grid.label, '更多'); assert.equal(grid.dots, '⋯');
+          await page.focus('.relic-icons__more');
+          await page.keyboard.press('Enter');
+          await page.waitForSelector('.relic-panel');
+          assert.equal((await page.$$('.relic-panel .relic-card')).length, count);
+          await closeWithEscape(page);
+        }
+      }
+      await page.screenshot({ path: `${OUT}/relic-overflow-${width}.png` });
+      // Low-rarity tickets may be hidden, but the full collection must retain their scratch shortcut.
+      await page.evaluate(async () => {
+        const { drawScratchTicket } = await import('/shared/scratchTickets.js');
+        globalThis.__MOCK__.mutate((s) => {
+          s.priv.scratch = { seq: 1, tickets: [{ id: 'scratch:overflow:1', tier: 1, relicId: 'relic_235', round: 1, opened: false }], lastResult: null };
+          s.scratchSecret = { 'scratch:overflow:1': drawScratchTicket(1, () => .5) };
+        });
+      });
+      assert.equal(await page.$('.relic-icons__grid [data-relic-id="relic_235"]'), null);
+      await page.click('.relic-icons__more');
+      await page.waitForSelector('.relic-panel [data-relic-id="relic_235"]');
+      await page.$eval('.relic-panel [data-relic-id="relic_235"]', (e) => e.scrollIntoView({ block: 'center' }));
+      await page.click('.relic-panel [data-relic-id="relic_235"]');
+      await page.waitForSelector('.scratch-coating');
+      assert.equal(await page.$('.relic-panel'), null);
+      await page.waitForFunction(() => globalThis.__MOCK__.S().requests.some(([t, p]) => t === 'g.scratchOpen' && p.ticketId === 'scratch:overflow:1'));
+      assert.deepEqual(errors, []);
     } finally { await page.close(); }
   }
 });

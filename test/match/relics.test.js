@@ -521,8 +521,10 @@ for (const action of ['disconnect', 'autoplay', 'leave']) test(`an outstanding r
 });
 
 test('relic requests carry a bounded index and offer identity', () => {
-  assert.equal(validateC2S({ t: 'g.relic', offerId: 'relic:0:1', idx: 2 }), null);
-  for (const fields of [{ idx: 3 }, { idx: -1 }, { idx: 1.5 }, { offerId: '' }, { offerId: 'a'.repeat(65) }]) {
+  for (const idx of [0, 1, 2, 3]) {
+    assert.equal(validateC2S({ t: 'g.relic', offerId: 'relic:0:1', idx }), null);
+  }
+  for (const fields of [{ idx: 4 }, { idx: -1 }, { idx: 1.5 }, { idx: '3' }, { offerId: '' }, { offerId: 'a'.repeat(65) }]) {
     assert.ok(validateC2S({ t: 'g.relic', offerId: 'relic:0:1', idx: 0, ...fields }));
   }
 });

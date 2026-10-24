@@ -17,6 +17,13 @@ export function relicEntries(records) {
   }));
 }
 
+/** Three five-row columns; reserve the last slot for More only on overflow. Negative (VI) precedes V–I. */
+export function relicPreview(entries) {
+  const sorted = [...entries].sort((a, b) => (b.tier || 0) - (a.tier || 0));
+  const visible = sorted.slice(0, sorted.length > 15 ? 14 : 15);
+  return { visible, hidden: sorted.length - visible.length };
+}
+
 /** Own records stay private; watched records come from public metadata, never fall back to yours. */
 export function ownerRelics({ pub, priv, myId, ownerId }) {
   const self = ownerId === myId;
@@ -62,7 +69,7 @@ export function RelicIcons({ relics, reward, notice = false, onOpen, onScratch =
 }
 
 /** Shared by the live modal and each settlement card. No richness/HTML from remote sources. */
-export function RelicList({ relics, reward = null, history = false, illustrated = history, revival = null }) {
+export function RelicList({ relics, reward = null, history = false, illustrated = history, revival = null, onScratch = null }) {
   const entries = relicEntries(relics);
   if (!entries.length) return html`<p class="relic-empty">${history ? tr('尚未收录收藏品。领取收藏品后将自动加入图鉴。') : tr('尚未获得收藏品。每回合本人无漏怪，可从三件藏品中选择一件。')}</p>`;
   return html`<ol class="relic-list" aria-label=${history ? tr('已获得过的收藏品') : tr('本局收藏品')}>
@@ -73,6 +80,7 @@ export function RelicList({ relics, reward = null, history = false, illustrated 
       <div class="relic-card__head"><b class="relic-card__name">${tr(r.name) || r.id}</b>
         <span class="relic-card__tier">${tierName(r.tier)}</span></div>
       <p class="relic-card__desc">${tr(r.desc) || tr('该收藏品的效果资料暂不可用')}</p>
+      ${!history && r.scratchTicket && onScratch ? html`<${Button} size="sm" data-relic-id=${r.id} onClick=${() => onScratch(r.id)}>${tr('开始刮奖')}<//>` : null}
       ${!history && r.reviveOnce ? (r.used ? html`<span class="relic-card__used">${tr('已使用 · 复活机会已消耗')}</span>`
         : revival ? html`<${RelicReviveActions} relicId=${r.id} revival=${revival} />` : html`<span class="relic-card__used">${tr('未使用 · 剩余 1 次')}</span>`) : null}
       ${history ? null : html`<span class="relic-card__round">${r.round == null ? tr('本局获得') : tr('第 {round} 回合获得', { round: r.round })}</span>`}
@@ -114,7 +122,10 @@ export function RelicCollection({ relics, reward, owner = null, round = 1, shiel
     if (ticket && !ticket.opened && scratch.canUse) void scratch.onOpen(ticket.id);
   };
   const [notice, setNotice] = useState(false);
-  const count = relicEntries(relics).length;
+  const entries = relicEntries(relics);
+  const count = entries.length;
+  const preview = relicPreview(entries);
+  const onScratch = canScratch && scratch.view?.tickets?.length ? showScratch : null;
   const rewardKey = reward?.id ? `${reward.id}:${reward.round}` : '';
   useEffect(() => {
     if (!rewardKey) { setNotice(false); return undefined; }
@@ -135,8 +146,11 @@ export function RelicCollection({ relics, reward, owner = null, round = 1, shiel
       <span class="relic-shield"><${Icon} name="shield" />${shield > 0 ? tr('护盾 {shield}', { shield }) : tr('下回合护盾 2')}</span>
     <//>` : null}
     <div class="relic-icons__grid">
-      <${RelicIcons} relics=${relics} reward=${reward} notice=${notice} onOpen=${show}
-        onScratch=${canScratch && scratch.view?.tickets?.length ? showScratch : null} />
+      <${RelicIcons} relics=${preview.visible} reward=${reward} notice=${notice} onOpen=${show} onScratch=${onScratch} />
+      ${preview.hidden ? html`<button type="button" class="effect effect--relic relic-icons__more" onClick=${show}
+        aria-label=${tr('更多')} title=${tr('更多')} aria-haspopup="dialog" aria-expanded=${open}>
+        <span aria-hidden="true">⋯</span>
+      </button>` : null}
     </div>
   </div>
     <${Modal} open=${open} title=${html`<span class="relic-panel__title"><${Icon} name="key" />${owner ? tr('{owner} 的收藏品', { owner }) : tr('你的收藏品')} <span class="num">${count}</span></span>`}
@@ -153,7 +167,7 @@ export function RelicCollection({ relics, reward, owner = null, round = 1, shiel
       <p class="relic-panel__note">${tr('第 {round} 回合基础概率；已获得的永久藏品移出候选池，实际概率随剩余藏品调整。', { round })}</p>
       <p class="relic-panel__note">${tr('收藏品增益无累计上限。同类属性与伤害增幅相加；永久藏品同名不重复，刮刮票兑奖后可再次获得。')}</p>
       ${queuedChess ? html`<p class="relic-panel__note" role="status">${tr('复活干员补给：{queuedChess} 名等待整备区空位，腾出位置后自动获得，跨回合保留。', { queuedChess })}</p>` : null}
-      <${RelicList} relics=${relics} reward=${reward} illustrated=${true} revival=${revival} />
+      <${RelicList} relics=${relics} reward=${reward} illustrated=${true} revival=${revival} onScratch=${onScratch} />
     <//>
     ${scratchOpen && canScratch ? html`<${ScratchPanel} context=${scratch} initialTicketId=${scratchTicketId} onClose=${() => setScratchOpen(false)} />` : null}`;
 }
