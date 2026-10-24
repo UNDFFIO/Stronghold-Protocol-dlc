@@ -41,9 +41,14 @@ server/match/
 
 ## 1. Match flow
 
+### DLC: Collectible eligibility
+
+Completed battles offer one collectible from three choices when the surviving, present player's actual LP loss is at most 5, including zero. Normal settlement passes the loss after the per-round cap, co-op rescue and LP effects; healing counts as zero loss. Boss settlement uses the player's loss of their shared-pool allocation and still requires a victorious Final Assault that unlocks Hidden Core. Missing, synthetic and duplicate results never grant extra rewards. Consecutive-leak compensation, promoted quality draws and next-round shield grants are removed. No-leak tier weights and unlock rounds are unchanged. Counted personal leaks shift each candidate down one quality tier, floored at Common, even after co-op rescue. `dropWeights(round, { leaked: true })` combines I+II into I and shifts III/IV/V into II/III/IV before exhausted-tier normalization. Leaking rewards cannot be Legendary; unrelated explicit reward pools are unchanged. Source: maintainer request, 2026-10-24.
+
+
 ### DLC: Four-Leaf Clover Fossil
 
-四叶草化石（No.195，II 精良）合法领取后，持有者战后收藏品奖励（无漏怪及逆风补给）增加一个候选，三选一变为四选一，仍只领取一件。相同 ID 不重复叠加，候选不足时展示剩余合格项；超限补给的直接发放数量不变。官方图标及来源见 [COLLECTIBLES.md](COLLECTIBLES.md)。
+四叶草化石（No.195，II 精良）合法领取后，持有者战后收藏品奖励（单次作战实际损血不超过 5）增加一个候选，三选一变为四选一，仍只领取一件。相同 ID 不重复叠加，候选不足时展示剩余合格项；超限补给的直接发放数量不变。官方图标及来源见 [COLLECTIBLES.md](COLLECTIBLES.md)。
 
 ### DLC: Ascension supplies
 
@@ -51,7 +56,7 @@ server/match/
 (including level 0). The four equally likely categories are 15 coins, two operators from the highest accumulated-layer
 bond, three distinct collectibles, and one 「稀有藏品」. The three-collectible pool uses tier weights `[5, 65, 30, 0, 0]`;
 the category named 「稀有藏品」 uses `[0, 0, 0, 0, 100]`, so its single item is always Legendary and it no longer heals LP.
-`pickRelic` accepts the server's explicit `tierWeights`; ordinary and comeback draws retain their own tables. Owned and
+`pickRelic` accepts the server's explicit `tierWeights`; ordinary draws retain their existing table. Owned and
 mode-ineligible items are excluded, exhausted tiers are removed and the remaining weights normalized, with no fallback
 outside the specified tiers. `grantRelic` applies every item exactly once, including acquisition hooks for the round-4
 battle. The private view contains actual awarded IDs: three different IDs for the three-item prize, one ID for the
@@ -70,7 +75,7 @@ rules; subsequent BattleSpecs use the new level. The reduction persists for this
 
 ### DLC: Negative collectible quality
 
-The maintainer-defined Negative quality uses internal tier 6 with `normalDrop: false` and no unlock round. All shared random collectible draws exclude it, including normal, comeback and Ascension lottery rewards, even with explicit tier weights. Direct grants by ID remain available through the existing acquisition validation. It is separate from strength tiers I–V, uses a red `!` badge and red collection accents, and is omitted from drop odds. This adds quality support only; existing collectibles and five-tier probabilities are unchanged. See [COLLECTIBLES.md](COLLECTIBLES.md).
+The maintainer-defined Negative quality uses internal tier 6 with `normalDrop: false` and no unlock round. All shared random collectible draws exclude it, including normal and Ascension lottery rewards, even with explicit tier weights. Direct grants by ID remain available through the existing acquisition validation. It is separate from strength tiers I–V, uses a red `!` badge and red collection accents, and is omitted from drop odds. This adds quality support only; existing collectibles and five-tier probabilities are unchanged. See [COLLECTIBLES.md](COLLECTIBLES.md).
 
 ### DLC: Boss-stage collectible choices
 
@@ -1149,7 +1154,7 @@ reconnectable, spectator-readable snapshot. Bots resolve immediately. Sources, b
 
 服务端确认兑奖后，原票面中央显示实际获得金币或未中奖提示，停留2.5秒后自动关闭；期间隐藏兑奖操作，不自动切换到其他持有票券。
 
-身份证为 II 精良永久收藏品，实际持有后才解锁金币购买与免费收藏品奖励中的刮刮票。五档票券为可重复获得的一次性收藏品，图鉴每档仅记一条；休整阶段可同时购买、持有多张未兑奖票，同档票券逐张独立保存和兑奖，不占整备区。商店刮刮票格子始终进入购买页，不展示待兑奖数量和持票切换栏；已有票券从右侧收藏品图标打开。点击准备时，未使用票券与剩余资金共用一个确认提示；仅有1张票时也提醒。确认准备或休整超时后，仅保留最高品质的1张票跨回合使用（同档保留最早获得者），其余票券直接销毁、不兑奖、不退款；取消提示或被拒绝准备不销毁。持有票时，所有免费奖池继续排除票券；同次候选按实际已持有的身份证判断资格，候选中的身份证不能提前解锁其他候选。正常、逆风和超限补给保留各自的品质权重及回合规则。
+身份证为 II 精良永久收藏品，实际持有后才解锁金币购买与免费收藏品奖励中的刮刮票。五档票券为可重复获得的一次性收藏品，图鉴每档仅记一条；休整阶段可同时购买、持有多张未兑奖票，同档票券逐张独立保存和兑奖，不占整备区。商店刮刮票格子始终进入购买页，不展示待兑奖数量和持票切换栏；已有票券从右侧收藏品图标打开。点击准备时，未使用票券与剩余资金共用一个确认提示；仅有1张票时也提醒。确认准备或休整超时后，仅保留最高品质的1张票跨回合使用（同档保留最早获得者），其余票券直接销毁、不兑奖、不退款；取消提示或被拒绝准备不销毁。持有票时，所有免费奖池继续排除票券；同次候选按实际已持有的身份证判断资格，候选中的身份证不能提前解锁其他候选。正常和超限补给保留各自的品质权重及回合规则。
 
 | 品质 | 票价 | 购买解锁 | 空票 | 回本 | 2倍 | 5倍 | 10倍 | 50倍 |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|

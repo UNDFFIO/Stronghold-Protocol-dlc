@@ -172,22 +172,14 @@ export function relicIncome(owned) {
 }
 
 /** Base tier weights for the just-completed round, before removing exhausted tiers. */
-export function dropWeights(round) {
+export function dropWeights(round, { leaked = false } = {}) {
   if (!Number.isInteger(round) || round < 1) return [0, 0, 0, 0, 0];
-  if (round <= 3) return [80, 20, 0, 0, 0];
-  if (round <= 6) return [60, 28, 12, 0, 0];
-  if (round <= 9) return [50, 30, 15, 4, 1];
-  if (round <= 12) return [20, 40, 25, 10, 5];
-  return [10, 30, 35, 15, 10];
-}
-
-/** 逆风补给沿用独立配置的概率表；最高为传说。 */
-export function comebackWeights(round) {
-  if (!Number.isInteger(round) || round < 3) return dropWeights(round);
-  if (round < 6) return [0, 0, 100, 0, 0];
-  if (round < 9) return [0, 0, 65, 35, 0];
-  if (round < 12) return [0, 0, 60, 30, 10];
-  return [0, 0, 55, 30, 15];
+  const weights = round <= 3 ? [80, 20, 0, 0, 0]
+    : round <= 6 ? [60, 28, 12, 0, 0]
+      : round <= 9 ? [50, 30, 15, 4, 1]
+        : round <= 12 ? [20, 40, 25, 10, 5] : [10, 30, 35, 15, 10];
+  // A personal leak shifts every tier down once; Common remains Common.
+  return leaked ? [weights[0] + weights[1], weights[2], weights[3], weights[4], 0] : weights;
 }
 
 export function canReceiveRelic(r, owned, { hasScratchTicket = false, bonds = {} } = {}) {
@@ -196,9 +188,9 @@ export function canReceiveRelic(r, owned, { hasScratchTicket = false, bonds = {}
     && (r.scratchTicket ? ids.has('relic_234') && !hasScratchTicket : !ids.has(r.id));
 }
 
-export function pickRelic(round, owned, rng, { comeback = false, multiplayer = false, tierWeights = null, hasScratchTicket = false, excludeIds = [], bonds = {} } = {}) {
+export function pickRelic(round, owned, rng, { multiplayer = false, tierWeights = null, hasScratchTicket = false, excludeIds = [], bonds = {} } = {}) {
   const excluded = new Set(excludeIds);
-  const weights = tierWeights ?? (comeback ? comebackWeights(round) : dropWeights(round));
+  const weights = tierWeights ?? dropWeights(round);
   const pools = RELIC_TIERS.map(({ tier, normalDrop }) => normalDrop === false ? [] : RELICS.filter((r) => r.tier === tier && !excluded.has(r.id)
     && canReceiveRelic(r, owned, { hasScratchTicket, bonds }) && (!r.multiplayerOnly || multiplayer)));
   const total = weights.reduce((sum, w, i) => sum + (pools[i].length ? w : 0), 0);
@@ -212,13 +204,13 @@ export function pickRelic(round, owned, rng, { comeback = false, multiplayer = f
   return null;
 }
 
-/** Distinct, unowned candidates (three by default). An exhausted pool may offer fewer. */
-export function pickRelicChoices(round, owned, rng, { comeback = false, multiplayer = false, hasScratchTicket = false, bonds = {}, count = 3 } = {}) {
+/** Distinct, unowned candidates (three by default). A nearly exhausted eligible pool may offer fewer. */
+export function pickRelicChoices(round, owned, rng, { leaked = false, multiplayer = false, hasScratchTicket = false, bonds = {}, count = 3 } = {}) {
   const excluded = [];
   const choices = [];
   for (let i = 0; i < count; i++) {
-    const opts = { comeback, multiplayer, hasScratchTicket, bonds, excludeIds: excluded };
-    const r = pickRelic(round, owned, rng, opts) || (comeback ? pickRelic(round, owned, rng, { ...opts, comeback: false }) : null);
+    const opts = { multiplayer, hasScratchTicket, bonds, excludeIds: excluded, tierWeights: dropWeights(round, { leaked }) };
+    const r = pickRelic(round, owned, rng, opts);
     if (!r) break;
     choices.push(r.id);
     excluded.push(r.id);

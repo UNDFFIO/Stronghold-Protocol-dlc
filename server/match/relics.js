@@ -4,29 +4,22 @@ import { normalizeDifficultyLevel } from '../../shared/difficulty.js';
 import { createRng, deriveSeed } from '../sim/rng.js';
 import { msg, dn } from '../../shared/i18n.js';
 
-/** Process the owner's completed battle once; rescue and shields do not erase personal leaks. */
-export function settleRelics(ps, result, { completed = false } = {}) {
+/** Process a completed battle once using the actual LP charged at settlement. */
+export function settleRelics(ps, result, { completed = false, lpLoss = 0 } = {}) {
   const round = ps.m.round;
   if (!completed || !ps.alive || ps.left || !result || result.synthetic
     || typeof result.perfect !== 'boolean' || !Array.isArray(result.leaked)
+    || !Number.isFinite(lpLoss)
     || ps.relicSettledRounds.has(round)) return null;
   ps.relicSettledRounds.add(round);
-  if (ps.relicLastRound !== round - 1) ps.relicLeakStreak = 0;
-  ps.relicLastRound = round;
-  const leaked = result.leaked.some((l) => l && l.counted !== false);
-  ps.relicLeakStreak = leaked ? ps.relicLeakStreak + 1 : 0;
-  const comeback = ps.relicLeakStreak >= 3;
-  if (comeback) {
-    ps.relicLeakStreak = 0;
-    ps.relicNextShieldRound = round + 1;
-  }
-  ps.dirty();
-  if ((!comeback && (leaked || !result.perfect)) || ps.relicOffer) return null;
+  if (lpLoss > 5 || ps.relicOffer) return null;
   const rng = createRng(deriveSeed(ps.m.seed, `relic-choice:${ps.seat}:${round}`));
+  const leaked = result.leaked.some((l) => l && l.counted !== false);
   const count = 3 + [...new Set(ps.relics.map((r) => r.id))].reduce((sum, id) => sum + (getRelic(id)?.battleChoiceBonus || 0), 0);
-  const options = pickRelicChoices(round, ps.relics, rng, { count, comeback, multiplayer: !ps.m.isSolo, hasScratchTicket: ps.scratchTickets.length > 0, bonds: ps.bonds });
+  const options = pickRelicChoices(round, ps.relics, rng, { count, leaked, multiplayer: !ps.m.isSolo, hasScratchTicket: ps.scratchTickets.length > 0, bonds: ps.bonds });
   if (!options.length) return null;
-  ps.relicOffer = { id: `relic:${ps.seat}:${round}`, round, reason: comeback ? 'comeback' : 'perfect', options };
+  ps.relicOffer = { id: `relic:${ps.seat}:${round}`, round, reason: 'lowLoss', leaked, options };
+  ps.dirty();
   return ps.relicOffer;
 }
 
@@ -85,7 +78,7 @@ export function consumeRelicShield(ps, amount) {
   return Math.max(0, amount - used);
 }
 export function startRelicRound(ps, round) {
-  ps.relicShield = ps.relicNextShieldRound === round ? 2 : 0;
+  ps.relicShield = 0;
   ps.relicShieldRound = round;
   ps.relicNextShieldRound = 0;
 }

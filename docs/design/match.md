@@ -2,7 +2,7 @@
 
 Part of [DESIGN.md](../DESIGN.md) (the index; section numbers are global).
 
-**DLC 四叶草化石（2026-10-24，维护者决定）：** No.195 为 II 精良收藏品，合法领取后仅为持有者战后无漏怪奖励及逆风补给增加一个候选（三选一变四选一），每次仍只领取一件。重复 ID 不叠加，候选不足时仅提供剩余合格项，超限补给直接发放数量不变。见 [COLLECTIBLES.md](../COLLECTIBLES.md)。
+**DLC 四叶草化石（2026-10-24，维护者决定）：** No.195 为 II 精良收藏品，合法领取后仅为持有者战后实际损血不超过 5 的奖励增加一个候选（三选一变四选一），每次仍只领取一件。重复 ID 不叠加，候选不足时仅提供剩余合格项，超限补给直接发放数量不变。见 [COLLECTIBLES.md](../COLLECTIBLES.md)。
 
 ## 6. Match & meta (server/match)
 
@@ -104,9 +104,9 @@ Economy/shop/pool/merge/hand rules: exactly as research 00-INDEX §3–§4 (inco
 
 **DLC 同品质同效果去重（维护者决定，2026-10-23）：** 同品质、同作用对象且机制完全相同的收藏品仅保留数值最高者。移除普通品质地形图（relic_007，防御+10%）、林间夜话（relic_009，防御+12%）和神音海螺（relic_008，最大生命+15%）；保留异铁小圆盾（防御+15%）和教堂救济餐券（最大生命+20%）。共享定义、图鉴和奖励池共用这份56件清单，旧ID不可发放且不再提供属性，旧图鉴记录按有效定义过滤。不同品质、作用对象或机制的藏品保留；品质权重、解锁回合与叠加规则不变。
 
-**DLC 负面收藏品品质（维护者决定）：** 新增独立于 I–V 强度的“负面”品质，内部编号为 6，`normalDrop: false`，没有解锁回合。普通作战、逆风补给、超限补给及共用随机抽取入口一律排除该品质，显式权重也不能解锁，常规概率及现有藏品不变；指定 ID 的直接发放仍受统一领取校验。界面以红色 `!`、红色品质文字和侧边线标识，不作为 VI 档展示，也不列入掉落概率表。见 [COLLECTIBLES.md](../COLLECTIBLES.md)。
+**DLC 负面收藏品品质（维护者决定）：** 新增独立于 I–V 强度的“负面”品质，内部编号为 6，`normalDrop: false`，没有解锁回合。普通作战、超限补给及共用随机抽取入口一律排除该品质，显式权重也不能解锁，常规概率及现有藏品不变；指定 ID 的直接发放仍受统一领取校验。界面以红色 `!`、红色品质文字和侧边线标识，不作为 VI 档展示，也不列入掉落概率表。见 [COLLECTIBLES.md](../COLLECTIBLES.md)。
 
-**DLC 超限补给（维护者决定，2026-10-15）：** 所有超限等级（含 0 级）在第 4 回合开始时，为每名存活且未离场玩家独立抽取并立即发放一次奖励，四类各 25%：15 金币、2 名累计层数最高盟约的随机干员、3 件不同收藏品、1 件「稀有藏品」。三件收藏品每件先按普通 5%、精良 65%、稀有 30% 抽品质，再在该品质可用藏品中均匀抽取；「稀有藏品」是奖励类别名称，只发放 1 件传说品质收藏品，不恢复目标生命值。两类藏品均排除已持有与单人不适用项；某品质耗尽时按剩余合格品质归一化，不补入指定范围外的品质，全部耗尽则不发放。三列滚轮在三件奖励时分别显示实际的三件藏品，在单件传说奖励时重复显示同一件，重复图案不增加发放数量或效果。普通作战与逆风补给掉落概率不变。
+**DLC 超限补给（维护者决定，2026-10-15）：** 所有超限等级（含 0 级）在第 4 回合开始时，为每名存活且未离场玩家独立抽取并立即发放一次奖励，四类各 25%：15 金币、2 名累计层数最高盟约的随机干员、3 件不同收藏品、1 件「稀有藏品」。三件收藏品每件先按普通 5%、精良 65%、稀有 30% 抽品质，再在该品质可用藏品中均匀抽取；「稀有藏品」是奖励类别名称，只发放 1 件传说品质收藏品，不恢复目标生命值。两类藏品均排除已持有与单人不适用项；某品质耗尽时按剩余合格品质归一化，不补入指定范围外的品质，全部耗尽则不发放。三列滚轮在三件奖励时分别显示实际的三件藏品，在单件传说奖励时重复显示同一件，重复图案不增加发放数量或效果。普通作战掉落概率不变。
 
 **Temp overflow (临时整备区, row 8; user playtest #3 item 3).** Passive gains that find the hand full (merge elites, grants — the operator a 突变细胞 transformation gains included, §21.1 —, battle-result rewards, equipment returned by a merged / sold / transformed carrier) overflow into an expandable queue with five visible temp slots. The first five pieces fill right-to-left; later pieces wait behind them and refill freed slots in order. No passive gain is discarded for exceeding fifteen visible bench slots (owner correction, 2026-10-14, §32.14.21). Hidden pieces participate in merges, stock accounting, reconnect state and deadline resolution; Ready is refused while any is occupied (official "直到溢出情况排除才可开始进行作战"). A temp piece is resolved — a chess sold back to the pool with its summons removed, items destroyed, a summon stack removed (it comes back at the next round start, PRTS "干员所属召唤物会于下一回合返还", §20.1) — only at the deadline of the **first prep in which its player could act on it** (`PlayerState.tempDue(piece)` vs `prepsEnded`; every write into a temp slot goes through `_putTemp`, which records it): a piece that arrived during a prep before Ready is due at that prep's end; one that arrived after Ready or during the `<休整期结束时>` effects, or outside PREP (COMBAT, 联防, SETTLE — battle-result grants, a SETTLE merge's elite, returned equipment —, the next ROUND_START, 机变) is kept, visible and usable (move to a free hand slot, place, equip, use, destroy, sell) through the **next** prep. Un-readying (`setReady(false)`) makes whatever arrived while ready due at the current prep. ROUND_START no longer wipes temp (it used to destroy what SETTLE had put there before the player ever saw it). A merge's elite whose merge consumed a deployed copy takes that copy's tile and facing (§20.11); otherwise it goes to the hand, overflowing into temp (also outside PREP). `server/match/audit.js` (`tools/matchrun.mjs --check`) tracks the arrivals itself and flags any temp piece that outlives its due prep. The UI frames the row on the board with the rule (§17.5).
 
@@ -269,7 +269,7 @@ These do not alter the default rules above. See
 
 ## 身份证与刮刮票（DLC）
 
-身份证为 II 精良永久收藏品，实际持有后才解锁金币购买与免费收藏品奖励中的刮刮票。五档票券为可重复获得的一次性收藏品，图鉴每档仅记一条；休整阶段可同时购买、持有多张未兑奖票，同档票券逐张独立保存和兑奖，不占整备区。点击准备时，未使用票券与剩余资金共用一个确认提示；仅有1张票时也提醒。确认准备或休整超时后，仅保留最高品质的1张票跨回合使用（同档保留最早获得者），其余票券直接销毁、不兑奖、不退款；取消提示或被拒绝准备不销毁。持有票时，所有免费奖池继续排除票券；同次候选按实际已持有的身份证判断资格，候选中的身份证不能提前解锁其他候选。正常、逆风和超限补给保留各自的品质权重及回合规则。
+身份证为 II 精良永久收藏品，实际持有后才解锁金币购买与免费收藏品奖励中的刮刮票。五档票券为可重复获得的一次性收藏品，图鉴每档仅记一条；休整阶段可同时购买、持有多张未兑奖票，同档票券逐张独立保存和兑奖，不占整备区。点击准备时，未使用票券与剩余资金共用一个确认提示；仅有1张票时也提醒。确认准备或休整超时后，仅保留最高品质的1张票跨回合使用（同档保留最早获得者），其余票券直接销毁、不兑奖、不退款；取消提示或被拒绝准备不销毁。持有票时，所有免费奖池继续排除票券；同次候选按实际已持有的身份证判断资格，候选中的身份证不能提前解锁其他候选。正常和超限补给保留各自的品质权重及回合规则。
 
 | 品质 | 票价 | 购买解锁 | 空票 | 回本 | 2倍 | 5倍 | 10倍 | 50倍 |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
@@ -282,3 +282,7 @@ These do not alter the default rules above. See
 奖金包含本金；各张独立抽取，理论返还率依次为64.3%、70.7%、77.1%、83.5%、89.9%，最高奖金分别为100、200、300、400、500金币。号码匹配方式参考[官方票种规则](https://www.js-lottery.com/tzgg/tzgg/cms/post-144880.html)，数值为维护者确认的原创奖表。
 
 购买、打开与兑奖仅限存活且未准备的休整阶段；每回合不限次数。服务端出票时以独立的座位／票序号种子固定结果，两个中奖号码和六组号码奖金中，中奖票恰有一组匹配，空票无匹配。打开前不发送票面结果，打开后刮擦只控制揭晓；全部刮开后服务端兑奖一次，奖金计入兑奖时所在回合，随后遵循原有资金保留规则。断线、关闭、阶段结束均保留原票；新对局重置。机器人及托管在休整时使用持有的票，不主动购买。
+
+**DLC 收藏品掉落（维护者决定，2026-10-24）：** 完成单次作战后，存活且未离场玩家实际损失生命值不超过 5（含 0 和 5）即获得藏品三选一，超过 5 不发奖。普通回合按扣血上限、联防救援与生命效果处理后的实际扣血判定，回血按零损失处理；首领回合按共享血池结算后的个人分摊生命损失判定，仍仅在最终攻势胜利并解锁隐秘核心时提供下一关补给。移除连续漏怪／连败补偿、品质提升和下回合护盾发放；无漏怪概率、解锁回合、排重及选择流程保持不变。缺失、替代、未完成与重复结算不额外发奖。
+
+**DLC 漏怪收藏品降级（维护者决定，2026-10-24）：** 本人出现计数漏怪时，每个候选按无漏怪概率降低一个品质档，最低为 I 普通；即使联防救回且实际零扣血仍适用，不计数对象不触发。将原 I 与 II 权重合并到 I，III→II、IV→III、V→IV，因此漏怪奖励不出现 V 传说。先降级合并权重，再排除耗尽档位并归一化；不回退到更高档，全部合格池耗尽则不发放。无漏怪概率及超限补给等独立奖池不变。

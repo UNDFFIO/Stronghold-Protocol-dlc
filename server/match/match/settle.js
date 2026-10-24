@@ -81,7 +81,7 @@ export class MatchSettle {
       this.dispatch(ps, 'onBattleResult', { result: r, lpLoss: loss, perfect: counted === 0 && r.perfect !== false, unite: uniteResult || null });
       ps.relicShield = 0;
       reviveSelf(ps);
-      if (ps.lp > 0) settleRelics(ps, r, { completed: r.relicCompleted === true });
+      if (ps.lp > 0) settleRelics(ps, r, { completed: r.relicCompleted === true, lpLoss: loss });
       ps.recompute();
     }
     this.eliminateBroken();

@@ -221,8 +221,6 @@ export class PlayerState {
     /** Battle collectibles last for this match only; they do not occupy equipment or hand slots. */
     this.relics = [];
     this.relicSettledRounds = new Set();
-    this.relicLastRound = 0;
-    this.relicLeakStreak = 0;
     this.relicOffer = null;
     this.relicShield = 0;
     this.relicShieldRound = 0;

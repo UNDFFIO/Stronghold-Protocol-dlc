@@ -41,12 +41,12 @@ test('四叶草化石：桌面与手机展示四选一，第四项可领取', {
         globalThis.__MOCK__.setPhase('SETTLE');
         globalThis.__MOCK__.mutate((s) => {
           s.priv.relics = [{ id: 'relic_195', round: 1 }];
-          s.priv.relicOffer = { id: 'ui:four', round: 2, reason: 'perfect', options: ['relic_001', 'relic_002', 'relic_003', 'relic_004'] };
+          s.priv.relicOffer = { id: 'ui:four', round: 2, reason: 'lowLoss', options: ['relic_001', 'relic_002', 'relic_003', 'relic_004'] };
           s.pub.relicChoosing = true; s.pub.deadline = 0;
         });
       });
       await page.waitForSelector('.relic-choice__cards--four');
-      assert.match(await page.$eval('.relic-choice', (el) => el.textContent), /无漏怪奖励 · 藏品四选一/);
+      assert.match(await page.$eval('.relic-choice', (el) => el.textContent), /藏品四选一/);
       assert.equal((await page.$$('.relic-choice__card')).length, 4);
       const card = await page.$('.relic-choice__card:last-child');
       await card.evaluate((el) => el.scrollIntoView({ block: 'center' }));
@@ -383,21 +383,21 @@ test('phone/desktop: icons wrap, tooltips stay clear of three-choice dialogs, an
       await page.screenshot({ path: `${OUT}/relic-icons-combat-${width === 640 ? 'phone' : 'desktop'}.png` });
       if (width === 640) await page.touchscreen.touchEnd();
       else await page.mouse.move(0, 0);
-      // Both qualifying reasons automatically show exactly three cards; clicking sends the offer id and index.
-      for (const reason of ['perfect', 'comeback']) {
+      // Both timing modes show three cards; clicking sends the offer id and index.
+      for (const reason of ['untimed', 'timed']) {
         const expected = await page.evaluate(async (reason) => {
           const { RELICS } = await import('/shared/relics.js');
           const own = globalThis.__MOCK__.S().priv.relics;
           globalThis.__MOCK__.setPhase('SETTLE');
-          const cards = reason === 'perfect'
+          const cards = reason === 'untimed'
             ? [RELICS.find((r) => r.id === 'relic_154'), RELICS.find((r) => r.id === 'relic_155'), RELICS[20]]
             : ['relic_025', 'relic_156', 'relic_042'].map((id) => RELICS.find((r) => r.id === id));
           globalThis.__MOCK__.mutate((s) => {
             s.priv.relics = own;
-            s.priv.relicOffer = { id: `ui:${reason}`, round: 13, reason, options: cards.map((r) => r.id) };
-            s.priv.nextLpShield = reason === 'comeback' ? 2 : 0;
+            s.priv.relicOffer = { id: `ui:${reason}`, round: 13, reason: 'lowLoss', options: cards.map((r) => r.id) };
+            s.priv.nextLpShield = 0;
             s.pub.relicChoosing = true;
-            s.pub.deadline = reason === 'perfect' ? 0 : Date.now() + 30000;
+            s.pub.deadline = reason === 'untimed' ? 0 : Date.now() + 30000;
           });
           return { id: cards[1].id, desc: cards[1].desc, offerId: `ui:${reason}`, before: own.length };
         }, reason);
@@ -406,16 +406,16 @@ test('phone/desktop: icons wrap, tooltips stay clear of three-choice dialogs, an
         await page.keyboard.press('Escape');
         assert.equal(await page.$$eval('.relic-choice', (els) => els.length), 1, 'reward waits for a selection');
         assert.equal(await page.$$eval('.relic-choice__card', (els) => els.length), 3);
-        assert.match(await page.$eval('.relic-choice', (e) => e.textContent), reason === 'perfect' ? /无漏怪奖励/ : /下回合获得 2 点护盾/);
+        assert.match(await page.$eval('.relic-choice', (e) => e.textContent), /损失生命值不超过 5/);
         assert.ok((await page.$eval('.relic-choice', (e) => e.textContent)).includes(expected.desc));
-        if (reason === 'perfect') {
+        if (reason === 'untimed') {
           const text = await page.$eval('.relic-choice', (e) => e.textContent);
           assert.ok(text.includes('金钟罩') && text.includes('铁布衫') && text.includes('史诗'));
           assert.match(text, /90%/);
         }
-        assert.match(await page.$eval('.relic-choice__note', (e) => e.textContent), reason === 'perfect' ? /选好后进入下一阶段/ : /超时自动选择第一件/);
+        assert.match(await page.$eval('.relic-choice__note', (e) => e.textContent), reason === 'untimed' ? /选好后进入下一阶段/ : /超时自动选择第一件/);
         await page.waitForFunction(() => [...document.querySelectorAll('.relic-choice__art img')].every((i) => i.complete && i.naturalWidth > 0));
-        if (reason === 'perfect') {
+        if (reason === 'untimed') {
           const alpha = await page.$$eval('.relic-choice__art img', (imgs) => imgs.slice(0, 2).map((img) => {
             const canvas = document.createElement('canvas');
             canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
