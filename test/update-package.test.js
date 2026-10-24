@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 import zlib from 'node:zlib';
 import { APPLIED_FILE, MANIFEST_FILE, UPDATE_FILE, applyPendingUpdate, checkInstall, parseUpdate, removalProblem } from '../server/update.js';
 import { compareVersions, diffBases, readBase, readZip } from '../tools/package-update.mjs';
-import { FOLDER, readBases, scanFiles, stageProblems, zipFolder } from '../tools/package.mjs';
+import { FOLDER, readBases, scanFiles, stageProblems } from '../tools/package.mjs';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const TOOL = path.join(ROOT, 'tools', 'package.mjs');
@@ -308,7 +308,12 @@ test('the zip reader: stored and deflated entries, zip64, UTF-8 names; damaged a
       if (!z.error && z.status === 0) zipped.push(name);
     };
     // plain.zip is what tools/package.mjs writes (zip, else bsdtar); the other two need Info-ZIP
-    zipFolder(dir, path.join(dir, 'plain.zip'));
+    // Like runTool, give the packager piped stdio: inheriting the Windows test runner's handles can fail to spawn tar.
+    const plain = spawnSync(process.execPath, ['--input-type=module', '-e', `
+      import { zipFolder } from ${JSON.stringify(new URL('../tools/package.mjs', import.meta.url).href)};
+      zipFolder(process.argv[1], process.argv[2]);
+    `, dir, path.join(dir, 'plain.zip')], { encoding: 'utf8' });
+    assert.equal(plain.status, 0, plain.stdout + plain.stderr);
     zipped.push('plain.zip');
     make('stored.zip', ['-X', '-0']);
     make('zip64.zip', ['-X', '-fz']);
