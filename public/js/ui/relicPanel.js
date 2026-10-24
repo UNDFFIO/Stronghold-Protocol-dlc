@@ -30,8 +30,8 @@ export function ownerRelics({ pub, priv, myId, ownerId }) {
 }
 
 /** Base odds; acquired entries are removed from the server's remaining candidates. */
-export function relicOdds(round) {
-  const weights = dropWeights(round);
+export function relicOdds(round, { leaked = false } = {}) {
+  const weights = dropWeights(round, { leaked });
   const sum = weights.reduce((a, b) => a + b, 0);
   return RELIC_TIERS.filter((t) => t.normalDrop !== false).map((t, i) => ({ ...t, unlock: t.unlockRound, percent: sum > 0 ? weights[i] / sum * 100 : 0 }));
 }
@@ -142,11 +142,12 @@ export function RelicCollection({ relics, reward, owner = null, round = 1, shiel
     <${Modal} open=${open} title=${html`<span class="relic-panel__title"><${Icon} name="key" />${owner ? tr('{owner} 的收藏品', { owner }) : tr('你的收藏品')} <span class="num">${count}</span></span>`}
       micro="RELIC COLLECTION // THIS MATCH" class="relic-panel" width="min(9.6rem, 94vw)" onClose=${() => setOpen(false)}
       actions=${html`<${Button} size="sm" onClick=${() => setOpen(false)} icon="close">${tr('关闭')}<//>`}>
-      <p class="relic-panel__rule">${tr('每回合本人无漏怪，弹出藏品三选一；连续三回合漏怪，获得一次较高稀有度三选一及下回合 2 点护盾。每次只获得所选的一件，永久藏品同名不重复，刮刮票兑奖后可再次获得，效果仅在本局有效。')}</p>
-      <p class="relic-panel__balance">${tr('强度分 I–V 五档。普通奖励中 I／II 从 R1 开始出现，III 从 R4 开始，IV／V 从 R7 开始；逆风补给沿用独立概率表，从 III 稀有档起步，史诗与传说在 R6／9 开放。')}</p>
+      <p class="relic-panel__rule">${tr('单次作战损失生命值不超过 5，弹出藏品三选一；本人漏怪时品质降低一级，最低普通，联防救回也适用。每次只获得所选的一件，永久藏品同名不重复，刮刮票兑奖后可再次获得，效果仅在本局有效。')}</p>
+      <p class="relic-panel__balance">${tr('强度分 I–V 五档。无漏怪奖励中 I／II 从 R1 开始出现，III 从 R4 开始，IV／V 从 R7 开始。')}</p>
+      <p class="relic-panel__note">${tr('基础概率：无漏怪／漏怪')}</p>
       <div class="relic-odds" aria-label=${tr('第 {round} 回合基础掉落概率', { round })}>
         ${relicOdds(round).map((t) => html`<div key=${t.tier} class=${`relic-odds__tier relic-tier-${t.tier}${t.percent === 0 ? ' is-locked' : ''}`}>
-          <b>${roman(t.tier)} · ${tr(t.name)}</b><span>${t.percent === 0 ? tr('R{unlock} 解锁', { unlock: t.unlock }) : `${Number(t.percent.toFixed(2))}%`}</span>
+          <b>${roman(t.tier)} · ${tr(t.name)}</b><span>${Number(t.percent.toFixed(2))}% / ${Number(relicOdds(round, { leaked: true })[t.tier - 1].percent.toFixed(2))}%</span>
         </div>`)}
       </div>
       <p class="relic-panel__note">${tr('第 {round} 回合基础概率；已获得的永久藏品移出候选池，实际概率随剩余藏品调整。', { round })}</p>
@@ -165,7 +166,6 @@ export function RelicChoice({ offer, deadline = 0, onChoose }) {
   useEffect(() => { setBusy(null); setFailed(false); }, [offer?.id]);
   if (!offer) return null;
   const cards = (Array.isArray(offer.options) ? offer.options : []).map((id) => getRelic(id));
-  const comeback = offer.reason === 'comeback';
   const pick = async (idx) => {
     if (busy != null) return;
     setBusy(idx);
@@ -173,9 +173,9 @@ export function RelicChoice({ offer, deadline = 0, onChoose }) {
     if (!ok) { setBusy(null); setFailed(true); }
   };
   const remain = secondsLeft(deadline);
-  return html`<${Modal} open=${true} title=${comeback ? tr('逆风补给 · 藏品三选一') : tr('无漏怪奖励 · 藏品三选一')}
-    micro="RELIC CHOICE" width="min(9rem, 94vw)" tone=${comeback ? 'gold' : 'mint'} class="relic-choice" closeOnBackdrop=${false}>
-    <p class="relic-choice__rule">${comeback ? tr('连续三回合漏怪：本次候选稀有度提升一档（最高传说），下回合获得 2 点护盾，抵消两点扣血。') : tr('本回合没有漏怪：从以下收藏品中选择一件。')}</p>
+  return html`<${Modal} open=${true} title=${tr('藏品三选一')}
+    micro="RELIC CHOICE" width="min(9rem, 94vw)" tone="mint" class="relic-choice" closeOnBackdrop=${false}>
+    <p class="relic-choice__rule">${offer.leaked ? tr('本次作战有漏怪，候选品质已降低一级（最低普通）：请选择一件。') : tr('本次作战损失生命值不超过 5：从以下收藏品中选择一件。')}</p>
     <div class="relic-choice__cards">
       ${cards.map((r, idx) => r ? html`<button key=${r.id} type="button" class=${`relic-choice__card relic-tier-${r.tier}`}
         disabled=${busy != null} aria-label=${tr('选择{name}，{1}，{2}', { name: tr(r.name), 1: tierName(r.tier), 2: tr(r.previewDesc || r.desc) })} data-relic-id=${r.id} onClick=${() => pick(idx)}>

@@ -150,3 +150,22 @@ see [UPSTREAM-0.3.1.md](UPSTREAM-0.3.1.md) for the source and DLC compatibility 
 - `coop2-NORMAL-1-unowned-roster`
 
 使用独立票券随机流，不消耗商店流。号码、概率边界、重复兑奖、单张上限与手动刮擦由新增定向及浏览器测试覆盖。
+
+## 2026-10-24 收藏品按单次损血与漏怪发放
+
+维护者要求将掉落改为单次作战实际损失生命值不超过 5，并移除连续漏怪补偿及护盾发放；本人计数漏怪时按原概率降低一级，最低普通，即使被联防救回仍适用。重算全部 290 个场景，只有 matches 家族的 14 个场景移动：低损血回合新增掉落、漏怪候选品质下移及连败补偿／护盾移除，改变后续属性、随机流消耗、伤害、生命值或最终结果。其余五个战斗家族保持不变。
+
+- `solo-HARD-1`
+- `solo-ABYSS-1`
+- `solo-ABYSS-2`
+- `coop2-HARD-4`
+- `coop3-ABYSS-5`
+- `coop4-ABYSS-7`
+- `coop2-NORMAL-8-serverrun`
+- `coop2-ABYSS-10-boosted`
+- `coop2-NORMAL-14-standins`
+- `coop2-NORMAL-70-diy`
+- `coop2-NORMAL-1-coverage-standins`
+- `coop2-NORMAL-5-coverage-diy`
+- `coop2-NORMAL-68-coverage-diy`
+- `coop2-NORMAL-1-unowned-roster`

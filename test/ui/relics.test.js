@@ -126,3 +126,9 @@ test('时间机器：普通与联防血量预览加血、不截断低血回血�
   const unite = liveLp(null, { phase: 'UNITE', round: 2, lp: 1, leaks: 5, uniteLeft: 2, reverseLp: true });
   assert.equal(unite.shown, 3);
 });
+
+test('漏怪概率展示与实际降级概率一致', () => {
+  for (const [round, expected] of [[1, [100, 0, 0, 0, 0]], [4, [88, 12, 0, 0, 0]], [7, [80, 15, 4, 1, 0]], [10, [60, 25, 10, 5, 0]], [13, [40, 35, 15, 10, 0]]]) {
+    assert.deepEqual(relicOdds(round, { leaked: true }).map((t) => t.percent), expected);
+  }
+});

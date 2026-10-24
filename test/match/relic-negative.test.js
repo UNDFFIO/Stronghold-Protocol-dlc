@@ -22,7 +22,7 @@ test('negative quality is immutable and excluded from all random reward pools, e
   const owned = fixture.RELICS.filter((r) => r.id !== negative.id).map((r) => r.id);
   for (const round of [1, 3, 4, 7, 9, 12, 15, 100]) {
     for (const options of [
-      {}, { comeback: true },
+      {},
       { tierWeights: [5, 65, 30, 0, 0] },
       { tierWeights: [0, 0, 0, 0, 100] },
       { tierWeights: [0, 0, 0, 0, 0, 100] },
@@ -33,8 +33,8 @@ test('negative quality is immutable and excluded from all random reward pools, e
         assert.notEqual(fixture.pickRelic(round, [], rng, options)?.id, negative.id);
       }
     }
-    for (const comeback of [false, true]) {
-      assert.deepEqual(fixture.pickRelicChoices(round, owned, createRng(round), { comeback, hasScratchTicket: true }), []);
+    {
+      assert.deepEqual(fixture.pickRelicChoices(round, owned, createRng(round), { hasScratchTicket: true }), []);
     }
   }
 });

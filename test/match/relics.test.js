@@ -2,11 +2,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { PHASE } from '../../shared/constants.js';
 import { validateC2S } from '../../shared/protocol.js';
-import { RELICS, RELIC_TIERS, getRelic, dropWeights, pickRelic, pickRelicChoices, comebackWeights, relicModifiers, relicIncome } from '../../shared/relics.js';
+import { RELICS, RELIC_TIERS, getRelic, dropWeights, pickRelic, pickRelicChoices, relicModifiers, relicIncome } from '../../shared/relics.js';
 import { createRng } from '../../server/sim/rng.js';
 import { settleRelics, selectRelic, grantRelic } from '../../server/match/relics.js';
 import { makeMatch } from './harness.js';
-import { attachAudit } from '../../server/match/audit.js';
 import { makeBattle, chessRec, enemyRec } from '../helpers/battleHarness.js';
 
 // Keep the consumable slot occupied when isolating an ordinary relic in an otherwise exhausted catalogue.
@@ -238,8 +237,8 @@ test('collection: weaker same-tier duplicates cannot be drawn or granted', () =>
   assert.deepEqual(RELICS.filter((r) => r.tier === 1 && r.mods.defPct).map((r) => r.id), ['relic_047']);
   assert.deepEqual(RELICS.filter((r) => r.tier === 1 && r.mods.hpPct).map((r) => r.id), ['relic_010']);
   const owned = RELICS.filter((r) => !removed.includes(r.id)).map((r) => r.id);
-  for (const comeback of [false, true]) {
-    assert.deepEqual(pickRelicChoices(15, owned, createRng(7), { comeback, multiplayer: true, hasScratchTicket: true }), []);
+  {
+    assert.deepEqual(pickRelicChoices(15, owned, createRng(7), { multiplayer: true, hasScratchTicket: true }), []);
   }
   assert.deepEqual(relicModifiers(removed, 'WARRIOR', 'MELEE'), {});
   const h = makeMatch({ mode: 'solo', fake: true }).start();
@@ -313,7 +312,7 @@ test('balance: duplicate IDs, forged payloads, profession and position add witho
   assert.equal(relicIncome(['relic_025', 'relic_025']), 1);
 });
 
-test('掉落进度：普通奖励按新回合区间抽取，逆风概率维持独立表', () => {
+test('掉落进度：普通奖励按回合区间抽取', () => {
   assert.deepEqual(RELIC_TIERS.filter((r) => r.normalDrop !== false).map((r) => r.unlockRound), [1, 1, 4, 7, 7]);
   const normal = [
     [1, [80, 20, 0, 0, 0]], [3, [80, 20, 0, 0, 0]],
@@ -323,25 +322,10 @@ test('掉落进度：普通奖励按新回合区间抽取，逆风概率维持�
     [13, [10, 30, 35, 15, 10]], [15, [10, 30, 35, 15, 10]],
   ];
   normal.forEach(([round, weights]) => assert.deepEqual(dropWeights(round), weights));
-  const comeback = [
-    [3, [0, 0, 100, 0, 0]], [5, [0, 0, 100, 0, 0]],
-    [6, [0, 0, 65, 35, 0]], [8, [0, 0, 65, 35, 0]],
-    [9, [0, 0, 60, 30, 10]], [11, [0, 0, 60, 30, 10]],
-    [12, [0, 0, 55, 30, 15]], [15, [0, 0, 55, 30, 15]],
-  ];
-  comeback.forEach(([round, weights]) => assert.deepEqual(comebackWeights(round), weights));
-  const rng = createRng(42);
-  const count = [0, 0, 0, 0, 0];
-  for (let i = 0; i < 30000; i++) count[pickRelic(12, [], rng, { comeback: true }).tier - 1]++;
-  comebackWeights(12).forEach((weight, i) => assert.ok(Math.abs(count[i] / 300 - weight) < 1));
-  const exhausted = RELICS.filter((r) => r.tier >= 3).map((r) => r.id);
-  const fallback = pickRelicChoices(3, exhausted, rng, { comeback: true });
-  assert.equal(fallback.length, 3);
-  fallback.forEach((id) => assert.ok(getRelic(id).tier <= 2));
 });
 
 for (const clientCombat of [false, true]) {
-  test(`perfect own battle gives exactly one relic; a 联防 rescue never qualifies (${clientCombat ? 'client' : 'server'} combat)`, () => {
+  test(`low-loss own battle and 联防 rescue each give one relic (${clientCombat ? 'client' : 'server'} combat)`, () => {
     const h = makeMatch({ humans: 2, fake: true, clientCombat,
       script: (b) => b.kind === 'normal' && b.round === 1 ? { leaks: { p_1: 1 } } : {} }).start();
     try {
@@ -351,7 +335,8 @@ for (const clientCombat of [false, true]) {
       h.toPrep(2);
       assert.equal(p1.lp, lp, 'helper caught the leaked enemy');
       assert.equal(p0.relics.length, 1);
-      assert.equal(p1.relics.length, 0, 'rescue did not erase the original leak');
+      assert.equal(p1.relics.length, 1, 'rescue reduced actual LP loss to zero');
+      assert.equal(getRelic(p1.relics[0].id).tier, 1, 'rescued personal leaks still lower quality');
       assert.equal(getRelic(p0.relics[0].id).tier, 1);
       assert.equal(p0.relics[0].round, 1);
       assert.deepEqual(p0.battleInput().relics, [p0.relics[0].id]);
@@ -366,7 +351,7 @@ for (const clientCombat of [false, true]) {
       assert.notEqual(p0.relics[0].id, 'forged', 'a wire view is isolated from authoritative state');
       h.toPrep(3);
       assert.equal(p0.relics.length, 2);
-      assert.equal(p1.relics.length, 1);
+      assert.equal(p1.relics.length, 2);
       assert.deepEqual(p0.relicReward, p0.relics[1]);
       h.invariants();
       assert.equal(h.m.errorCount, 0);
@@ -383,6 +368,7 @@ test('settlement: repeated callbacks, missing/synthetic results, eliminated seat
     assert.equal(settleRelics(ps, null, { completed: true }), null);
     assert.equal(settleRelics(ps, result), null);
     assert.equal(settleRelics(ps, { ...result, synthetic: true }, { completed: true }), null);
+    for (const lpLoss of [NaN, Infinity, -Infinity]) assert.equal(settleRelics(ps, result, { completed: true, lpLoss }), null);
     ps.alive = false;
     assert.equal(settleRelics(ps, result, { completed: true }), null);
     ps.alive = true;
@@ -398,24 +384,14 @@ test('settlement: repeated callbacks, missing/synthetic results, eliminated seat
   } finally { h.m.dispose(); }
 });
 
-test('three distinct candidates exclude owned relics; comeback promotes each eligible tier once, capped at legendary', () => {
+test('three distinct candidates exclude owned relics and follow round unlocks', () => {
   for (let round = 1; round <= 15; round++) for (let seed = 0; seed < 100; seed++) {
     const ids = pickRelicChoices(round, ['relic_003'], createRng(seed));
     assert.equal(ids.length, 3);
     assert.equal(new Set(ids).size, 3);
     assert.ok(!ids.includes('relic_003'));
     ids.forEach((id) => assert.ok(RELIC_TIERS[getRelic(id).tier - 1].unlockRound <= round));
-    if (round >= 3) {
-      const comeback = pickRelicChoices(round, [], createRng(seed), { comeback: true });
-      assert.equal(comeback.length, 3);
-      comeback.forEach((id) => {
-        const tier = getRelic(id).tier;
-        assert.ok(tier >= 3);
-        assert.ok(tier === 3 || RELIC_TIERS[tier - 2].unlockRound <= round);
-      });
-    }
   }
-  assert.deepEqual(comebackWeights(3), [0, 0, 100, 0, 0]);
 });
 
 test('perfect settlement waits for a player choice; forged/stale choices cannot award or advance, and solo selection is untimed', () => {
@@ -497,92 +473,6 @@ test('relic requests carry a bounded index and offer identity', () => {
   }
 });
 
-for (const clientCombat of [false, true]) test(`three rounds of rescued leaks still qualify for comeback (${clientCombat ? 'client' : 'server'})`, () => {
-  const h = makeMatch({ humans: 2, fake: true, clientCombat,
-    script: (b) => b.kind === 'normal' ? { leaks: { p_1: 1 } } : {} }).start();
-  try {
-    h.toPrep(1);
-    const b = h.ps('p_1');
-    const lp = b.lp;
-    h.toPrep(4);
-    assert.equal(b.lp, lp, 'all three personal leaks were caught by the ally');
-    assert.equal(b.relics.length, 1);
-    assert.equal(b.relics[0].round, 3);
-    assert.equal(getRelic(b.relics[0].id).tier, 3);
-    assert.equal(b.privateView().lpShield, 2);
-    assert.equal(b.relicLeakStreak, 0);
-  } finally { h.m.dispose(); h.clients?.closeAll(); }
-});
-
-test('normal damage is capped before applying the two-point shield', () => {
-  const h = makeMatch({ mode: 'solo', fake: true, script: (b) => b.kind === 'normal' ? { leaks: { p_0: 40 } } : {} }).start();
-  try {
-    h.toPrep(1);
-    const ps = h.ps('p_0');
-    const lp = ps.lp;
-    ps.relicShieldRound = 1;
-    ps.relicShield = 2;
-    assert.ok(h.drive(() => h.m.phase === PHASE.SETTLE));
-    assert.equal(ps.lp, lp - 8);
-    assert.equal(ps.stats.lpLost, 8);
-    assert.equal(ps.relicShield, 0);
-    assert.equal(ps.relicOffer, null);
-    assert.equal(ps.relicLeakStreak, 1);
-  } finally { h.m.dispose(); }
-});
-
-for (const clientCombat of [false, true]) test(`three consecutive leaks give a comeback choice and next-round shield exactly once (${clientCombat ? 'client' : 'server'})`, () => {
-  const h = makeMatch({ mode: 'solo', fake: true, clientCombat,
-    script: (b) => b.kind === 'normal' ? { leaks: { p_0: b.round === 4 ? 3 : 1 } } : {} }).start();
-  try {
-    const audit = attachAudit(h.m);
-    h.toPrep(1);
-    const ps = h.ps('p_0');
-    ps.lp = 30;
-    h.toPrep(4);
-    assert.equal(ps.lp, 27);
-    assert.equal(ps.relics.length, 1);
-    assert.equal(ps.relics[0].round, 3);
-    assert.equal(getRelic(ps.relics[0].id).tier, 3);
-    assert.equal(ps.relicLeakStreak, 0);
-    assert.equal(ps.privateView().lpShield, 2);
-    assert.ok(h.drive(() => h.m.phase === PHASE.SETTLE && h.m.round === 4));
-    assert.equal(ps.lp, 26, 'three leaks cost one LP after shielding');
-    assert.equal(ps.stats.lpLost, 4);
-    assert.equal(ps.stats.leaks, 6);
-    assert.equal(ps.relicShield, 0);
-    assert.equal(ps.relicOffer, null);
-    assert.equal(ps.relicLeakStreak, 1);
-    h.toPrep(5);
-    assert.equal(ps.privateView().lpShield, 0);
-    h.toPrep(7);
-    assert.equal(ps.relics.length, 2);
-    assert.equal(ps.relics[1].round, 6);
-    assert.equal(ps.privateView().lpShield, 2);
-    assert.equal(h.m.errorCount, 0);
-    assert.deepEqual(audit.violations, []);
-  } finally { h.m.dispose(); h.clients?.closeAll(); }
-});
-
-test('a perfect round breaks the leak streak; unused shield expires and cannot fake a perfect round', () => {
-  const h = makeMatch({ mode: 'solo', fake: true,
-    script: (b) => b.kind === 'normal' && [1, 2, 4, 5, 6].includes(b.round) ? { leaks: { p_0: 1 } } : {} }).start();
-  try {
-    h.toPrep(4);
-    const ps = h.ps('p_0');
-    ps.lp = 100;
-    assert.equal(ps.relicNextShieldRound, 0);
-    assert.equal(ps.relicLeakStreak, 0);
-    h.toPrep(7);
-    assert.equal(ps.relics.filter((r) => r.round === 6).length, 1);
-    assert.equal(ps.privateView().lpShield, 2);
-    const lp = ps.lp;
-    h.toPrep(8);
-    assert.equal(ps.lp, lp);
-    assert.equal(ps.privateView().lpShield, 0);
-  } finally { h.m.dispose(); }
-});
-
 test('boss shield credits raw client LP only once, preserves fallback acknowledgments, and does not use another field shield', () => {
   const h = makeMatch({ humans: 2, fake: true }).start();
   try {
@@ -635,7 +525,7 @@ test('economy and lifetime: fixed income starts in the next prep; results retain
 });
 
 for (const clientCombat of [false, true]) {
-  test(`only a boss win leading to Hidden Core awards a perfect-round relic (${clientCombat ? 'client' : 'server'} combat)`, () => {
+  test(`only a low-loss boss win leading to Hidden Core awards a relic (${clientCombat ? 'client' : 'server'} combat)`, () => {
     const h = makeMatch({ mode: 'solo', difficulty: 'HARD', fake: true, clientCombat,
       script: (b) => b.kind === 'boss' || b.kind === 'hidden' ? { bossDps: 1e8, duration: Infinity } : {} }).start();
     try {
@@ -659,7 +549,7 @@ for (const clientCombat of [false, true]) {
   });
 }
 
-test('a defeated boss battle or a victorious boss battle with personal leaks gives no relic', () => {
+test('a defeated boss battle or a victory without a next stage gives no relic', () => {
   for (const victory of [false, true]) {
     const h = makeMatch({ mode: 'solo', difficulty: 'HARD', fake: true,
       script: (b) => b.kind === 'boss' ? { bossDps: victory ? 1e8 : 0, duration: Infinity,
@@ -692,3 +582,86 @@ for (const clientCombat of [false, true]) {
     } finally { h.m.dispose(); h.clients?.closeAll(); }
   });
 }
+
+for (const clientCombat of [false, true]) for (const leaks of [0, 5, 6, 40]) {
+  test(`collectible threshold uses actual loss: ${leaks} leaks (${clientCombat ? 'client' : 'server'})`, () => {
+    const h = makeMatch({ mode: 'solo', fake: true, clientCombat,
+      script: (b) => b.kind === 'normal' ? { leaks: { p_0: leaks } } : {} }).start();
+    try {
+      h.toPrep(1);
+      const ps = h.ps('p_0'), lp = ps.lp;
+      h.toPrep(2);
+      assert.equal(ps.lp, lp - Math.min(10, leaks));
+      assert.equal(ps.relics.length, leaks <= 5 ? 1 : 0);
+      assert.equal(ps.privateView().lpShield, 0);
+      assert.equal(ps.privateView().nextLpShield, 0);
+      assert.equal(h.m.errorCount, 0);
+    } finally { h.m.dispose(); h.clients?.closeAll(); }
+  });
+}
+for (const clientCombat of [false, true]) test(`consecutive losses never grant compensation (${clientCombat ? 'client' : 'server'})`, () => {
+  const h = makeMatch({ mode: 'solo', fake: true, clientCombat,
+    script: (b) => b.kind === 'normal' ? { leaks: { p_0: 6 } } : {} }).start();
+  try {
+    h.toPrep(1);
+    const ps = h.ps('p_0');
+    ps.lp = 100;
+    h.toPrep(5);
+    assert.equal(ps.lp, 76);
+    assert.deepEqual(ps.relics, []);
+    assert.equal(ps.privateView().lpShield, 0);
+    assert.equal(ps.privateView().nextLpShield, 0);
+    assert.equal(h.m.errorCount, 0);
+  } finally { h.m.dispose(); h.clients?.closeAll(); }
+});
+
+for (const loss of [5, 6]) test(`boss collectible threshold uses allocated LP loss ${loss}`, () => {
+  const h = makeMatch({ mode: 'solo', difficulty: 'HARD', fake: true,
+    script: (b) => b.kind === 'boss' ? { bossDps: 1e8, duration: Infinity } : {} }).start();
+  try {
+    h.toPrep(1);
+    h.ps('p_0').lp = 999;
+    h.toPrep(14);
+    const ps = h.ps('p_0');
+    ps.bondCountBonus.yanShip = 3;
+    ps.layers.yanShip = 600;
+    ps.recompute();
+    assert.ok(h.drive(() => h.m.phase === PHASE.FINAL_ASSAULT));
+    h.m._teamLpLoss(loss);
+    assert.ok(h.drive(() => h.m.phase === PHASE.PREP && h.m.round === 15));
+    assert.equal(ps.relics.some((r) => r.round === 14), loss <= 5);
+  } finally { h.m.dispose(); }
+});
+
+test('漏怪掉落：品质概率下移一级，普通合并且不出现传说', () => {
+  for (const [round, expected] of [
+    [1, [100, 0, 0, 0, 0]], [3, [100, 0, 0, 0, 0]],
+    [4, [88, 12, 0, 0, 0]], [6, [88, 12, 0, 0, 0]],
+    [7, [80, 15, 4, 1, 0]], [9, [80, 15, 4, 1, 0]],
+    [10, [60, 25, 10, 5, 0]], [12, [60, 25, 10, 5, 0]],
+    [13, [40, 35, 15, 10, 0]], [15, [40, 35, 15, 10, 0]],
+  ]) assert.deepEqual(dropWeights(round, { leaked: true }), expected);
+  for (const round of [0, -1, 1.5]) assert.deepEqual(dropWeights(round, { leaked: true }), [0, 0, 0, 0, 0]);
+  for (const [roll, tier] of [[0, 1], [0.799999, 1], [0.8, 2], [0.949999, 2], [0.95, 3], [0.989999, 3], [0.99, 4], [0.999999, 4]]) {
+    const choices = pickRelicChoices(7, [], () => roll, { leaked: true });
+    assert.equal(choices.length, 3);
+    assert.ok(choices.every((id) => getRelic(id).tier === tier));
+  }
+  const owned = RELICS.filter((r) => r.tier <= 4).map((r) => r.id);
+  assert.deepEqual(pickRelicChoices(15, owned, createRng(7), { leaked: true, hasScratchTicket: true }), [], 'exhausted lower tiers cannot restore legendary drops');
+});
+
+test('漏怪降级以本人计数漏怪为准，联防救回不抹除，非计数对象不触发', () => {
+  for (const [leaked, penalty] of [[[], false], [[{ counted: false }], false], [[{}], true], [[{ counted: true }], true]]) {
+    const h = makeMatch({ mode: 'solo', fake: true }).start();
+    try {
+      h.toPrep(1);
+      h.m.round = 3;
+      const ps = h.ps('p_0');
+      const offer = settleRelics(ps, { perfect: !penalty, leaked }, { completed: true, lpLoss: 0 });
+      assert.ok(offer);
+      assert.equal(offer.leaked, penalty);
+      if (penalty) assert.ok(offer.options.every((id) => getRelic(id).tier === 1));
+    } finally { h.m.dispose(); }
+  }
+});

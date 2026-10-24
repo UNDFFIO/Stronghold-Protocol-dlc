@@ -577,10 +577,10 @@ export class MatchBoss {
     }
     const eligible = !hidden && victory && !!this.hiddenBossId
       && hiddenEligible(this.gd, { layerSum: this.hiddenLayerSum, teamLp: this.teamLp });
-    // Collectibles are supplies for the next stage, never an extra choice before the final result.
-    if (eligible) for (const ps of this.alivePlayers()) settleRelics(ps, this.lastResults.get(ps.playerId), { completed: true });
-    for (const ps of this.alivePlayers()) { ps.relicShield = 0; ps.dirty(); }
     this._syncTeamLp();
+    // Collectibles are supplies for the next stage, never an extra choice before the final result.
+    if (eligible) for (const ps of this.alivePlayers()) settleRelics(ps, this.lastResults.get(ps.playerId), { completed: true, lpLoss: Math.max(0, ps.lpAtFinal - ps.lp) });
+    for (const ps of this.alivePlayers()) { ps.relicShield = 0; ps.dirty(); }
     this.deadline = 0;
     this.overtimeAt = 0;
     this.markPublic();

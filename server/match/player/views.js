@@ -109,7 +109,6 @@ export class PlayerViews {
       relicChessQueue: [...this.relicChessQueue],
       ascensionLottery: ascensionLotteryView(this),
       scratch: scratchView(this),
-      relicLeakStreak: this.relicLeakStreak,
       lpShield: activeRelicShield(this),
       reverseLp: activeReverseLp(this),
       nextLpShield: this.relicNextShieldRound > this.m.round ? 2 : 0,

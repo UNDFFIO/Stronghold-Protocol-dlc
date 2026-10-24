@@ -94,11 +94,11 @@ test('解压玩具：触发回合预览、实际波次和两端模拟均为 9 / 
   } finally { h.m.dispose(); }
 });
 
-test('解压玩具：仅多人抽取，普通进度与逆风补足均过滤单人限定', () => {
+test('解压玩具：仅多人抽取，普通进度过滤单人限定', () => {
   const owned = RELICS.filter((r) => r.id !== 'relic_156').map((r) => r.id);
-  for (const comeback of [false, true]) {
-    assert.deepEqual(pickRelicChoices(7, owned, createRng(1), { comeback, hasScratchTicket: true }), []);
-    assert.deepEqual(pickRelicChoices(7, owned, createRng(1), { comeback, multiplayer: true, hasScratchTicket: true }), ['relic_156']);
+  {
+    assert.deepEqual(pickRelicChoices(7, owned, createRng(1), { hasScratchTicket: true }), []);
+    assert.deepEqual(pickRelicChoices(7, owned, createRng(1), { multiplayer: true, hasScratchTicket: true }), ['relic_156']);
   }
   assert.deepEqual(pickRelicChoices(1, owned, createRng(1), { multiplayer: true, hasScratchTicket: true }), []);
 });

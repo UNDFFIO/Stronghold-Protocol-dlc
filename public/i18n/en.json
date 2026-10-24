@@ -2623,7 +2623,8 @@
   "收藏品增益无累计上限。同类属性与伤害增幅相加；永久藏品同名不重复，刮刮票兑奖后可再次获得。": "Collectible bonuses have no cumulative cap. Matching stat and damage bonuses add together. Permanent collectibles are unique; scratch tickets can be acquired again after claiming.",
   "淬毒匕首": "Poison Dagger",
   "所有我方干员造成的物理伤害提高至110%，在防御结算前转为5次等额法术伤害（命中1秒后开始，每秒1次，可独立叠加）": "All allied Operators deal 110% Physical damage, converted before DEF into 5 equal instances of Arts damage (starting 1 second after the hit, once per second; each hit stacks independently)",
-  "原创：物理伤害转为可叠加的五段法术持续伤害。": "Original: Converts Physical damage into five stackable instances of Arts damage over time.",
+  "原创：物理伤害转为可叠加的五段法术持续伤害。": "Original: Converts Physical damage into five stackable instances of Arts damage over time."
+,
   "未使用的刮刮票": "Unused scratch tickets",
   "还有 {n} 张刮刮票未使用。准备或超时后仅保留一张最高级刮刮票，其余将销毁。": "You have {n} unused scratch tickets. When you ready up or time runs out, only one ticket of the highest tier is kept; all others are destroyed.",
   "还有 {funds} 资金未使用。休整期结束时，本回合的剩余资金将清零。": "You have {funds} unspent funds. At the end of the Rest Phase, your remaining funds for this round will be cleared.",
@@ -2650,5 +2651,13 @@
   "我方干员击倒敌人时，回复10%最大生命。": "When an allied Operator defeats an enemy, restore 10% of their maximum HP.",
   "“庇护”": "“Shelter”",
   "我方高台干员部署时立刻获得最大生命值100%的屏障": "Allied high-ground Operators immediately gain a barrier equal to 100% of their maximum HP on deployment",
-  "高台干员部署时立刻获得最大生命100%的屏障。": "Allied high-ground Operators immediately gain a barrier equal to 100% of their maximum HP on deployment."
+  "高台干员部署时立刻获得最大生命100%的屏障。": "Allied high-ground Operators immediately gain a barrier equal to 100% of their maximum HP on deployment.",
+  "单次作战损失生命值不超过 5，弹出藏品三选一。每次只获得所选的一件，永久藏品同名不重复，刮刮票兑奖后可再次获得，效果仅在本局有效。": "Lose no more than 5 LP in a battle to choose one of three collectibles. Only the selected item is awarded. Permanent collectibles cannot repeat; scratch tickets can be obtained again after redemption. Effects last for this match only.",
+  "强度分 I–V 五档。普通奖励中 I／II 从 R1 开始出现，III 从 R4 开始，IV／V 从 R7 开始。": "Strength has five tiers, I–V. Normal rewards unlock I/II from R1, III from R4, and IV/V from R7.",
+  "藏品三选一": "Choose a Collectible",
+  "本次作战损失生命值不超过 5：从以下收藏品中选择一件。": "You lost no more than 5 LP in this battle. Choose one of the following collectibles.",
+  "单次作战损失生命值不超过 5，弹出藏品三选一；本人漏怪时品质降低一级，最低普通，联防救回也适用。每次只获得所选的一件，永久藏品同名不重复，刮刮票兑奖后可再次获得，效果仅在本局有效。": "Lose no more than 5 LP in a battle to choose one of three collectibles. Personal leaks lower quality by one tier, down to Common, even if allies catch them. Only the selected item is awarded. Permanent collectibles cannot repeat; scratch tickets can be obtained again after redemption. Effects last for this match only.",
+  "基础概率：无漏怪／漏怪": "Base odds: no leaks / leaks",
+  "本次作战有漏怪，候选品质已降低一级（最低普通）：请选择一件。": "You leaked enemies in this battle. Candidate quality has been lowered by one tier (minimum Common). Choose one collectible.",
+  "强度分 I–V 五档。无漏怪奖励中 I／II 从 R1 开始出现，III 从 R4 开始，IV／V 从 R7 开始。": "Strength has five tiers, I–V. Rewards without personal leaks unlock I/II from R1, III from R4, and IV/V from R7."
 }
