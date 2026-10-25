@@ -48,6 +48,19 @@ test('四叶草化石：桌面与手机展示四选一，第四项可领取', {
       await page.waitForSelector('.relic-choice__cards--four');
       assert.match(await page.$eval('.relic-choice', (el) => el.textContent), /藏品四选一/);
       assert.equal((await page.$$('.relic-choice__card')).length, 4);
+      if (width === 1920) {
+        const fourWidth = await page.$eval('.relic-choice__card', (el) => el.getBoundingClientRect().width);
+        await page.evaluate(() => globalThis.__MOCK__.mutate((s) => {
+          s.priv.relicOffer.options = ['relic_001', 'relic_002', 'relic_003'];
+        }));
+        await page.waitForFunction(() => document.querySelectorAll('.relic-choice__card').length === 3);
+        const threeWidth = await page.$eval('.relic-choice__card', (el) => el.getBoundingClientRect().width);
+        assert.ok(fourWidth >= threeWidth * .95, `four-choice card ${fourWidth} preserves three-choice width ${threeWidth}`);
+        await page.evaluate(() => globalThis.__MOCK__.mutate((s) => {
+          s.priv.relicOffer.options = ['relic_001', 'relic_002', 'relic_003', 'relic_004'];
+        }));
+        await page.waitForSelector('.relic-choice__cards--four');
+      }
       const card = await page.$('.relic-choice__card:last-child');
       await card.evaluate((el) => el.scrollIntoView({ block: 'center' }));
       const box = await card.boundingBox();

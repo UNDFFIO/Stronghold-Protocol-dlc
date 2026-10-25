@@ -105,7 +105,7 @@ export function installDifficulty(b) {
         b.fx('ascEmbers', { x, y, r: radius, dur: p.duration });
         for (let i = 1; i <= p.duration; i++) b.after(i, () => {
           for (const a of b.alliesInRadius(x, y, radius)) {
-            if (op(a) && a.hp <= a.s.maxHp / 2) continue;
+            if ((op(a) || a.defId === 'enemy_9012_acloon') && a.hp <= a.s.maxHp / 2) continue;
             b.dealDamage(u, a,
               { type: 'arts', amount: u.base.atk * damage, canDodge: false, tags: ['asc:embers'] });
           }

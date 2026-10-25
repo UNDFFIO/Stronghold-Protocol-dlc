@@ -188,7 +188,7 @@ export function RelicChoice({ offer, deadline = 0, onChoose }) {
   };
   const remain = secondsLeft(deadline);
   return html`<${Modal} open=${true} title=${cards.length === 4 ? tr('藏品四选一') : tr('藏品三选一')}
-    micro="RELIC CHOICE" width="min(9rem, 94vw)" tone="mint" class="relic-choice" closeOnBackdrop=${false}>
+    micro="RELIC CHOICE" width=${cards.length === 4 ? 'min(12rem, 94vw)' : 'min(9rem, 94vw)'} tone="mint" class="relic-choice" closeOnBackdrop=${false}>
     <p class="relic-choice__rule">${offer.leaked ? tr('本次作战有漏怪，候选品质已降低一级（最低普通）：请选择一件。') : tr('本次作战损失生命值不超过 5：从以下收藏品中选择一件。')}</p>
     <div class=${`relic-choice__cards${cards.length === 4 ? ' relic-choice__cards--four' : ''}`}>
       ${cards.map((r, idx) => r ? html`<button key=${r.id} type="button" class=${`relic-choice__card relic-tier-${r.tier}`}

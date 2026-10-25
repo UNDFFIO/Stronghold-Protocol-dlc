@@ -4,6 +4,7 @@ import { Battle } from '../../server/sim/Battle.js';
 import { DataSource, getDefaultSource } from '../../server/sim/simdata.js';
 import { SkillRuntime } from '../../server/sim/skills.js';
 import { canTargetEnemy } from '../../server/sim/targeting.js';
+import { spawnYanyou } from '../../server/sim/content/tokens.js';
 import { UF } from '../../shared/constants.js';
 import { chessRec, enemyRec, flatStage } from '../helpers/battleHarness.js';
 
@@ -79,6 +80,28 @@ test('02: death embers skip operators at or below half HP and resume above it', 
   b.heal(a, a, 20);
   run(b, 1);
   assert.equal(a.hp, half + 10, 'damage resumes after healing above half HP');
+});
+
+test('02: death embers also protect Yanyou at or below half HP', () => {
+  const fullData = new DataSource(data.raw, getDefaultSource());
+  const { b, e, a } = field(2, 'enemy_test', { data: fullData });
+  const [y] = spawnYanyou(b, 'p1', { atk: 0, hp: 5000 });
+  assert.ok(y);
+  e.x = y.x; e.y = y.y;
+  const half = y.s.maxHp / 2;
+  y.hp = half + 1;
+  b.kill(e, a);
+  run(b, 1.1);
+  const below = y.hp;
+  assert.ok(below < half, 'a pulse above half HP can cross the threshold');
+  run(b, 1);
+  assert.equal(y.hp, below, 'later pulses skip Yanyou below half HP');
+  y.hp = half;
+  run(b, 1);
+  assert.equal(y.hp, half, 'exactly half HP is protected too');
+  y.hp = half + 20;
+  run(b, 1);
+  assert.ok(y.hp < half + 20, 'damage resumes above half HP');
 });
 
 for (const [round, radius, damage] of [[1, 1.2, 10], [8, 2.6, 10], [9, 2.8, 20], [10, 3, 30], [11, 3.2, 40], [12, 3.4, 50], [15, 4, 50]]) test(`02: round ${round} ember radius, damage and duration`, () => {
