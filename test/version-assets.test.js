@@ -90,7 +90,8 @@ def worker(work,*args):
  assert work[4]==['new'],work
  return ({'new':{'file':'prefabs/new.json','refs':['old']}},
          {'shared':{'file':'tex/shared.webp','w':4,'h':4}}, {}, [])
-with patch.object(fx,'scan_cabs',return_value={}), \\
+with patch.object(fx,'check_texture_format',return_value=None), \\
+ patch.object(fx,'scan_cabs',return_value={}), \\
  patch.object(fx,'container_index',return_value={'old':'bundle','new':'bundle'}), \\
  patch.object(fx,'client_version',return_value='fixture'), \\
  patch.object(fx,'game_data',return_value={'chars':['char_old','char_new'],'enemies':[],'tokens':[]}), \\
