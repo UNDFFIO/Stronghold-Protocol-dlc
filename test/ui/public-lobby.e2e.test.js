@@ -326,8 +326,9 @@ describe('public lobby and room settings (real browser)', { skip: process.env.SP
     // An oversized setup can settle just far enough to expose its last controls (native snap-area semantics).
     const setupOverflow = Math.max(0, layout.setup.bottom - layout.body.bottom);
     assert.ok(shortScroll <= Math.ceil(setupOverflow) + 1, `a short gesture stays in the setup: ${JSON.stringify({ shortScroll, layout })}`);
-    for (let i = 0; i < 9; i++) {
-      await viewer.mouse.wheel({ deltaY: layout.body.height * .18 });
+    // Cross the native proximity threshold even when a busy browser dispatches wheel events separately.
+    for (let i = 0; i < 3; i++) {
+      await viewer.mouse.wheel({ deltaY: layout.body.height * .6 });
       await new Promise((resolve) => setTimeout(resolve, 60));
     }
     await waitForFunctionLong(viewer, () => {

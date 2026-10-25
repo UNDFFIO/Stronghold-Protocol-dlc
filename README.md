@@ -2,7 +2,7 @@
 
 基于 [sganggs/Stronghold-Protocol](https://github.com/sganggs/Stronghold-Protocol) 的非官方玩法扩展 fork，在原有浏览器自走棋塔防与单人 / 1–4 人合作玩法上，加入**收藏品、超限模拟和后期商店扩展**。DLC 是本 fork 的扩展标识，非鹰角官方 DLC。
 
-![base version](https://img.shields.io/badge/upstream%20base-0.3.2-2ea44f)
+![base version](https://img.shields.io/badge/upstream%20base-0.3.3-2ea44f)
 ![license](https://img.shields.io/badge/code%20license-GPL--3.0--or--later-blue)
 ![node](https://img.shields.io/badge/node-22%20%7C%2024-339933)
 
@@ -28,7 +28,7 @@ English summary: [below](#english).
 
 本 fork 以原项目 **0.3.1** 为基础，当前保留上游至 `c9d804f4` 的更新（含发布后的兼容性修复）。以下比较针对这一基线；`package.json` 中的 0.3.1 是沿用的基础版本号，不表示这些扩展已属于上游发布内容。
 
-| 项目 | 原项目（0.3.2 基线） | 本 fork |
+| 项目 | 原项目（0.3.3 基线） | 本 fork |
 |---|---|---|
 | 难度 | 标准 / 险境 / 绝境 / 终极四种模拟 | 保留四种基础难度，新增以终极为基础的「超限模拟」0–20 级，逐级累积战场协议 |
 | 作战奖励 | 无本局收藏品选择流程 | 无漏怪作战后藏品三选一，46 件藏品按回合进度分档掉落，增益整局保留 |
