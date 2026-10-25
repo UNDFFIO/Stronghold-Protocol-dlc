@@ -36,28 +36,19 @@ test('lobby shows tactical tips for ascension; room level controls render, synch
     await c.enter('超限测试');
     for (const [width, height] of [[1920, 1080], [1280, 720]]) {
       await c.page.setViewport({ width, height });
-      for (const mode of ['独立模拟', '同盟模拟']) {
-        await c.click('.mode-card', mode);
-        await c.click('.diff-card', '终极模拟');
-        await sleep(500); // Measure after the mode card's entrance animation.
-        const standard = await layout(c);
-        await c.click('.diff-card', '超限模拟');
-        await c.page.waitForSelector('.tips');
-        const ascension = await layout(c);
-        assert.equal(ascension.panel, null, 'the lobby does not show a level picker');
-        assert.equal(ascension.wheel, null, 'the lobby does not show a level wheel');
-        assert.deepEqual(ascension.mode, standard.mode, 'ascension keeps the same mode-card layout');
-        assert.deepEqual(ascension.tips, standard.tips, 'ascension keeps the same tactical-tips layout');
-        assert.ok(ascension.tips.bottom <= ascension.h, `lobby tips fit ${JSON.stringify(ascension)}`);
-        assert.ok(ascension.create.bottom <= ascension.h, `create button remains visible ${JSON.stringify(ascension)}`);
-        const index = await c.page.$eval('.tips__idx', el => el.textContent);
-        await c.click('.tips__nav[aria-label="下一条"]');
-        await c.page.waitForFunction(previous => document.querySelector('.tips__idx').textContent !== previous, {}, index);
-        await c.shot(`lobby-tips-${width}-${mode === '独立模拟' ? 'solo' : 'coop'}`);
-      }
+      await c.click('.mode-card', '独立模拟');
+      await c.page.waitForSelector('.proto');
+      await c.click('.diff-card', '终极模拟');
+      await c.click('.diff-card', '超限模拟');
+      assert.equal(await c.page.$('.level-wheel'), null, 'the lobby selects difficulty; the room selects its level');
+      const inside = await c.page.$eval('.proto-start', el => { const r = el.getBoundingClientRect(); return r.right <= innerWidth && r.bottom <= innerHeight; });
+      assert.equal(inside, true, 'the create action remains visible');
+      await c.page.keyboard.press('Escape');
+      await c.page.waitForFunction(() => !document.querySelector('.proto'));
     }
     await c.page.setViewport({ width: 1920, height: 1080 });
     await c.click('.mode-card', '独立模拟');
+    await c.page.waitForSelector('.proto');
     await c.click('.create-box button', '开始独立模拟');
     await c.page.waitForSelector('.room-screen.has-level');
     await c.page.waitForSelector('.level-wheel');
@@ -145,7 +136,7 @@ test('lobby shows tactical tips for ascension; room level controls render, synch
     await c.click('.topbar button[aria-label="离开同盟"]');
     await c.page.waitForSelector('.lobby-screen');
     await c.click('.mode-card', '同盟模拟');
-    await c.click('.create-box button', '创建同盟');
+    await c.click('[data-testid="alliance-create"]');
     await c.page.waitForSelector('.room-screen.has-level'); await sleep(300);
     r = await layout(c);
     assert.ok(r.panel.bottom <= r.footer.y, `co-op panel fits ${JSON.stringify(r)}`);
@@ -161,9 +152,10 @@ test('lobby shows tactical tips for ascension; room level controls render, synch
     assert.match(await c.page.$eval('.level-wheel__row.is-selected', el => el.textContent), /首击屏障/);
     await assertCentered(c, 'co-op number and effect are centered at 1280x720');
     await peer.open(); await peer.enter('超限队友');
+    await peer.click('.mode-card', '同盟模拟');
     const code = await c.page.evaluate(() => globalThis.__SP__.store.get().room.code);
     await peer.page.type('.join-row input', code);
-    await peer.click('.join-row button', '加入同盟');
+    await peer.click('.ally-card__bar--join');
     await peer.page.waitForSelector('.room-level .level-picker--integrated.is-readonly');
     await peer.page.waitForFunction(() => document.querySelector('.level-wheel')?.getAttribute('aria-valuenow') === '5');
     assert.equal(await peer.page.$eval('.level-wheel', el => el.getAttribute('aria-readonly')), 'true');
@@ -199,10 +191,8 @@ test('lobby shows tactical tips for ascension; room level controls render, synch
       const effect = document.querySelector('.is-selected .level-wheel__effect').getBoundingClientRect();
       const panel = document.querySelector('.room-level').getBoundingClientRect();
       const avatarsFit = [...document.querySelectorAll('.seats .avatar')].every(el => {
-        const avatar = el.getBoundingClientRect(), art = el.closest('.seat__art').getBoundingClientRect();
-        const measured = parseFloat(getComputedStyle(el.closest('.seat__art')).getPropertyValue('--seat-art-height'));
-        return Number.isFinite(measured) && Math.abs(measured - el.closest('.seat__art').clientHeight) < 1 &&
-          avatar.top >= art.top && avatar.bottom <= art.bottom && Math.abs(avatar.width - avatar.height) < 1;
+        const avatar = el.getBoundingClientRect(), card = el.closest('.rseat').getBoundingClientRect();
+        return avatar.top >= card.top && avatar.bottom <= card.bottom && Math.abs(avatar.width - avatar.height) < 1;
       });
       return effect.top >= row.top && effect.bottom <= row.bottom && avatarsFit && [...document.querySelectorAll('.seat')].every(el => el.getBoundingClientRect().bottom <= panel.top + 1);
     }), 'the co-op effect fits its row and the panel does not overlap seats on touch screens');

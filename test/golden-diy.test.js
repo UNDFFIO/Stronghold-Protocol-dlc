@@ -13,7 +13,7 @@ const BACKUPS = read('../data/backups.json');
 const ECONOMY = read('../data/config.json').economy;
 
 test('matches: the 自选 match\'s human seat draws its 自选 pieces in its shop and fields 推进之王 in battle', () => {
-  const id = 'coop2-NORMAL-24-coverage-diy';
+  const id = 'coop2-NORMAL-6-coverage-diy';
   const dg = MATCHES.scenarios[id];
   assert.ok(dg, 'DLC coverage scenario present');
   assert.equal(dg.fast, true, 'the deployment path is recomputed by the default golden suite');
