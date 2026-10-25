@@ -52,15 +52,26 @@ describe('public lobby and room settings (real browser)', { skip: process.env.SP
     await page.type('input', name);
     await page.evaluate(() => [...document.querySelectorAll('button')].find((b) => /^(开始|Start)$/.test(b.textContent.trim()))?.click());
     await waitForFunctionLong(page, () => globalThis.__SP__?.store.get().connection.status === 'online');
+    if (!query.includes('room=')) {
+      await page.waitForSelector('.hub-entry[data-mode="coop"]');
+      await page.click('.hub-entry[data-mode="coop"]');
+      await page.waitForSelector('.ally');
+    }
     return page;
   };
   const create = async (page) => {
     await page.waitForSelector('.lobby-screen');
-    await page.click('.create-box button');
+    await page.click('[data-testid="alliance-create"]');
     await page.waitForSelector('.room-screen');
     return page.evaluate(() => globalThis.__SP__.store.get().room.code);
   };
   const row = (code) => `[data-room-code="${code}"]`;
+  const leave = async (page) => {
+    await page.click('.room-screen .rs-exit');
+    await page.waitForSelector('.hub-entry[data-mode="coop"]');
+    await page.click('.hub-entry[data-mode="coop"]');
+    await page.waitForSelector('.ally');
+  };
   const settings = async (page) => {
     await page.click('[data-testid="room-settings-open"]');
     await page.waitForSelector('.room-config');
@@ -107,12 +118,12 @@ describe('public lobby and room settings (real browser)', { skip: process.env.SP
     for (const action of ['hall-join', 'hall-spectate']) {
       await viewer.click(`${row(code)} [data-testid="${action}"]`);
       await enterPassword(viewer, 'Test password');
-      await viewer.waitForSelector('.modal__box:not(.room-access) .btn--primary');
-      await viewer.click('.modal__box:not(.room-access) .btn--primary');
+      await viewer.waitForSelector('.modal__box:not(.room-access):not(.ally) .btn--primary');
+      await viewer.click('.modal__box:not(.room-access):not(.ally) .btn--primary');
       await viewer.waitForSelector('.room-screen');
       assert.equal(await viewer.evaluate(() => globalThis.__SP__.store.get().room.test), true);
       if (action === 'hall-join') {
-        await viewer.click('.room-screen .topbar__left .btn--danger');
+        await leave(viewer);
         await viewer.waitForSelector(row(code));
       }
     }
@@ -129,7 +140,7 @@ describe('public lobby and room settings (real browser)', { skip: process.env.SP
     await save(host);
     await viewer.waitForSelector(row(code));
     await viewer.$eval('.public-hall', (el) => el.scrollIntoView({ block: 'start' }));
-    await waitForFunctionLong(viewer, () => document.querySelector('.lobby-body').scrollTop > 0);
+    await waitForFunctionLong(viewer, () => document.querySelector('.ally__body').scrollTop > 0);
     await screenshot(viewer, 'hall');
     assert.match(await viewer.$eval(row(code), (el) => el.textContent), /密码房间/);
 
@@ -144,7 +155,7 @@ describe('public lobby and room settings (real browser)', { skip: process.env.SP
     assert.equal(await viewer.$('input[name="room-new-password"]'), null);
     await viewer.keyboard.press('Escape');
     await waitForFunctionLong(viewer, () => !document.querySelector('.room-config'));
-    await viewer.click('.room-screen .topbar__left .btn--danger');
+    await leave(viewer);
     await viewer.waitForSelector(row(code));
     await viewer.click(`${row(code)} [data-testid="hall-spectate"]`);
     await enterPassword(viewer, 'First password');
@@ -166,7 +177,7 @@ describe('public lobby and room settings (real browser)', { skip: process.env.SP
     const lobby = await open('Lobby');
     await waitForFunctionLong(lobby, () => document.querySelector('.public-hall__empty')?.textContent.includes('暂无公开房间'));
     await lobby.type('.join-row input', code);
-    await lobby.click('.join-row .btn--amber');
+    await lobby.click('.ally-card__bar--join');
     await enterPassword(lobby, 'First password');
     await lobby.waitForSelector('.room-access [role="alert"]');
     await lobby.keyboard.press('Escape');
@@ -180,7 +191,7 @@ describe('public lobby and room settings (real browser)', { skip: process.env.SP
     await host.click('[data-testid="room-password-clear"]');
     await save(host);
     await waitForFunctionLong(invited, () => !globalThis.__SP__.store.get().room.hasPassword);
-    await lobby.click('.join-row .btn--amber');
+    await lobby.click('.ally-card__bar--join');
     await lobby.waitForSelector('.room-screen');
     assert.equal(await lobby.$('.room-access'), null);
   });
@@ -195,6 +206,7 @@ describe('public lobby and room settings (real browser)', { skip: process.env.SP
         const r = el?.getBoundingClientRect();
         return r && r.x >= 0 && r.y >= 0 && r.right <= innerWidth && r.bottom <= innerHeight;
       });
+      await screenshot(host, `room-${width}`);
       const actions = await host.$$eval('.room-bar__right button', (buttons) => buttons.map((b) => {
         const r = b.getBoundingClientRect();
         return { text: b.textContent.trim(), inside: r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight,
@@ -214,7 +226,10 @@ describe('public lobby and room settings (real browser)', { skip: process.env.SP
       await waitForFunctionLong(host, () => !document.querySelector('.room-config'));
     }
     await host.setViewport({ width: 1920, height: 1080 });
-    await host.click('.dpick [role="radio"]:last-child');
+    await host.click('.rs-pill__diff');
+    await host.waitForSelector('.proto');
+    await host.$$eval('.diff-card', (els) => els.find((el) => el.textContent.includes('超限模拟')).click());
+    await host.click('.proto-start');
     await waitForFunctionLong(host, () => globalThis.__SP__.store.get().room.difficulty === 'ASCENSION');
     for (const [width, height] of [[1366, 768], [640, 360]]) {
       await host.setViewport({ width, height });
@@ -248,12 +263,12 @@ describe('public lobby and room settings (real browser)', { skip: process.env.SP
     const viewer = await open('Viewer');
     await viewer.waitForSelector(row(code));
     for (let i = 1; i <= 3; i++) {
-      await host.click('.seat--empty button');
+      await host.click('.rseat--empty .rseat__add');
       await waitForFunctionLong(host, (count) => globalThis.__SP__.store.get().room.seats.filter((s) => s?.isBot).length === count, {}, i);
     }
     await waitForFunctionLong(viewer, (code) => document.querySelector(`[data-room-code="${code}"] [data-testid="hall-join"]`)?.disabled, {}, code);
     assert.match(await viewer.$eval(row(code), (el) => el.textContent), /房间已满/);
-    await host.click('.room-bar__right .btn--xl');
+    await host.click('.room-bar__right .rs-go');
     await waitForFunctionLong(viewer, (code) => document.querySelector(`[data-room-code="${code}"]`)?.textContent.includes('模拟进行中'), {}, code);
     assert.equal(await viewer.$eval(`${row(code)} [data-testid="hall-join"]`, (el) => el.disabled), true);
     assert.equal(await viewer.$eval(`${row(code)} [data-testid="hall-spectate"]`, (el) => el.disabled), false);
@@ -275,7 +290,7 @@ describe('public lobby and room settings (real browser)', { skip: process.env.SP
     await viewer.evaluate(() => globalThis.__SP__.net.ws.close());
     await waitForFunctionLong(viewer, () => document.querySelector('.public-hall__empty')?.textContent.includes('正在连接服务器'));
     assert.equal(await viewer.$(row(code)), null, 'no stale join button while offline');
-    await host.click('.seat--empty button');
+    await host.click('.rseat--empty .rseat__add');
     await waitForFunctionLong(host, () => globalThis.__SP__.store.get().room.seats.filter(Boolean).length === 2);
     await viewer.setOfflineMode(false);
     await viewer.waitForSelector(row(code));
@@ -292,8 +307,8 @@ describe('public lobby and room settings (real browser)', { skip: process.env.SP
     const viewer = await open('Viewer');
     await viewer.waitForSelector(row(code));
     const layout = await viewer.evaluate(() => {
-      const body = document.querySelector('.lobby-body');
-      const setup = document.querySelector('.lobby-setup');
+      const body = document.querySelector('.ally__body');
+      const setup = document.querySelector('.ally-setup');
       const hall = document.querySelector('.public-hall');
       return { scrollTop: body.scrollTop, snap: getComputedStyle(body).scrollSnapType,
         body: body.getBoundingClientRect().toJSON(), setup: setup.getBoundingClientRect().toJSON(),
@@ -307,16 +322,17 @@ describe('public lobby and room settings (real browser)', { skip: process.env.SP
     await viewer.mouse.move(layout.body.x + layout.body.width / 2, layout.body.y + layout.body.height / 2);
     await viewer.mouse.wheel({ deltaY: 40 });
     await new Promise((resolve) => setTimeout(resolve, 600));
-    const shortScroll = await viewer.$eval('.lobby-body', (el) => el.scrollTop);
+    const shortScroll = await viewer.$eval('.ally__body', (el) => el.scrollTop);
     // An oversized setup can settle just far enough to expose its last controls (native snap-area semantics).
     const setupOverflow = Math.max(0, layout.setup.bottom - layout.body.bottom);
     assert.ok(shortScroll <= Math.ceil(setupOverflow) + 1, `a short gesture stays in the setup: ${JSON.stringify({ shortScroll, layout })}`);
-    for (let i = 0; i < 9; i++) {
-      await viewer.mouse.wheel({ deltaY: layout.body.height * .18 });
+    // Cross the native proximity threshold even when a busy browser dispatches wheel events separately.
+    for (let i = 0; i < 3; i++) {
+      await viewer.mouse.wheel({ deltaY: layout.body.height * .6 });
       await new Promise((resolve) => setTimeout(resolve, 60));
     }
     await waitForFunctionLong(viewer, () => {
-      const body = document.querySelector('.lobby-body').getBoundingClientRect();
+      const body = document.querySelector('.ally__body').getBoundingClientRect();
       const hall = document.querySelector('.public-hall').getBoundingClientRect();
       return hall.top >= body.top - 1 && hall.top < body.top + 50;
     });
@@ -324,16 +340,20 @@ describe('public lobby and room settings (real browser)', { skip: process.env.SP
     assert.equal(await viewer.$eval(`${row(code)} [data-testid="hall-join"]`, (el) => el.disabled), false);
 
     await viewer.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
-    await viewer.$eval('.lobby-body', (el) => { el.scrollTop = 0; });
-    assert.equal(await viewer.$eval('.lobby-body', (el) => getComputedStyle(el).scrollSnapType), 'none');
+    await viewer.$eval('.ally__body', (el) => { el.scrollTop = 0; });
+    assert.equal(await viewer.$eval('.ally__body', (el) => getComputedStyle(el).scrollSnapType), 'none');
     await viewer.mouse.wheel({ deltaY: 40 });
     await new Promise((resolve) => setTimeout(resolve, 600));
-    assert.ok(await viewer.$eval('.lobby-body', (el) => el.scrollTop >= 30), 'reduced motion uses ordinary scrolling');
+    assert.ok(await viewer.$eval('.ally__body', (el) => el.scrollTop >= 30), 'reduced motion uses ordinary scrolling');
 
     await viewer.emulateMediaFeatures([]);
     await viewer.setViewport({ width: 844, height: 390, hasTouch: true, isMobile: true, isLandscape: true });
-    await viewer.waitForSelector('.lobby-setup');
-    await viewer.$eval('.lobby-body', (el) => { el.scrollTop = 0; });
+    // Switching input devices remounts the screen, so reopen its local dialog before testing touch scrolling.
+    await waitForFunctionLong(viewer, () => !document.querySelector('.ally'));
+    await viewer.waitForSelector('.hub-entry[data-mode="coop"]', { visible: true });
+    await viewer.click('.hub-entry[data-mode="coop"]');
+    await viewer.waitForSelector('.ally-setup');
+    await viewer.$eval('.ally__body', (el) => { el.scrollTop = 0; });
     const touch = await viewer.createCDPSession();
     const swipe = async () => {
       await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 420, y: 320 }] });
@@ -346,7 +366,7 @@ describe('public lobby and room settings (real browser)', { skip: process.env.SP
     await swipe();
     await swipe();
     await waitForFunctionLong(viewer, () => {
-      const body = document.querySelector('.lobby-body').getBoundingClientRect();
+      const body = document.querySelector('.ally__body').getBoundingClientRect();
       const hall = document.querySelector('.public-hall').getBoundingClientRect();
       return hall.top >= body.top - 1 && hall.top < body.top + 50;
     });

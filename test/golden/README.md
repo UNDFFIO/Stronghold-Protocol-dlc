@@ -35,13 +35,15 @@ renumbered by first appearance, units are named by board uid or def id), board p
 within a tick (they are counted, not hashed) and wall-clock time. Damage / healing sums are rounded to integers and HP
 to 2 decimals.
 
-`npm test` runs the fast subset (the scenarios marked `"fast": true`: every chess record with its default loadout,
-every stage and every non-leader enemy kind, every bond at its top tier, six fields, twelve matches, the five stand-in
-battles of the normal records, the first 自选 battle of the operator kits and of the prototypes — 67 of the 290). `GOLDEN_FULL=1` checks everything.
+`npm test` runs the fast subset: the scenarios marked `"fast": true` in the golden files, selected by `isFast` in
+`tools/golden.mjs`. `GOLDEN_FULL=1` checks everything. Use the listing commands below to inspect the current corpus
+and fast subset.
 
 ## Workflow
 
 ```sh
+node tools/golden.mjs --list                     # list the current corpus without running it
+node tools/golden.mjs --fast --list              # list only the fast subset
 GOLDEN_FULL=1 node --test test/golden.test.js   # the whole corpus (≈ 20 s with 4 worker threads)
 node --test test/golden.test.js                 # the fast subset
 npm run golden                                  # the same comparison from the tool (all families, a short report)
@@ -53,7 +55,10 @@ node tools/golden.mjs --twice                   # determinism: the corpus twice 
   committing it. If a digest moves, the refactor changed behaviour: find out why (the first differing value of `snaps`
   says when two runs parted, in 10-game-second steps) instead of updating the files.
 - **An intended gameplay change** (a fix, new content, a data rebuild): run `npm run golden:update` and commit the
-  changed files together with the change, saying in the commit message which scenarios moved and why.
+  changed files together with the change, saying in the commit message which scenarios moved and why. Until the
+  official versions' M1 started, `test/versions-default-guard.test.js` (G1) also pinned the sha256 of these files and
+  of the default `data/*.json` as the M0 merge check (DESIGN §35.22.2); M1 deleted it (§35.23), so these files and
+  `test/golden.test.js` are the only pin again.
 - **Reviewing the diff:** every scenario is a block of its own and every unit / enemy / round is one line, so a diff
   shows which scenarios moved and which values changed. A change confined to the scenarios that contain the touched
   operator, enemy or rule is expected; a change everywhere (every `rngDraws`, every `snaps`) means something global
@@ -63,6 +68,15 @@ node tools/golden.mjs --twice                   # determinism: the corpus twice 
 - A new engine hook, event or chess record does not change the digests of the existing scenarios by itself — the
   hook list is frozen in the tool and the corpus is regenerated only on `golden:update` — but new data records do join
   the corpus there (the roster family enumerates `data/chess.json`).
+
+The original stand-in / DIY seeds remain as outcome regressions even when they field no such operator. The
+`coop2-NORMAL-1-unowned-roster` scenario supplies no owned NORMAL operators, so stand-in coverage does not depend on
+the bot choosing one of a small set of missing operators. `coop2-NORMAL-5-coverage-diy` covers the DIY path.
+
+Historical versions (0.3.2 M2): pass `--version <official-id>` to use the snapshot in an isolated process/worker.
+The six corpora live under `<versionSlug>/`; root JSON files remain the default. Generate a historical corpus with
+`node tools/golden.mjs --version act1autochess --update --twice`; the second pass reverses scenario order.
+`test/versions-golden.test.js` checks corpus identity, engine errors and representative worker execution.
 
 After the measured shared-stock update (DESIGN §29.8), the original stand-in / DIY seeds remain as outcome regressions even when they field no such operator. Companion seeds `coop2-NORMAL-1-coverage-standins` and `coop2-NORMAL-5-coverage-diy` were added to exercise those full paths. The DLC rewards changed the DIY bot lineup again, so seed 5 was retained as an outcome regression and `coop2-NORMAL-68-coverage-diy` covered the shop → deployment → battle path (推进之王 in rounds 3–5) before the staged shop expansion below. It joined the fast subset without changing existing scenario digests, bringing the corpus to 288 scenarios at that point.
 
@@ -175,3 +189,7 @@ see [UPSTREAM-0.3.1.md](UPSTREAM-0.3.1.md) for the source and DLC compatibility 
 将 master 的四叶草化石与本分支的实际损血门槛、漏怪品质降低规则合并。四叶草持有者符合损血门槛时提供四个候选，漏怪仍降低品质，已移除的逆风补给和护盾不恢复。新增精良藏品及额外候选影响同种子抽样、后续编队与经济；重算全部290个场景后，仅 matches 家族相对合并前 PR 分支的以下23个场景移动，其余五个战斗家族不变：
 
 `solo-FUNNY-1`、`solo-FUNNY-2`、`solo-NORMAL-1`、`solo-NORMAL-2`、`solo-HARD-1`、`solo-HARD-2`、`solo-ABYSS-1`、`solo-ABYSS-2`、`coop2-NORMAL-3`、`coop2-HARD-4`、`coop3-ABYSS-5`、`coop4-FUNNY-6`、`coop4-ABYSS-7`、`coop2-NORMAL-8-serverrun`、`solo-HARD-9-boosted`、`coop2-ABYSS-10-boosted`、`coop2-NORMAL-14-standins`、`coop2-NORMAL-70-diy`、`coop2-NORMAL-1-coverage-standins`、`coop2-NORMAL-5-coverage-diy`、`coop2-NORMAL-68-coverage-diy`、`coop2-NORMAL-24-coverage-diy`、`coop2-NORMAL-1-unowned-roster`。
+
+## Upstream 0.3.2 sync (2026-10-25)
+
+Merged upstream `5def2977`, retaining DLC match progression. Five battle families reproduce upstream exactly; match digests retain DLC rewards and economy. See [UPSTREAM-0.3.2.md](UPSTREAM-0.3.2.md) for every moved scenario and its cause.

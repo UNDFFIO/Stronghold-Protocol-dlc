@@ -62,6 +62,7 @@
 .level-picker--integrated .is-selected .level-wheel__effect strong { color: var(--text-hi); }
 .level-picker--integrated .is-selected .level-wheel__effect > span { color: var(--text-md); }
 .room-screen.has-level .seats--solo { grid-template-columns: 3.8rem minmax(0, 9.6rem); grid-template-rows: minmax(0, 6.6rem); }
+.rs.has-level .rs-brief { display: flex; flex-direction: column; width: min(9.6rem, 60vw); max-width: none; height: min(6.6rem, 100%); min-height: 0; overflow: hidden; }
 .room-level { flex: none; width: min(12rem, calc(100% - 1.2rem)); margin: 0 auto .24rem; }
 .room-level .level-picker--integrated { height: 3.4rem; }
 .room-screen.has-level .seats:not(.seats--solo) { grid-template-rows: minmax(0, 1fr); max-height: 4.68rem; padding-top: .24rem; padding-bottom: .24rem; }

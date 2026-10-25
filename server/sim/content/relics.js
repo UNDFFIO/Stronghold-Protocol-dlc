@@ -97,6 +97,13 @@ function installPoisonDagger(battle, owners) {
     // rather than splitting it into five new poison layers every second.
     if (dmg.tags.includes('relic:240')) { dmg.type = 'arts'; return; }
     if (dmg.type !== 'phys' || !(dmg.amount > 0)) return;
+    // Conversion replaces ordinary injury settlement, so resolve this hit's Physical dodge once here.
+    if (dmg.canDodge && target.s.dodgePhys > 0 && battle.rng() < target.s.dodgePhys) {
+      battle.fx('dodge', { x: target.x, y: target.y, id: target.id });
+      const cancelled = dmg.dodgeMode !== 'uncancellable' && !dmg.ignoreCancelReasons?.includes('dodge');
+      if (battle._hooks.dodge) battle.emit('dodge', { source, target, dmg, credit: ctx.credit, cancelled });
+      if (cancelled) { ctx.cancel = true; return; }
+    }
     // Physical boosts are captured once, before DEF. Each delayed arts instance then uses live RES,
     // arts/general multipliers and shields. A missed/cancelled hit never reaches this hook.
     const amount = dmg.amount * source.s.physDealtMul / 5;
