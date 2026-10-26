@@ -117,7 +117,7 @@ test('时光之末：自己的列表按钮复活队友、显示已使用，观�
     await page.waitForSelector('.pbanner--overlay', { hidden: true });
     await page.screenshot({ path: `${OUT}/relic-time-end-revive.png` });
     await page.click('.relic-card__revive button');
-    await page.waitForFunction(() => document.querySelector('.relic-card__used')?.textContent.includes('已使用'));
+    await page.waitForFunction(() => document.querySelector('.relic-card__used')?.textContent.includes('复活机会已消耗'));
     const result = await page.evaluate((id) => ({
       requests: globalThis.__MOCK__.S().requests.filter(([t]) => t === 'g.relicRevive'),
       target: globalThis.__MOCK__.S().pub.players.find((p) => p.playerId === id),
@@ -260,6 +260,11 @@ test('phone/desktop: icons wrap, tooltips stay clear of three-choice dialogs, an
       await page.click('.relic-icons__heading');
       await page.waitForSelector('.relic-panel');
       assert.match(await page.$eval('.relic-panel', (el) => el.textContent), /尚未获得收藏品/);
+      assert.equal(await page.$eval('.relic-panel__rules', (el) => el.open), false);
+      await page.click('.relic-panel__rules summary');
+      assert.equal(await page.$eval('.relic-panel__rules', (el) => el.open), true);
+      assert.ok(await page.$eval('.relic-odds', (el) => el.getBoundingClientRect().height > 0));
+      await page.click('.relic-panel__rules summary');
       // The close button works immediately, even before the Modal's after-paint effect has run.
       await page.click('.relic-panel .modal__actions button');
       await closed(page);
@@ -424,14 +429,15 @@ test('phone/desktop: icons wrap, tooltips stay clear of three-choice dialogs, an
         await page.keyboard.press('Escape');
         assert.equal(await page.$$eval('.relic-choice', (els) => els.length), 1, 'reward waits for a selection');
         assert.equal(await page.$$eval('.relic-choice__card', (els) => els.length), 3);
-        assert.match(await page.$eval('.relic-choice', (e) => e.textContent), /损失生命值不超过 5/);
+        assert.match(await page.$eval('.relic-choice', (e) => e.textContent), /损失生命值 ≤ 5/);
         assert.ok((await page.$eval('.relic-choice', (e) => e.textContent)).includes(expected.desc));
         if (reason === 'untimed') {
           const text = await page.$eval('.relic-choice', (e) => e.textContent);
           assert.ok(text.includes('金钟罩') && text.includes('铁布衫') && text.includes('史诗'));
           assert.match(text, /90%/);
         }
-        assert.match(await page.$eval('.relic-choice__note', (e) => e.textContent), reason === 'untimed' ? /选好后进入下一阶段/ : /超时自动选择第一件/);
+        if (reason === 'untimed') assert.equal(await page.$('.relic-choice__note'), null);
+        else assert.match(await page.$eval('.relic-choice__note', (e) => e.textContent), /超时自动选择第一件/);
         await page.waitForFunction(() => [...document.querySelectorAll('.relic-choice__art img')].every((i) => i.complete && i.naturalWidth > 0));
         if (reason === 'untimed') {
           const alpha = await page.$$eval('.relic-choice__art img', (imgs) => imgs.slice(0, 2).map((img) => {

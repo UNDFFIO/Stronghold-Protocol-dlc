@@ -4,8 +4,8 @@ import { html, Icon, MicroLabel, Tooltip } from './components.js';
 import { t } from '../../../shared/i18n.js';
 
 const LEVELS = Array.from({ length: MAX_DIFFICULTY_LEVEL + 1 }, (_, i) => MAX_DIFFICULTY_LEVEL - i);
-const baseDescription = () => t('深入超限模拟将面临更严峻的考验；第4回合开始时额外获得1次【超限补给】');
-const baseDetail = () => t('沿用终极模拟基础参数。【超限补给】在以下4项奖励中等概率抽取1项：15金币、2名随机盟约干员、2件随机收藏品、恢复8点目标生命值（后续等级均继承该补给）');
+const baseDescription = () => t('第4回合开始时额外获得1次【超限补给】');
+const baseDetail = () => t('沿用终极模拟基础参数。各等级第4回合均可等概率抽取1项：15金币、2名盟约干员、最多3件不同收藏品、1件传说品质藏品；藏品数量受剩余候选限制。');
 const ruleDetail = (rule) => rule ? t(rule.detail) : baseDetail();
 const help = (rule) => ruleDetail(rule) ? html`<${Tooltip} text=${ruleDetail(rule)}><span class="level-rule__help" tabindex="0" aria-label=${ruleDetail(rule)}>[?]</span><//>` : null;
 

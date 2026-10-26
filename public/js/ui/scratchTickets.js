@@ -98,7 +98,7 @@ function ScratchDebris({ emitRef }) {
   return html`<canvas ref=${canvas} class="scratch-debris" aria-hidden="true" />`;
 }
 
-function ScratchCoating({ region, progress, disabled, revealAll, onChange, onScratch, children }) {
+function ScratchCoating({ tier, region, progress, disabled, revealAll, onChange, onScratch, children }) {
   const canvas = useRef(null), pointer = useRef(null), strokes = useRef([]), coverage = useRef(0);
   const [revealing, setRevealing] = useState(false);
   const animating = useRef(false);
@@ -106,18 +106,32 @@ function ScratchCoating({ region, progress, disabled, revealAll, onChange, onScr
   useEffect(() => {
     if (done || !canvas.current) return;
     const ctx = canvas.current.getContext('2d', { willReadFrequently: true });
-    const gradient = ctx.createLinearGradient(0, 0, 300, 100);
-    gradient.addColorStop(0, '#b3b7bc'); gradient.addColorStop(0.45, '#e2e4e6'); gradient.addColorStop(1, '#8d929a');
-    ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = gradient; ctx.fillRect(0, 0, 300, 100);
-    ctx.fillStyle = '#81868c';
+    // Identical edge colours let the adjacent canvases read as one printed foil sheet.
+    ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = '#c4c8cb'; ctx.fillRect(0, 0, 300, 100);
+    ctx.fillStyle = '#a2a8ad';
     for (let x = 0; x < 300; x += 11) for (let y = 0; y < 100; y += 9) ctx.fillRect(x + y % 7, y, 1, 1);
-    ctx.textAlign = 'center'; ctx.font = 'bold 28px sans-serif'; ctx.fillStyle = '#61656b';
-    ctx.fillText(t('刮开此处'), 150, 57);
+    // The tier's printed marker is decorative; it never discloses the hidden prize symbol.
+    const surface = canvas.current, marker = new Image();
+    let active = true;
+    marker.onload = () => {
+      if (!active) return;
+      const rect = surface.getBoundingClientRect();
+      const width = 54 * 3 * rect.height / rect.width;
+      ctx.save();
+      // A late image load must not repaint erased foil, including an in-flight reveal sweep.
+      ctx.globalCompositeOperation = 'source-atop';
+      ctx.drawImage(marker, 150 - width / 2, 8, width, 54);
+      ctx.restore();
+    };
+    marker.src = `/images/scratch-tickets/marker-${tier}.webp`;
+    ctx.textAlign = 'center'; ctx.font = '16px sans-serif'; ctx.fillStyle = '#616b73';
+    ctx.fillText(t('刮开此处'), 150, 80);
     strokes.current = Array.isArray(progress?.strokes) ? progress.strokes : [];
     for (const line of strokes.current) erase(ctx, line);
     coverage.current = erasedRatio(ctx.getImageData(0, 0, 300, 100).data);
     // Only recreate the foil on mount / language changes, never on every stroke.
-  }, [done, t('刮开此处')]);
+    return () => { active = false; marker.onload = null; };
+  }, [done, tier, t('刮开此处')]);
 
   useEffect(() => {
     if (done || (!revealing && !revealAll)) return;
@@ -229,11 +243,11 @@ function ScratchFace({ ticket, context, busy, run, result }) {
     <div class="scratch-paper__header"><b>${t('好运刮刮票')}</b><span>${roman(ticket.tier)} · ${t(RELIC_TIERS[ticket.tier - 1].name)}</span></div>
     <p class="scratch-paper__hint">${t('图案相同，即中得该图案下方的奖金')}</p>
     <h3>${t('中奖图案')}</h3><div class="scratch-winning">
-      ${ticket.winningNumbers.map((number, i) => html`<${ScratchCoating} key=${i} region=${i} progress=${liveProgress.current[i]}
+      ${ticket.winningNumbers.map((number, i) => html`<${ScratchCoating} key=${i} tier=${ticket.tier} region=${i} progress=${liveProgress.current[i]}
         disabled=${!context.canUse || busy} revealAll=${revealingAll} onChange=${change} onScratch=${scratch}>${symbol(number)}<//>`)}
     </div>
     <h3>${t('我的图案与奖金')}</h3><div class="scratch-numbers">
-      ${ticket.cells.map((cell, i) => html`<${ScratchCoating} key=${i} region=${i + 2} progress=${liveProgress.current[i + 2]}
+      ${ticket.cells.map((cell, i) => html`<${ScratchCoating} key=${i} tier=${ticket.tier} region=${i + 2} progress=${liveProgress.current[i + 2]}
         disabled=${!context.canUse || busy} revealAll=${revealingAll} onChange=${change} onScratch=${scratch}>
         ${symbol(cell.number, all && ticket.winningNumbers.includes(cell.number))}
         <span>${t('{amount}金币', { amount: cell.amount })}</span><//>`)}

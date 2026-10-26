@@ -26,17 +26,16 @@ English summary: [below](#english).
 
 ## 与原项目的差异
 
-本 fork 以原项目 **0.3.1** 为基础，当前保留上游至 `c9d804f4` 的更新（含发布后的兼容性修复）。以下比较针对这一基线；`package.json` 中的 0.3.1 是沿用的基础版本号，不表示这些扩展已属于上游发布内容。
+本 fork 已同步上游 **0.3.3**（`f07b8965`）；`package.json` 沿用上游版本号，扩展玩法见下表。
 
 | 项目 | 原项目（0.3.3 基线） | 本 fork |
 |---|---|---|
 | 难度 | 标准 / 险境 / 绝境 / 终极四种模拟 | 保留四种基础难度，新增以终极为基础的「超限模拟」0–20 级，逐级累积战场协议 |
-| 作战奖励 | 无本局收藏品选择流程 | 无漏怪作战后藏品三选一，46 件藏品按回合进度分档掉落，增益整局保留 |
-| 连续漏怪 | 按原有扣血与联防规则结算 | 连续三个完成的作战回合本人漏怪后，存活玩家获得逆风补给三选一与下回合 2 点护盾 |
+| 作战奖励 | 无本局收藏品选择流程 | 符合条件的作战实际损血不超过 5 时选择藏品；本人漏怪则候选品质降低一级，最低普通 |
 | 招募扩展 | 干员招募位数量由调度中心等级决定 | 初始额外增加 1 个干员招募位，第 4、第 9 回合开始时各再增加 1 个，装备位不变 |
 | 界面 | 原有难度选择、效果栏与结算展示 | 增加超限等级轮盘与规则预览、个人收藏图标和详情、奖励选择及结算收藏展示 |
 
-原项目的招募与晋升、盟约、装备、联防、最终攻势、隐秘核心、AI 队友及断线重连仍作为基础玩法保留；同盟观战席、补位干员、自选编队、多语言、自定义快捷键、满潜能数据、调配导入 / 导出、战斗语音、分回合音乐，以及干员技能、敌人规则、渲染、启动器和诊断等上游更新也继续保留。共享卡池与装备库存、潜能与练度设置、AI 队友最后选择、重新生成开局和渲染性能等 0.2.2–0.2.4 更新也已同步。0.2.5–0.2.6 的官方战场场景、驭械术师与索敌修正、带宽优化（WebSocket / brotli 压缩、素材内容哈希缓存、教程图 WebP）、入场动画、「官方伤害数字」与「弹药数量」选项及模型裁切修复也已同步。0.3.0 的插件系统与浏览器工作台、官方战斗特效与场景打光、水面、更多语音语言、本地素材包导入、作战统计、AI 布阵与演习、扩展临时整备队列及玩法修复也已同步。基础玩法见 [玩法指南](docs/PLAYING.md)，上游版本记录见 [CHANGELOG.md](CHANGELOG.md)。
+保留当前上游基线的基础玩法与功能；本 fork 的主要差异见上表，基础玩法见 [玩法指南](docs/PLAYING.md)，上游更新见 [CHANGELOG.md](CHANGELOG.md)。
 
 这些扩展会改变成长与战斗平衡：**选择四种基础难度仍会启用收藏品与后期商店扩展**，并不等于回到原项目规则。藏品名称与图标参考明日方舟其他玩法，但档位、数值与效果经过本 fork 适配，不代表官方「卫戍协议」规则。
 
@@ -44,16 +43,16 @@ English summary: [below](#english).
 
 ### 本局收藏品
 
-- **46 件、五档强度**：普通 / 精良 / 稀有 / 史诗 / 传说，候选概率随回合推进变化。无漏怪作战后从三个候选中领取一件，候选排除已拥有藏品。
-- **个人持有、整局生效**：从下一场战斗开始生效，不占装备槽或整备区，干员属性加成只给持有者，鸭梨手机降低全队累计难度；新的一局重新收集。同类增益相加且不设累计上限，同名藏品不会重复获得。
-- **逆风补给**：连续三回合本人漏怪可触发较高档位奖励，并获得仅下回合有效的 2 点扣血护盾。联防救回敌人或护盾抵消扣血，都不会抹掉本人漏怪记录。
+- **五档常规品质**：普通 / 精良 / 稀有 / 史诗 / 传说，候选概率随回合推进变化。符合条件的作战实际损血不超过 5 时领取奖励，候选排除已拥有的永久藏品。
+- **个人持有、整局生效**：从下一场战斗开始生效，不占装备槽或整备区，干员属性加成只给持有者，鸭梨手机降低全队累计难度；新的一局重新收集。同类增益相加且不设累计上限，永久藏品同名不重复，刮刮票兑奖后可再次获得。
+- **漏怪降档**：本人漏怪时，候选品质降低一级，最低普通；联防救回也适用。
 - **选择与展示**：单人及仅一名人类的对局选择不计时，多人限时 30 秒；右侧图标支持悬停、聚焦或长按查看，结算保留本局收藏记录。
 
-完整清单、概率、生效边界与领袖结算规则见 [收藏品说明](docs/COLLECTIBLES.md)。已有素材的安装可运行 `node tools/fetch-relic-icons.mjs` 补齐 46 张收藏品图标（含六件原创图片）；首次安装的素材下载流程已包含这些图标。
+完整清单、概率、生效边界与领袖结算规则见 [收藏品说明](docs/COLLECTIBLES.md)。已有素材的安装可运行 `node tools/fetch-relic-icons.mjs` 补齐收藏品图标；首次安装的素材下载流程已包含这些图标。
 
 ### 超限模拟
 
-超限模拟沿用终极模拟的基础参数，**0 级不附加超限协议**；1–20 级逐级累积，选择某一级会同时启用此前所有协议。协议包含敌人开场加速、死亡余烬、首击屏障、护甲轮转、技力限制、回响分裂与受伤缩短负面效果等机制，要求玩家调整站位、输出组合与技能节奏。
+超限模拟沿用终极模拟的基础参数，**0 级不附加超限协议**；1–20 级逐级累积，选择某一级会同时启用此前所有协议。协议包含敌人开场加速、死亡余烬、首击屏障、护甲轮转、技力限制、回响分裂与受控时提升防御及法抗等机制，要求玩家调整站位、输出组合与技能节奏。
 
 选择模拟协议的大厅中，各难度统一显示「作战提示」。创建后，单人准备界面或同盟等待室的房主可通过等级轮盘查看当前规则与应对提示；同盟等级同步到全房间。协议定义见 `shared/difficulty.js`，由界面与浏览器 / 服务端战斗模拟共用。
 
@@ -179,7 +178,7 @@ node tools/perfbench.mjs --cpu 1,4,6 --profile             # 真实战斗的帧�
 - GitHub Actions（[.github/workflows/ci.yml](.github/workflows/ci.yml)）在 Ubuntu 与 Windows、Node 22 / 24 上运行 `npm ci`、`npm test` 和服务器冒烟测试。
 - 代码怎么分层、改某个规则该从哪个文件入手，见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)。
 
-代码主要分布在 `server/`（大厅、对局与共用战斗模拟）、`shared/`（协议、难度与藏品定义）、`public/`（浏览器客户端）。素材工具在 `tools/`，启动脚本在 `scripts/`。官方游戏数据通过 `npm run build-data` 生成，不要手工修改生成的数据文件；扩展定义维护在 `shared/difficulty.js` 与 `shared/relics.js`。
+代码主要分布在 `server/`（大厅、对局与共用战斗模拟）、`shared/`（协议、难度与藏品定义）、`public/`（浏览器客户端）。素材工具在 `tools/`，启动脚本在 `scripts/`。扩展定义维护在 `shared/difficulty.js` 与 `shared/relics.js`。
 
 ## 许可证
 
@@ -212,7 +211,7 @@ node tools/perfbench.mjs --cpu 1,4,6 --profile             # 真实战斗的帧�
 
 ## English
 
-**Stronghold-Protocol-dlc** is an unofficial gameplay-expansion fork of [sganggs/Stronghold-Protocol](https://github.com/sganggs/Stronghold-Protocol) for Arknights' mode *Stronghold Protocol: Alliance*, based on upstream 0.3.0 (`c24e17ee`). It adds 46 match-scoped collectibles, comeback rewards and a next-round shield after three consecutive leaking rounds, cumulative Ascension levels 0–20, and one extra operator offer initially plus one more at rounds 4 and 9 (three extra from round 9). Collectibles and the shop expansion also apply to the four base difficulties. DLC is this fork's label, not an official Arknights release.
+**Stronghold-Protocol-dlc** is an unofficial gameplay-expansion fork of [sganggs/Stronghold-Protocol](https://github.com/sganggs/Stronghold-Protocol) for Arknights' mode *Stronghold Protocol: Alliance*, synchronized with upstream 0.3.3 (`f07b8965`). It adds match-scoped collectibles, cumulative Ascension levels 0–20, and extra operator offers initially and at rounds 4 and 9. Eligible battles award a collectible choice when actual LP loss is at most 5; leaking lowers candidate quality by one tier, with Common as the minimum. Collectibles and the shop expansion also apply to the four base difficulties. DLC is this fork's label, not an official Arknights release.
 
 - **Run:** clone this fork, install Node.js 22 or 24, then run `npm install`, `npm run setup` and `npm start`. Open [http://localhost:3000](http://localhost:3000). Upstream bundles do not include this fork's extensions.
 - **Plugins:** upstream 0.3.0 plugins, the browser studio, official battle effects, additional voice languages and local asset import are included. With no plugins selected, this fork's DLC rules still apply. See [PLUGINS.md](docs/PLUGINS.md) and [PLUGIN-GUIDE.md](docs/PLUGIN-GUIDE.md).

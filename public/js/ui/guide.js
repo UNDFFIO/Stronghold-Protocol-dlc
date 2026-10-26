@@ -199,7 +199,7 @@ export function GuideHost() {
       ${journal ? html`<section class="guide__journal" aria-label=${t('收藏品图鉴')} tabindex="0">
         <div class="guide__journal-head"><div><${MicroLabel} tone="mint">${t('COLLECTION // 已获得过')}</${MicroLabel}>
           <h3>${t('收藏品图鉴')}</h3></div><span class="guide__count num">${ids.length} / ${RELICS.length}</span></div>
-        <p class="guide__journal-note">${t('领取后自动收录，跨局保留。以下为收藏品在本游戏中的效果；获得记录保存在当前浏览器。')}</p>
+        <p class="guide__journal-note">${t('领取后自动收录，记录保存在当前浏览器，可跨局查看。效果以本作为准。')}</p>
         <${RelicList} relics=${ids.map((id) => ({ id }))} history=${true} />
       </section>` : src ? html`<div class="guide__stage">
         <button type="button" class="guide__nav guide__prev" aria-label=${t('上一页')} onClick=${() => go(i - 1)}><${Icon} name="chevronLeft" /></button>

@@ -1080,6 +1080,13 @@ The scratch face uses five original printed-paper backgrounds matching the ticke
 green clovers, blue-gold shooting stars, magenta diamonds, and red-gold dragons. Runtime WebP images ship in
 `public/images/scratch-tickets/`; PNG originals and generation prompts live in `tools/assets/scratch-backgrounds/`.
 Labels, prize amounts and all eight silver coatings remain live localized UI over the decorative background.
+The two winning positions form one continuous silver strip, and the six prize positions form one continuous
+silver panel without gaps between cells. Tier-themed markers above each scratch prompt mark the hidden positions:
+orange star, green four-leaf clover, blue-gold shooting star, magenta diamond, and red-gold dragon for I–V.
+Original transparent sources and prompts live in `tools/assets/scratch-markers/`; runtime WebP copies ship
+alongside the backgrounds. Markers are erased with the foil; late image loads never refill erased pixels. The
+dashed internal dividers sit beneath the coating and appear as it is erased. Each cell retains its saved strokes
+and independent reveal threshold. This printed-ticket treatment follows the maintainer's real-ticket references.
 Matching numbers are displayed as square pictograms: celebration objects, lucky garden, celestial symbols,
 jewelry, and Chinese good fortune for tiers I–V respectively. Each transparent atlas contains nine distinct
 symbols. The sorted unique values on a ticket are mapped to distinct atlas cells, rotated by the lowest value
@@ -1141,3 +1148,7 @@ is presentation inferred from the available animation roles; simulation facing a
 ### DLC 与 0.3.2 界面集成
 
 公开房间列表位于「选择同盟方式」的第二个滚动区，首屏保留创建与密钥加入；列表支持密码加入、观战及测试房确认。房间底部难度胶囊旁的公开性／密码设置对房主可编辑、其他人只读。超限轮盘适配新版单人简报和同盟座位下方，等级、规则与只读同步保持原义。
+
+### DLC collectible copy and disclosure
+
+The collection dialog shows held collectibles and pending grants first. Native collapsed details labeled 掉落规则 contain acquisition rules, unlock rounds, probabilities and stacking rules. Empty collection states only describe the empty state. Choice dialogs retain leak downgrades and timeout auto-selection notices; untimed choices need no progression hint.

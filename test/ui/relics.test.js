@@ -73,8 +73,8 @@ test('full collection keeps hidden scratch tickets actionable without adding act
   assert.ok(![...walk(RelicList({ ...props, history: true }))].some((v) => v.props?.['data-relic-id']));
 });
 
-test('older empty payloads explain how to obtain a relic; unknown ids remain visible without fabricating effects', () => {
-  assert.match(textOf(RelicList({})), /每回合本人无漏怪/);
+test('empty payloads show a concise empty state; unknown ids remain visible without fabricating effects', () => {
+  assert.match(textOf(RelicList({})), /^尚未获得收藏品。$/);
   assert.deepEqual(relicEntries(null), []);
   const list = relicEntries([null, {}, { id: 'future-relic', round: 4 }]);
   assert.deepEqual(list, [{ id: 'future-relic', round: 4 }]);
@@ -114,7 +114,7 @@ test('displayed odds sum to 100% and lock high-strength tiers until their unlock
 test('时光之末：一次性使用状态、历史图鉴与可复活队友分别使用可信状态', () => {
   const records = [{ id: 'relic_233', round: 7, used: true }];
   assert.equal(relicEntries(records)[0].used, true);
-  assert.match(textOf(RelicList({ relics: records })), /已使用 · 复活机会已消耗/);
+  assert.match(textOf(RelicList({ relics: records })), /复活机会已消耗/);
   assert.ok(!textOf(RelicList({ relics: records, history: true })).includes('机会已消耗'));
   assert.match(textOf(RelicList({ relics: [{ id: 'relic_233', round: 7 }] })), /剩余 1 次/);
   const players = [

@@ -91,7 +91,7 @@ function LotteryReveal({ reward, onClose }) {
       ${revealed ? html`<div class="lottery-result__win">
         <span class=${`lottery-result__icon lottery-prize--${reward.kind}`} aria-hidden="true"><${PrizeIcon} kind=${reward.kind} /></span>
         <b>${t('本次抽中：{text}', { text: resultText })}</b>
-      </div>` : html`<div class="lottery-result__pending"><b>${t('好运转动中…')}</b><span>${t('滚轮依次停下后揭晓奖励')}</span></div>`}
+      </div>` : html`<div class="lottery-result__pending"><b>${t('好运转动中…')}</b></div>`}
     </div>
   <//>`;
 }

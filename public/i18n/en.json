@@ -2858,5 +2858,17 @@
   "单次作战损失生命值不超过 5，弹出藏品三选一；本人漏怪时品质降低一级，最低普通，联防救回也适用。每次只获得所选的一件，永久藏品同名不重复，刮刮票兑奖后可再次获得，效果仅在本局有效。": "Lose no more than 5 LP in a battle to choose one of three collectibles. Personal leaks lower quality by one tier, down to Common, even if allies catch them. Only the selected item is awarded. Permanent collectibles cannot repeat; scratch tickets can be obtained again after redemption. Effects last for this match only.",
   "基础概率：无漏怪／漏怪": "Base odds: no leaks / leaks",
   "本次作战有漏怪，候选品质已降低一级（最低普通）：请选择一件。": "You leaked enemies in this battle. Candidate quality has been lowered by one tier (minimum Common). Choose one collectible.",
-  "强度分 I–V 五档。无漏怪奖励中 I／II 从 R1 开始出现，III 从 R4 开始，IV／V 从 R7 开始。": "Strength has five tiers, I–V. Rewards without personal leaks unlock I/II from R1, III from R4, and IV/V from R7."
+  "强度分 I–V 五档。无漏怪奖励中 I／II 从 R1 开始出现，III 从 R4 开始，IV／V 从 R7 开始。": "Strength has five tiers, I–V. Rewards without personal leaks unlock I/II from R1, III from R4, and IV/V from R7.",
+  "尚未收录收藏品。": "No collectibles recorded yet.",
+  "尚未获得收藏品。": "No collectibles acquired yet.",
+  "复活机会已消耗": "Revival charge used",
+  "悬停查看效果，点击查看完整收藏与掉落规则。": "Hover to view effects; click for your full collection and drop rules.",
+  "收藏品增益无累计上限，同类属性与伤害增幅相加。": "Collectible bonuses have no stacking cap. Bonuses to the same stat or damage type add together.",
+  "本次作战损失生命值 ≤ 5": "LP lost in this battle ≤ 5",
+  "本次作战有漏怪，候选品质已降低一级（最低普通）。": "Enemies leaked this battle: candidate quality is reduced by one tier (minimum Common).",
+  "移除不会撤销已结算的一次性收益。": "Removing a collectible does not undo one-time rewards already granted.",
+  "领取后自动收录，记录保存在当前浏览器，可跨局查看。效果以本作为准。": "Acquired collectibles are recorded automatically in this browser across matches. Effects shown apply to this game.",
+  "第4回合开始时额外获得1次【超限补给】": "Gain one extra Ascension Supply at the start of round 4.",
+  "沿用终极模拟基础参数。各等级第4回合均可等概率抽取1项：15金币、2名盟约干员、最多3件不同收藏品、1件传说品质藏品；藏品数量受剩余候选限制。": "Uses Ultimate base parameters. At every level, round 4 grants one equally likely reward: 15 coins, 2 bond operators, up to 3 different collectibles, or 1 Legendary collectible. Collectible counts depend on remaining candidates.",
+  "掉落规则": "Drop rules"
 }

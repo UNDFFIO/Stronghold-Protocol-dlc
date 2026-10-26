@@ -71,7 +71,7 @@ export function RelicIcons({ relics, reward, notice = false, onOpen, onScratch =
 /** Shared by the live modal and each settlement card. No richness/HTML from remote sources. */
 export function RelicList({ relics, reward = null, history = false, illustrated = history, revival = null, onScratch = null }) {
   const entries = relicEntries(relics);
-  if (!entries.length) return html`<p class="relic-empty">${history ? tr('尚未收录收藏品。领取收藏品后将自动加入图鉴。') : tr('尚未获得收藏品。每回合本人无漏怪，可从三件藏品中选择一件。')}</p>`;
+  if (!entries.length) return html`<p class="relic-empty">${history ? tr('尚未收录收藏品。') : tr('尚未获得收藏品。')}</p>`;
   return html`<ol class="relic-list" aria-label=${history ? tr('已获得过的收藏品') : tr('本局收藏品')}>
     ${entries.map((r) => html`<li key=${`${r.id}:${r.round}`} class=${`relic-card relic-tier-${r.tier || 1}${illustrated ? ' relic-card--illustrated' : ''}${reward?.id === r.id && reward?.round === r.round ? ' is-new' : ''}`}>
       ${illustrated ? html`<span class="relic-card__art" aria-hidden="true">
@@ -81,7 +81,7 @@ export function RelicList({ relics, reward = null, history = false, illustrated 
         <span class="relic-card__tier">${tierName(r.tier)}</span></div>
       <p class="relic-card__desc">${tr(r.desc) || tr('该收藏品的效果资料暂不可用')}</p>
       ${!history && r.scratchTicket && onScratch ? html`<${Button} size="sm" data-relic-id=${r.id} onClick=${() => onScratch(r.id)}>${tr('开始刮奖')}<//>` : null}
-      ${!history && r.reviveOnce ? (r.used ? html`<span class="relic-card__used">${tr('已使用 · 复活机会已消耗')}</span>`
+      ${!history && r.reviveOnce ? (r.used ? html`<span class="relic-card__used">${tr('复活机会已消耗')}</span>`
         : revival ? html`<${RelicReviveActions} relicId=${r.id} revival=${revival} />` : html`<span class="relic-card__used">${tr('未使用 · 剩余 1 次')}</span>`) : null}
       ${history ? null : html`<span class="relic-card__round">${r.round == null ? tr('本局获得') : tr('第 {round} 回合获得', { round: r.round })}</span>`}
     </li>`)}
@@ -136,7 +136,7 @@ export function RelicCollection({ relics, reward, owner = null, round = 1, shiel
   const show = () => { setOpen(true); setNotice(false); };
   const collectionLabel = owner ? tr('{owner} 的本局收藏品', { owner }) : tr('自己的本局收藏品');
   return html`<div class="relic-icons" aria-label=${collectionLabel}>
-    <${Tooltip} placement="bottom" text=${tr('收藏品：本人无漏怪可三选一；连续三回合漏怪获得较高稀有度三选一及下回合两点护盾。悬停查看效果，点击查看完整收藏。')}>
+    <${Tooltip} placement="bottom" text=${tr('悬停查看效果，点击查看完整收藏与掉落规则。')}>
       <button type="button" class="relic-icons__heading micro" onClick=${show}
         aria-label=${tr('查看{collectionLabel}，共 {count} 件', { collectionLabel, count })} aria-haspopup="dialog" aria-expanded=${open}>
         RELICS <span class="num">${count}</span>
@@ -156,18 +156,21 @@ export function RelicCollection({ relics, reward, owner = null, round = 1, shiel
     <${Modal} open=${open} title=${html`<span class="relic-panel__title"><${Icon} name="key" />${owner ? tr('{owner} 的收藏品', { owner }) : tr('你的收藏品')} <span class="num">${count}</span></span>`}
       micro="RELIC COLLECTION // THIS MATCH" class="relic-panel" width="min(9.6rem, 94vw)" onClose=${() => setOpen(false)}
       actions=${html`<${Button} size="sm" onClick=${() => setOpen(false)} icon="close">${tr('关闭')}<//>`}>
-      <p class="relic-panel__rule">${tr('单次作战损失生命值不超过 5，弹出藏品三选一；本人漏怪时品质降低一级，最低普通，联防救回也适用。每次只获得所选的一件，永久藏品同名不重复，刮刮票兑奖后可再次获得，效果仅在本局有效。')}</p>
-      <p class="relic-panel__balance">${tr('强度分 I–V 五档。无漏怪奖励中 I／II 从 R1 开始出现，III 从 R4 开始，IV／V 从 R7 开始。')}</p>
-      <p class="relic-panel__note">${tr('基础概率：无漏怪／漏怪')}</p>
-      <div class="relic-odds" aria-label=${tr('第 {round} 回合基础掉落概率', { round })}>
-        ${relicOdds(round).map((t) => html`<div key=${t.tier} class=${`relic-odds__tier relic-tier-${t.tier}${t.percent === 0 ? ' is-locked' : ''}`}>
-          <b>${roman(t.tier)} · ${tr(t.name)}</b><span>${Number(t.percent.toFixed(2))}% / ${Number(relicOdds(round, { leaked: true })[t.tier - 1].percent.toFixed(2))}%</span>
-        </div>`)}
-      </div>
-      <p class="relic-panel__note">${tr('第 {round} 回合基础概率；已获得的永久藏品移出候选池，实际概率随剩余藏品调整。', { round })}</p>
-      <p class="relic-panel__note">${tr('收藏品增益无累计上限。同类属性与伤害增幅相加；永久藏品同名不重复，刮刮票兑奖后可再次获得。')}</p>
       ${queuedChess ? html`<p class="relic-panel__note" role="status">${tr('复活干员补给：{queuedChess} 名等待整备区空位，腾出位置后自动获得，跨回合保留。', { queuedChess })}</p>` : null}
       <${RelicList} relics=${relics} reward=${reward} illustrated=${true} revival=${revival} onScratch=${onScratch} />
+      <details class="relic-panel__rules relic-panel__caps">
+        <summary>${tr('掉落规则')}</summary>
+        <p class="relic-panel__rule">${tr('单次作战损失生命值不超过 5，弹出藏品三选一；本人漏怪时品质降低一级，最低普通，联防救回也适用。每次只获得所选的一件，永久藏品同名不重复，刮刮票兑奖后可再次获得，效果仅在本局有效。')}</p>
+        <p class="relic-panel__balance">${tr('强度分 I–V 五档。无漏怪奖励中 I／II 从 R1 开始出现，III 从 R4 开始，IV／V 从 R7 开始。')}</p>
+        <p class="relic-panel__note">${tr('基础概率：无漏怪／漏怪')}</p>
+        <div class="relic-odds" aria-label=${tr('第 {round} 回合基础掉落概率', { round })}>
+          ${relicOdds(round).map((t) => html`<div key=${t.tier} class=${`relic-odds__tier relic-tier-${t.tier}${t.percent === 0 ? ' is-locked' : ''}`}>
+            <b>${roman(t.tier)} · ${tr(t.name)}</b><span>${Number(t.percent.toFixed(2))}% / ${Number(relicOdds(round, { leaked: true })[t.tier - 1].percent.toFixed(2))}%</span>
+          </div>`)}
+        </div>
+        <p class="relic-panel__note">${tr('第 {round} 回合基础概率；已获得的永久藏品移出候选池，实际概率随剩余藏品调整。', { round })}</p>
+        <p class="relic-panel__note">${tr('收藏品增益无累计上限，同类属性与伤害增幅相加。')}</p>
+      </details>
     <//>
     ${scratchOpen && canScratch ? html`<${ScratchPanel} context=${scratch} initialTicketId=${scratchTicketId} onClose=${() => setScratchOpen(false)} />` : null}`;
 }
@@ -189,7 +192,7 @@ export function RelicChoice({ offer, deadline = 0, onChoose }) {
   const remain = secondsLeft(deadline);
   return html`<${Modal} open=${true} title=${cards.length === 4 ? tr('藏品四选一') : tr('藏品三选一')}
     micro="RELIC CHOICE" width=${cards.length === 4 ? 'min(12rem, 94vw)' : 'min(9rem, 94vw)'} tone="mint" class="relic-choice" closeOnBackdrop=${false}>
-    <p class="relic-choice__rule">${offer.leaked ? tr('本次作战有漏怪，候选品质已降低一级（最低普通）：请选择一件。') : tr('本次作战损失生命值不超过 5：从以下收藏品中选择一件。')}</p>
+    <p class="relic-choice__rule">${offer.leaked ? tr('本次作战有漏怪，候选品质已降低一级（最低普通）。') : tr('本次作战损失生命值 ≤ 5')}</p>
     <div class=${`relic-choice__cards${cards.length === 4 ? ' relic-choice__cards--four' : ''}`}>
       ${cards.map((r, idx) => r ? html`<button key=${r.id} type="button" class=${`relic-choice__card relic-tier-${r.tier}`}
         disabled=${busy != null} aria-label=${tr('选择{name}，{1}，{2}', { name: tr(r.name), 1: tierName(r.tier), 2: tr(r.previewDesc || r.desc) })} data-relic-id=${r.id} onClick=${() => pick(idx)}>
@@ -198,7 +201,7 @@ export function RelicChoice({ offer, deadline = 0, onChoose }) {
         <span class="relic-choice__pick">${busy === idx ? tr('领取中…') : tr('选择此藏品')}</span>
       </button>` : null)}
     </div>
-    <p class="relic-choice__note">${remain == null ? tr('选好后进入下一阶段。') : tr('剩余 {remain} 秒；超时自动选择第一件。', { remain })}</p>
+    ${remain == null ? null : html`<p class="relic-choice__note">${tr('剩余 {remain} 秒；超时自动选择第一件。', { remain })}</p>`}
     ${failed ? html`<p class="relic-choice__error" role="alert">${tr('领取未成功，请重试。')}</p>` : null}
   <//>`;
 }

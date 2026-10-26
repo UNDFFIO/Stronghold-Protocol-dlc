@@ -1028,10 +1028,14 @@ button.bpop__harmony:hover { border-style: solid; color: #fff; }
 .scratch-paper__header span { font-size: calc(.13 * var(--t)); }
 .scratch-paper .scratch-paper__hint { font-size: calc(.12 * var(--t)); margin: .12rem 0; }
 .scratch-paper h3 { font-size: calc(.14 * var(--t)); margin: .14rem 0 .07rem; }
-.scratch-winning { display: grid; grid-template-columns: repeat(2, 1fr); gap: .08rem; }
-.scratch-numbers { display: grid; grid-template-columns: repeat(3, 1fr); gap: .08rem; }
-.scratch-cell { position: relative; height: .65rem; min-height: calc(.65 * var(--t)); min-width: 0; border: 1px dashed #998661; border-radius: .04rem; overflow: hidden; background: #fffbeb; }
+.scratch-winning, .scratch-numbers { display: grid; gap: 0; overflow: hidden; border: 1px solid #a3a8aa; border-radius: .025rem; background: #edf0ed; }
+.scratch-winning { grid-template-columns: repeat(2, 1fr); }
+.scratch-numbers { grid-template-columns: repeat(3, 1fr); }
+.scratch-cell { position: relative; height: .65rem; min-height: calc(.65 * var(--t)); min-width: 0; overflow: hidden; }
 .scratch-cell__value { display: grid; justify-items: center; align-content: center; height: 100%; gap: .02rem; }
+.scratch-cell__value::after { content: ''; position: absolute; inset: 0; pointer-events: none; border-right: 1px dashed #82908b; border-bottom: 1px dashed #82908b; }
+.scratch-winning .scratch-cell__value::after, .scratch-numbers .scratch-cell:nth-child(n+4) .scratch-cell__value::after { border-bottom: 0; }
+.scratch-winning .scratch-cell:last-child .scratch-cell__value::after, .scratch-numbers .scratch-cell:nth-child(3n) .scratch-cell__value::after { border-right: 0; }
 .scratch-cell__value b { font-size: calc(.23 * var(--t)); line-height: 1.1; }
 .scratch-cell__value span { font-size: calc(.12 * var(--t)); }
 .scratch-symbol { display: block; width: .62rem; height: .62rem; background-image: var(--scratch-symbols); background-size: 300% 300%; background-repeat: no-repeat; }
