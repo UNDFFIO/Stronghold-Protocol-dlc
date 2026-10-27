@@ -173,6 +173,7 @@
 .gtop__half .roundbox { gap: .12rem; }
 /* the round chip and the LP keep plain rem: HUD chrome in boxes the design fixed (test/ui/text-scale.test.js NOT_SCALED) */
 .gtop__half .roundbox__label { font-size: .2rem; color: #d8dcdc; letter-spacing: .1em; }
+.gtop__half .roundbox--extra .roundbox__label { font-size: .16rem; letter-spacing: 0; white-space: nowrap; }
 .gtop__half .roundbox__num { display: inline-grid; place-items: center; min-width: .48rem; height: .34rem; padding: 0 .07rem; font-size: .28rem; line-height: 1;
   background: #cfd3d3; color: #121516; border-radius: .03rem; clip-path: none; animation: gtop-flip 260ms var(--ease-out) both; }
 .gtop__half .lp--lg { font-size: .32rem; gap: .03rem; }

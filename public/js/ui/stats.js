@@ -236,6 +236,7 @@ function normalizePlayerRow(raw, quit = false) {
     ...(Number.isInteger(p.creditedKills) && p.creditedKills >= 0 && p.creditedKills <= 1e9 ? { creditedKills: p.creditedKills } : {}),
     eliminatedRound: num(p.eliminatedRound),
     lp: num(p.lp),
+    ...(p.shinigamiEyes === true ? { shinigamiEyes: true } : {}),
     bandId: str(p.bandId),
     title,
     trophies: int(p.trophies, 0),
@@ -649,6 +650,7 @@ export function buildQuitRecord(state, ctx = {}) {
       playerId: myId, seat: row.seat, name: row.name, isBot: false, left: true, alive, victory: false, roundsPassed,
       ...(Number.isInteger(row.aiTakeoverRound) ? { aiTakeoverRound: row.aiTakeoverRound } : {}),
       eliminatedRound: alive ? null : live.aliveRound, lp: row.lp, bandId: row.bandId,
+      ...(state.match.private?.shinigamiEyes ? { shinigamiEyes: true } : {}),
     }],
   });
 }

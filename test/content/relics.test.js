@@ -6,6 +6,59 @@ import { DataSource } from '../../server/sim/simdata.js';
 import { buildBattleSpec, createBattleFromSpec, resultDigest } from '../../server/sim/spec.js';
 
 const ATK = 'relic_003';
+test('死亡笔记：相同JSON spec在服务端和浏览器数据源移除相同类型，结果digest一致', () => {
+  const raw = { enemies: { enemy_erased: enemyRec({ key: 'enemy_erased', hp: 1000, speed: 0 }) },
+    stages: { note_stage: flatStage({ id: 'note_stage' }) } };
+  const spec = buildBattleSpec({ seed: 19, stageId: 'note_stage', kind: 'normal', round: 5, timeLimit: 10,
+    players: [player([], [])], routes: flatRoutes(), flags: { deathNoteEnemyKeys: ['enemy_erased'] },
+    spawns: [{ time: 5, enemyKey: 'enemy_erased', count: 10 }] });
+  const server = createBattleFromSpec(spec, new DataSource(raw, null), { quiet: true });
+  const browser = createBattleFromSpec(JSON.parse(JSON.stringify(spec)), new DataSource(JSON.parse(JSON.stringify(raw)), null), { quiet: true });
+  server.runToEnd(12); browser.runToEnd(12);
+  assert.equal(server.result().total, 0);
+  assert.equal(server.result().reason, 'cleared');
+  assert.equal(resultDigest(server.result()).hash, resultDigest(browser.result()).hash);
+  assert.equal(server.result().perPlayer.p1.coins, 0);
+  assert.deepEqual(server.errors, []); assert.deepEqual(browser.errors, []);
+});
+
+test('死亡笔记解锁数据：同一干员再次部署死亡会累计，撤退与队友不计入本人', () => {
+  const f = makeBattle({ autoFinish: false, defs: { chess: { note_op: op('note_op') } },
+    players: [player([], [piece('note_op')]), { ...player([], [piece('note_op', 2, 10, 6)]), playerId: 'p2', seat: 1 }] });
+  f.step();
+  const owner = f.unit(1), teammate = f.unit(2);
+  f.b.kill(owner); f.b.kill(owner);
+  assert.equal(f.b._buildResult().perPlayer.p1.deaths, 1);
+  f.b.kill(teammate);
+  assert.equal(f.b._buildResult().perPlayer.p1.deaths, 1);
+  f.run(2);
+  assert.equal(owner.alive, true);
+  f.b.kill(owner);
+  assert.equal(f.b._buildResult().perPlayer.p1.deaths, 2);
+  f.run(2); f.b.retreat(owner);
+  assert.equal(f.b._buildResult().perPlayer.p1.deaths, 2);
+});
+
+test('死亡笔记：移除整波和后续召唤，不计击杀、悬赏或漏怪，其他类型保持不变', () => {
+  for (const kind of ['normal', 'unite', 'boss', 'hidden']) {
+    const f = makeBattle({ kind, flags: { deathNoteEnemyKeys: ['erased'] }, autoFinish: false,
+      defs: { enemies: { erased: enemyRec({ key: 'erased', speed: 0 }), kept: enemyRec({ key: 'kept', speed: 0 }) } },
+      enemies: [{ key: 'erased', count: 12, time: 5, bounty: { coins: 8 } }, { key: 'kept' }] });
+    f.step();
+    assert.equal(f.b.total, 1);
+    assert.equal(f.b._pending.length, 0, 'erased scheduled types never enter the spawn queue');
+    assert.equal(f.enemies().length, 1);
+    assert.equal(f.enemies()[0].name, 'kept');
+    assert.equal(f.b.spawnEnemy('erased'), null, 'runtime summons are removed too');
+    f.run(6);
+    assert.equal(f.b.killed, 0);
+    const result = f.b._buildResult().perPlayer.p1;
+    assert.equal(result.coins, 0);
+    assert.deepEqual(result.leaked, []);
+    assert.deepEqual(f.b.errors, []);
+  }
+});
+
 const HP = 'relic_010';
 const DEF = 'relic_047';
 const GUARD_ATK = 'relic_145';

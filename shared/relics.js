@@ -23,10 +23,14 @@ export const RELIC_TIERS = Object.freeze([
  * @property {number} [battleChoiceBonus]
  * @property {boolean} [scratchTicket]
  * @property {boolean} [hideNumbers]
+ * @property {boolean} [hideEnemyNames]
+ * @property {boolean} [deathNote]
+ * @property {boolean} [normalDrop]
  * @property {string} [previewDesc]
  * @property {number} [difficultyReduction]
  * @property {number} [soloDifficultyReduction]
  * @property {boolean} [multiplayerOnly]
+ * @property {boolean} [normalRoundsOnly]
  * @property {boolean} [redistributeEnemies]
  * @property {number} [skillEndSp]
  * @property {Readonly<{lp: number, operators: number}>} [reviveOnce]
@@ -46,6 +50,9 @@ const relic = (number, name, tier, desc, sourceEffect, mods, extra = {}) => Obje
 
 // Tiers describe the adapted strength, rather than the original rarity. "All" means the owner's operators only.
 export const RELICS = Object.freeze([
+  relic('241', N_('死亡笔记'), 5, N_('准备阶段可花费8金币书写一个敌方名字，书写正确则移除本回合全队遭遇的该类型敌人，书写错误不生效（每回合限1次）'),
+    N_('同人改编：《死亡笔记》中的笔记本；本游戏机制由维护者指定。'), {},
+    { deathNote: true, hideEnemyNames: true, normalDrop: false }),
   relic('132', N_('天师锦囊'), 1, N_('每场战斗首次部署我方炎盟约干员时，在其位置召唤一只炎佑（仅在激活炎盟约后可获得）'),
     N_('首次部署炎国干员时，在其位置召唤一只炎佑。'), {}, { requiredBond: 'yanShip' }),
   relic('133', N_('冰中火'), 1, N_('敌人受到的元素损伤和元素伤害+75%'),
@@ -71,7 +78,7 @@ export const RELICS = Object.freeze([
   relic('195', N_('四叶草化石'), 2, N_('战斗后掉落收藏品时，增加一个可选项'),
     N_('我方在得偿所愿节点和战斗后掉落战利品时，增加一个可选项'), {}, { battleChoiceBonus: 1 }),
   relic('159', N_('木棍'), 2, N_('从下一回合休整期起，每回合额外获得2资金，持有期间界面数字以■显示（仅影响显示）'),
-    N_('原创：每回合额外 2 金币，持有者界面数字遮蔽。'), {}, { economy: Object.freeze({ income: 2 }), hideNumbers: true,
+    N_('原创：每回合额外 2 金币，持有者界面数字遮蔽。'), {}, { economy: Object.freeze({ income: 2 }), hideNumbers: true, normalRoundsOnly: true,
       previewDesc: N_('从下一回合休整期起，每回合额外获得2资金') }),
   relic('125', N_('液体化肥'), 2, N_('我方干员每次攻击时流失50点生命（至少保留1点），获得100点屏障（此效果的屏障上限为自身最大生命值的140%）'),
     N_('我方干员攻击时流失 50 点生命（至少保留 1 点），获得 100 点屏障；此效果的屏障上限为最大生命值的 100%。'), {}),
@@ -102,9 +109,9 @@ export const RELICS = Object.freeze([
   relic('153', N_('医者-自医'), 3, N_('所有我方医疗干员的技力自然回复速度+0.35/秒'), N_('医疗自然技力回复每秒增加 0.3。'), { spRecoveryFlat: 0.35 }, { profession: 'MEDIC' }),
   relic('025', N_('至宝指环'), 3, N_('从下一回合休整期起，每回合额外获得1资金'), N_('战斗源石锭收益提高 50%。'), {}, { economy: Object.freeze({ income: 1 }) }),
   relic('157', N_('鸭梨手机'), 3, N_('获得时，全队累计难度-1级（单人模式-2级，最低为0），从下一场战斗起生效，多名玩家获得时可叠加'),
-    N_('原创：多人模式全队累计难度降低 1 级，单人模式降低 2 级。'), {}, { difficultyReduction: 1, soloDifficultyReduction: 2 }),
+    N_('原创：多人模式全队累计难度降低 1 级，单人模式降低 2 级。'), {}, { difficultyReduction: 1, soloDifficultyReduction: 2, normalRoundsOnly: true }),
   relic('156', N_('解压玩具'), 3, N_('多人模式的普通作战中，自身阵地出现的敌人数量减半（向下取整），减少的敌人均分给其他存活且未离场的玩家；每名持有者各有10%概率改为集中敌人：随机一名触发者承受所有敌人，未持有者各保留1个，其他持有者不出现敌人（替代减半效果，首领波次不生效）'),
-    N_('原创：普通作战敌人减半转移，10% 概率集中敌人。'), {}, { multiplayerOnly: true, redistributeEnemies: true }),
+    N_('原创：普通作战敌人减半转移，10% 概率集中敌人。'), {}, { multiplayerOnly: true, redistributeEnemies: true, normalRoundsOnly: true }),
 
   relic('134', N_('河谷祭祈'), 4, N_('我方凋亡、灼燃、神经和侵蚀损伤的爆发效果增强'),
     N_('我方凋亡、灼燃、神经和侵蚀损伤的爆发效果增强。'), {}),
@@ -182,17 +189,17 @@ export function dropWeights(round, { leaked = false } = {}) {
   return leaked ? [weights[0] + weights[1], weights[2], weights[3], weights[4], 0] : weights;
 }
 
-export function canReceiveRelic(r, owned, { hasScratchTicket = false, bonds = {} } = {}) {
+export function canReceiveRelic(r, owned, { hasScratchTicket = false, bonds = {}, extraRound = 0 } = {}) {
   const ids = idsOf(owned);
-  return !!r && (!r.requiredBond || bonds[r.requiredBond]?.active === true)
+  return !!r && !(r.normalRoundsOnly && extraRound > 0) && (!r.requiredBond || bonds[r.requiredBond]?.active === true)
     && (r.scratchTicket ? ids.has('relic_234') && !hasScratchTicket : !ids.has(r.id));
 }
 
-export function pickRelic(round, owned, rng, { multiplayer = false, tierWeights = null, hasScratchTicket = false, excludeIds = [], bonds = {} } = {}) {
+export function pickRelic(round, owned, rng, { multiplayer = false, tierWeights = null, hasScratchTicket = false, excludeIds = [], bonds = {}, extraRound = 0 } = {}) {
   const excluded = new Set(excludeIds);
   const weights = tierWeights ?? dropWeights(round);
-  const pools = RELIC_TIERS.map(({ tier, normalDrop }) => normalDrop === false ? [] : RELICS.filter((r) => r.tier === tier && !excluded.has(r.id)
-    && canReceiveRelic(r, owned, { hasScratchTicket, bonds }) && (!r.multiplayerOnly || multiplayer)));
+  const pools = RELIC_TIERS.map(({ tier, normalDrop }) => normalDrop === false ? [] : RELICS.filter((r) => r.normalDrop !== false && r.tier === tier && !excluded.has(r.id)
+    && canReceiveRelic(r, owned, { hasScratchTicket, bonds, extraRound }) && (!r.multiplayerOnly || multiplayer)));
   const total = weights.reduce((sum, w, i) => sum + (pools[i].length ? w : 0), 0);
   if (!total) return null;
   let roll = rng() * total;
@@ -205,11 +212,11 @@ export function pickRelic(round, owned, rng, { multiplayer = false, tierWeights 
 }
 
 /** Distinct, unowned candidates (three by default). A nearly exhausted eligible pool may offer fewer. */
-export function pickRelicChoices(round, owned, rng, { leaked = false, multiplayer = false, hasScratchTicket = false, bonds = {}, count = 3 } = {}) {
+export function pickRelicChoices(round, owned, rng, { leaked = false, multiplayer = false, hasScratchTicket = false, bonds = {}, count = 3, extraRound = 0 } = {}) {
   const excluded = [];
   const choices = [];
   for (let i = 0; i < count; i++) {
-    const opts = { multiplayer, hasScratchTicket, bonds, excludeIds: excluded, tierWeights: dropWeights(round, { leaked }) };
+    const opts = { multiplayer, hasScratchTicket, bonds, extraRound, excludeIds: excluded, tierWeights: dropWeights(round, { leaked }) };
     const r = pickRelic(round, owned, rng, opts);
     if (!r) break;
     choices.push(r.id);

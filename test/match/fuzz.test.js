@@ -40,6 +40,8 @@ function randomIntent(rng, m, ps) {
     case 'g.art': return { t, itemUid: uid(), row: rng.int(19), col: rng.int(21) };
     case 'g.reward': case 'g.choice': return { t, idx: rng.int(6) };
     case 'g.relic': return { t, offerId: ps?.relicOffer && rng() < 0.8 ? ps.relicOffer.id : 'missing_offer', idx: rng.int(3) };
+    case 'g.deathNote': return { t, name: rng() < 0.5 ? 'missing_enemy' : (Object.values(m.gd?.raw?.enemies || {})[0]?.name || 'enemy'), round: Math.max(1, m.round || 1) };
+    case 'g.shinigamiEyes': return { t, round: Math.max(1, m.round || 1) };
     case 'g.relicDebug': return { t, relicId: rng.pick(['relic_003', 'relic_157', 'relic_158', 'relic_234', 'relic_235', 'missing_relic']), action: rng.pick(['add', 'remove']) };
     case 'g.relicRevive': return { t, relicId: rng() < 0.8 ? 'relic_233' : 'missing_relic', playerId: rng() < 0.8 ? rng.pick([...m.players.keys()]) : 'missing_player' };
     case 'g.scratchBuy': return { t, tier: 1 + rng.int(5), seq: ps?.scratchSeq ?? 0 };

@@ -104,7 +104,7 @@ import { Ticker } from '../ui/ticker.js';
 import { EmoteWheel } from '../ui/emotes.js';
 import { DamageRanking } from '../ui/damageRanking.js';
 import { EffectsList } from '../ui/effectsList.js';
-import { EndlessVote, EndlessStatus } from '../ui/endless.js';
+import { EndlessVote } from '../ui/endless.js';
 import { RelicCollection, RelicChoice, ownerRelics, revivalTargets } from '../ui/relicPanel.js';
 import { RelicDebugPanel } from '../ui/relicDebug.js';
 import { isLocalAccess } from '../ui/gameLogic/localAccess.js';
@@ -1909,11 +1909,15 @@ function MatchScreen() {
       <${TeamPanel} pub=${pub} myId=${myId} watching=${watchingNow} bubbles=${bubbles} onWatch=${watchPlayer} cap=${gd.config?.lpCapPerRound ?? 10} uniteLocal=${uniteLocal}
         spMarks=${sp ? spMarks(sp, { solo }) : null}
         self=${Number.isFinite(priv?.lp) ? { lp: priv.lp, pending: liveLpNow.pending, unite: liveLpNow.unite, left: liveLpNow.left } : null}
+        hideSelfLp=${!!priv?.shinigamiEyes}
         observe=${cc ? { canObserve: (p) => observeTarget(p, pub, myId, { observing: alive && watchingOther, ownDone: localDone }), observing: alive && watchingOther, onBack: backHome } : null} />
 
       <div class="gm__effects">
         <${RelicCollection} key=${strip.ownerId} owner=${strip.name} relics=${collection.relics} reward=${collection.reward} round=${pub?.round || 1} shield=${collection.shield} nextShield=${collection.nextShield}
           revival=${strip.ownerId === myId ? { phase, alive, targets: revivalTargets(pub, myId), onRevive: actions.relicRevive } : null}
+          deathNote=${strip.ownerId === myId ? { canUse: phase === PHASE.PREP && alive && !priv?.ready && conn.status === 'online',
+            used: priv?.deathNote?.used, cost: priv?.deathNote?.cost ?? (priv?.shinigamiEyes ? 4 : 8), eyes: !!priv?.shinigamiEyes,
+            funds: priv?.funds || 0, round: pub?.round, onWrite: actions.deathNote, onEyes: actions.shinigamiEyes } : null}
           scratch=${strip.ownerId === myId ? scratchContext : null}
           queuedChess=${strip.ownerId === myId ? priv?.relicChessQueue?.length || 0 : 0} />
         <div class="gm__effect-base"><${EffectsList} effects=${watchingOther && field ? (field.effects ?? null) : priv?.effects} /></div>
@@ -2014,13 +2018,12 @@ function MatchScreen() {
       tone=${banner.tone} duration=${banner.duration || 1500} onDone=${() => setBanner(null)} />` : null}
     <${AscensionLottery} reward=${priv?.ascensionLottery} round=${pub?.round} />
     <${EndlessVote} pub=${pub} />
-    <${EndlessStatus} pub=${pub} />
     <${RelicChoice} offer=${priv?.relicOffer} deadline=${pub?.deadline} onChoose=${actions.relic} />
 
     ${resultBox ? html`<${ResultDialog} key=${resultBox.key} title=${resultBox.title} sub=${resultBox.sub} micro=${resultBox.micro}
       tone=${resultBox.tone} duration=${resultBox.duration} onDone=${() => setResultBox(null)} />` : null}
 
-    ${bossPlate?.kind === 'final' ? html`<${FinalAssaultPlate} key=${bossPlate.key} rows=${bossPlate.rows} total=${bossPlate.total} bossId=${pub?.bossId}
+    ${bossPlate?.kind === 'final' ? html`<${FinalAssaultPlate} key=${bossPlate.key} rows=${bossPlate.rows} total=${bossPlate.total} bossId=${pub?.bossId} hideSelfLp=${!!priv?.shinigamiEyes}
       myId=${myId} onDone=${() => setBossPlate(null)} />`
       : bossPlate?.kind === 'core' ? html`<${HiddenCorePlate} key=${bossPlate.key} bossId=${pub?.hiddenBossId} onDone=${() => setBossPlate(null)} />`
       : bossPlate?.kind === 'end' ? html`<${EndPlate} key=${bossPlate.key} kind=${bossPlate.end} bossId=${pub?.bossId} hiddenBossId=${pub?.hiddenBossId}

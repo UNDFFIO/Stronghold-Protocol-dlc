@@ -7,6 +7,7 @@
 
 import { settleRelics, activeReverseLp, consumeRelicLpLoss, consumeRelicShield, unusedRevival, consumeRevival } from '../relics.js';
 import { damageRanking } from '../../../shared/damageRanking.js';
+import { settleDeathNote, deathNoteKeys } from '../deathNote.js';
 import { msg } from '../../../shared/i18n.js';
 import { PHASE, GEO } from '../../../shared/constants.js';
 import { createRng, deriveSeed } from '../../sim/rng.js';
@@ -67,6 +68,8 @@ export class MatchBoss {
       },
     });
     this.bossPool = pool;
+    // Removing the named leader resolves the shared objective without inventing damage or kill rewards.
+    if (deathNoteKeys(this).includes(this.gd.raw.bosses?.[bossId]?.enemyKey)) pool.hp = 0;
     // the round's plan (_planBossWaves: the Hidden Core's own draw, GitHub #845); a departure since keeps intact pairs
     const groups = pairPlayers(alive, createRng(deriveSeed(this.seed, bossPairSalt(this.gd, this.round))), this.bossPairs);
     this.bossPairs = groups.map(g => g.map(p => p.playerId));
@@ -105,7 +108,7 @@ export class MatchBoss {
         routes: wave.routes,
         sharedBoss: this.bossPool,
         // the round's enemy effects for the leaders' mid-fight summons (server/sim/content/bosses.js summonMods)
-        flags: this.endlessFlags({ layerGainsEnabled: false, ...this.gd.dp, enemyScale: this.gd.enemyScale(this.round) }),
+        flags: this.endlessFlags({ layerGainsEnabled: false, ...this.gd.dp, enemyScale: this.gd.enemyScale(this.round), deathNoteEnemyKeys: deathNoteKeys(this) }),
         fieldId,
         enemyOverrides: wave.overrides,
         waveId: wave.templateId,
@@ -561,6 +564,7 @@ export class MatchBoss {
           this.lastDamageResults.set(pid, damageRanking(pp.unitStats || []));
         }
         if (pp && ps) {
+          settleDeathNote(ps, { ...pp, synthetic: res.synthetic }, 'boss');
           ps.stats.dmgDealt += Number(pp.damageDealt) || 0;
           ps.stats.kills += Number(pp.killed) || 0;
           ps.creditedKills += creditedKillsOf(pp);

@@ -604,6 +604,8 @@ export const C2S = {
   'g.relic': { offerId: isId, idx: (v) => isInt(v, 0, 3) },
   'g.relicDebug': { relicId: isId, action: (v) => v === 'add' || v === 'remove' },
   'g.relicRevive': { relicId: isId, playerId: isId },
+  'g.deathNote': { name: (v) => isStr(v, 128) && v.trim().length > 0, round: (v) => isInt(v, 1) },
+  'g.shinigamiEyes': { round: (v) => isInt(v, 1) },
   'g.scratchBuy': { tier: (v) => isInt(v, 1, 5), seq: (v) => isInt(v, 0, Number.MAX_SAFE_INTEGER) },
   'g.scratchOpen': { ticketId: isId },
   'g.scratchClaim': { ticketId: isId },

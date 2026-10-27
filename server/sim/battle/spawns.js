@@ -20,6 +20,7 @@ const FALLBACK_ENEMY = Object.freeze({
 
 export class BattleSpawns {
   _queueSpawn(s, precount) {
+    if (this.flags.deathNoteEnemyKeys?.includes(s.enemyKey)) return;
     if (Number(s.time) === Infinity) return; // "never" — not scheduled, not counted
     // capped: a bogus count (Infinity, 1e9) would otherwise hang the constructor / exhaust memory
     const count = Math.min(MAX_ALIVE_ENEMIES, Math.max(1, Math.floor(fin(s.count ?? 1, 1)) || 1));
@@ -82,6 +83,8 @@ export class BattleSpawns {
    * sourcePlayerId, ownerPlayerId, bounty:{coins,ownerPlayerId}, countInTotal, inTotal }
    */
   spawnEnemy(enemyKey, opts = {}) {
+    // Removal is not a kill: no rewards, on-death mechanics, leaks or scheduled-enemy counters.
+    if (this.flags.deathNoteEnemyKeys?.includes(enemyKey)) return null;
     if (this.enemies.length >= MAX_ALIVE_ENEMIES && this.aliveEnemies().length >= MAX_ALIVE_ENEMIES) {
       this._handlerError('spawnEnemy', null, new Error(`more than ${MAX_ALIVE_ENEMIES} living enemies; spawn of ${enemyKey} refused`));
       return null;

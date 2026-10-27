@@ -35,6 +35,7 @@ function EnemiesTab({ pub, priv, onEnemy }) {
   return html`<div class="edrawer__body">
     <div class="edrawer__sum">
       <span>${tParts('第 {r} 回合 · 即将迎击 {n} 名敌人', { r: html`<b class="num">${pub?.round ?? '-'}</b>`, n: html`<b class="num t-orange">${total}</b>`, count: total })}</span>
+      ${pub?.extraRound > 0 ? html`<span class="edrawer__extra">${t('敌方生命与攻击 +{percent}%', { percent: pub.extraRound * 5 })}</span>` : null}
       ${types.length ? html`<${FactionChips} types=${types} />` : null}
     </div>
     ${rows.length ? html`<div class="elist">

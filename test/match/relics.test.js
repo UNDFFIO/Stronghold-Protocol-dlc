@@ -7,6 +7,254 @@ import { createRng } from '../../server/sim/rng.js';
 import { settleRelics, selectRelic, grantRelic } from '../../server/match/relics.js';
 import { makeMatch } from './harness.js';
 import { makeBattle, chessRec, enemyRec } from '../helpers/battleHarness.js';
+import { settleDeathNote, deathNoteKeys, resolveDeathNoteName } from '../../server/match/deathNote.js';
+
+test('死神之眼：准备阶段一次交易，扣本人当前一半生命，持久降价且不重置本回合书写次数', () => {
+  const h = makeMatch({ humans: 2, fake: true }).start();
+  try {
+    h.toPrep(3);
+    const ps = h.ps('p_0'), mate = h.ps('p_1');
+    ps.lp = 25; ps.funds = 16;
+    assert.ok(ps.tradeShinigamiEyes(3).error);
+    grantRelic(ps, 'relic_241');
+    assert.equal(ps.privateView().deathNote.cost, 8);
+    assert.ok(ps.tradeShinigamiEyes(2).error);
+    ps.ready = true; assert.ok(ps.tradeShinigamiEyes(3).error); ps.ready = false;
+    h.m.phase = PHASE.COMBAT; assert.ok(ps.tradeShinigamiEyes(3).error); h.m.phase = PHASE.PREP;
+    ps.left = true; assert.ok(ps.tradeShinigamiEyes(3).error); ps.left = false;
+    ps.alive = false; assert.ok(ps.tradeShinigamiEyes(3).error); ps.alive = true;
+    assert.equal(ps.lp, 25); assert.equal(ps.shinigamiEyes, false);
+    assert.deepEqual(ps.writeDeathNote('incorrect', 3), { ok: true });
+    const mateLp = mate.lp;
+    assert.deepEqual(h.m.handle(ps.playerId, { t: 'g.shinigamiEyes', round: 3 }), { ok: true });
+    assert.equal(ps.lp, 13); assert.equal(mate.lp, mateLp); assert.equal(mate.shinigamiEyes, false);
+    assert.equal(ps.privateView().shinigamiEyes, true);
+    assert.deepEqual(ps.privateView().deathNote, { used: true, cost: 4 });
+    assert.ok(ps.effectsView().some((e) => e.id === 'shinigami-eyes'));
+    assert.ok(ps.tradeShinigamiEyes(3).error); assert.equal(ps.lp, 13);
+    assert.ok(ps.writeDeathNote('incorrect', 3).error); assert.equal(ps.funds, 8);
+    h.toPrep(4); ps.funds = 3;
+    assert.ok(ps.writeDeathNote('incorrect', 4).error); assert.equal(ps.funds, 3);
+    ps.funds = 4;
+    const [key, enemy] = Object.entries(h.m.gd.raw.enemies).find(([, e]) => e.name);
+    assert.deepEqual(ps.writeDeathNote(enemy.name, 4), { ok: true });
+    assert.equal(ps.funds, 0); assert.equal(ps.round.spent, 4);
+    assert.ok(deathNoteKeys(h.m).includes(key));
+    assert.equal(validateC2S({ t: 'g.shinigamiEyes', round: 4 }), null);
+    assert.ok(validateC2S({ t: 'g.shinigamiEyes', round: 0 }));
+    assert.ok(validateC2S({ t: 'g.shinigamiEyes' }));
+    h.m.finish({ victory: false, reason: 'abandoned' });
+    assert.equal(h.ended.players.find((p) => p.playerId === ps.playerId).shinigamiEyes, true);
+    assert.equal(h.ended.players.find((p) => p.playerId === mate.playerId).shinigamiEyes, undefined);
+  } finally { h.m.dispose(); }
+  const fresh = makeMatch({ mode: 'solo', fake: true }).start();
+  try { assert.equal(fresh.ps('p_0').shinigamiEyes, false); } finally { fresh.m.dispose(); }
+});
+
+test('死神之眼：共享生命已合并时仅扣本人份额，后续同步不会回滚交易或扣队友生命', () => {
+  const h = makeMatch({ humans: 2, fake: true }).start();
+  try {
+    h.toPrep(3);
+    const ps = h.ps('p_0'), mate = h.ps('p_1');
+    ps.lp = 25; mate.lp = 11;
+    h.m._openTeamLp();
+    grantRelic(ps, 'relic_241');
+    assert.deepEqual(ps.tradeShinigamiEyes(3), { ok: true });
+    assert.equal(h.m.teamLp, 24);
+    h.m._syncTeamLp(); h.m._syncTeamLp();
+    assert.equal(ps.lp, 13); assert.equal(mate.lp, 11);
+    assert.equal(ps.lpAtFinal + mate.lpAtFinal, 24);
+    assert.ok(ps.tradeShinigamiEyes(3).error);
+    assert.equal(h.m.teamLp, 24);
+  } finally { h.m.dispose(); }
+});
+
+test('死神之眼：当前生命的一半向上保留，生命代价不触发护盾和战斗损血统计', () => {
+  for (const lp of [1, 2, 3, 24, 25]) {
+    const h = makeMatch({ mode: 'solo', fake: true }).start();
+    try {
+      h.toPrep(1);
+      const ps = h.ps('p_0');
+      grantRelic(ps, 'relic_241'); ps.lp = lp;
+      ps.relicShield = 2; ps.relicShieldRound = 1;
+      const lost = ps.stats.lpLost;
+      assert.deepEqual(ps.tradeShinigamiEyes(1), { ok: true });
+      assert.equal(ps.lp, Math.ceil(lp / 2)); assert.equal(ps.alive, true);
+      assert.equal(ps.relicShield, 2);
+      assert.equal(ps.stats.lpLost, lost);
+    } finally { h.m.dispose(); }
+  }
+});
+
+test('死亡笔记：不进入任何随机奖池；本人50次死亡解锁，同局唯一且结算不重复累计', () => {
+  const h = makeMatch({ humans: 2, fake: true }).start();
+  try {
+    const a = h.ps('p_0'), b = h.ps('p_1');
+    assert.equal(getRelic('relic_241').tier, 5);
+    const others = RELICS.filter((r) => r.id !== 'relic_241').map((r) => r.id);
+    assert.equal(pickRelic(15, others, createRng(1), { tierWeights: [0, 0, 0, 0, 1], hasScratchTicket: true }), null);
+    h.toPrep(1);
+    settleDeathNote(a, { deaths: 49 }, 'normal');
+    settleDeathNote(a, { deaths: 49 }, 'normal');
+    settleDeathNote(a, { deaths: 100, synthetic: true }, 'unite');
+    assert.equal(a.deathNoteDeaths, 49);
+    assert.equal(a.relics.length, 0);
+    h.toPrep(2);
+    settleDeathNote(a, { deaths: 1 }, 'normal');
+    assert.equal(a.relics.filter((r) => r.id === 'relic_241').length, 1);
+    assert.equal(a.deathNoteAwarded, true);
+    assert.equal(b.deathNoteDeaths, 0);
+    settleDeathNote(b, { deaths: 50 }, 'normal');
+    assert.equal(b.relics.some((r) => r.id === 'relic_241'), false);
+    assert.equal(grantRelic(b, 'relic_241'), null);
+    a.alive = false; a.left = true;
+    assert.equal(grantRelic(b, 'relic_241'), null, 'an eliminated/departed owner still holds the unique item');
+    assert.equal(validateC2S({ t: 'g.deathNote', name: 'enemy', round: 2 }), null);
+    assert.ok(validateC2S({ t: 'g.deathNote', name: '', round: 2 }));
+  } finally { h.m.dispose(); }
+  const fresh = makeMatch({ mode: 'solo', fake: true }).start();
+  try { assert.equal(fresh.ps('p_0').deathNoteDeaths, 0); } finally { fresh.m.dispose(); }
+});
+
+for (const clientCombat of [false, true]) test(`死亡笔记：写中领袖直接完成多人共享目标（client=${clientCombat}）`, () => {
+  const h = makeMatch({ humans: 3, clientCombat }).start();
+  try {
+    h.toPrep(1);
+    const { m } = h;
+    m.round = m.gd.bossRound;
+    m.hiddenBossId = null;
+    const ps = h.ps('p_0');
+    const boss = m.gd.raw.bosses[m.bossId];
+    grantRelic(ps, 'relic_241'); ps.funds = 8;
+    assert.deepEqual(m.handle(ps.playerId, { t: 'g.deathNote', name: boss.name, round: m.round }), { ok: true });
+    m.startFinalAssault(false);
+    assert.equal(m.bossPool.hp, 0);
+    assert.ok(m.fields.every((f) => (f.spec?.flags || f.battle?.flags || f.opts?.flags)?.deathNoteEnemyKeys?.includes(boss.enemyKey)));
+    h.run(() => m.ended);
+    assert.equal(m.outcome.victory, true);
+    assert.equal(ps.stats.bossDamage, 0);
+    assert.deepEqual(h.logs.error, []);
+  } finally { h.m.dispose(); }
+});
+
+test('死亡笔记：普通作战和联防的本人死亡由真实结算入口合并累计', () => {
+  const h = makeMatch({ humans: 2, fake: true }).start();
+  try {
+    h.toPrep(1);
+    const ps = h.ps('p_0'), helper = h.ps('p_1');
+    ps.deathNoteDeaths = 48;
+    const result = { perfect: true, leaked: [], deaths: 1, coins: 0, layerGains: {}, relicCompleted: true };
+    h.m.lastResults = new Map([[ps.playerId, result], [helper.playerId, { ...result, deaths: 0 }]]);
+    const plan = { leakers: [], helpers: [ps, helper], notReentered: new Map() };
+    h.m.settle(plan, { perPlayer: { [ps.playerId]: { ...result, deaths: 1 }, [helper.playerId]: { ...result, deaths: 0 } } });
+    assert.equal(ps.deathNoteDeaths, 50);
+    assert.ok(ps.relics.some((r) => r.id === 'relic_241'));
+    assert.equal(helper.deathNoteDeaths, 0);
+  } finally { h.m.dispose(); }
+});
+
+test('死亡笔记：准备阶段每回合一次，写错扣8金币，拒绝重发、过期、无资金和非持有者请求', () => {
+  const h = makeMatch({ humans: 2, fake: true }).start();
+  try {
+    const ps = h.ps('p_0');
+    h.toPrep(3); ps.funds = 24;
+    const [key, rec] = Object.entries(h.m.gd.raw.enemies).find(([, rec]) => rec.name);
+    assert.ok(ps.writeDeathNote(rec.name, 3).error);
+    grantRelic(ps, 'relic_241');
+    ps.ready = true;
+    assert.ok(ps.writeDeathNote(rec.name, 3).error); ps.ready = false;
+    assert.ok(ps.writeDeathNote(rec.name, 2).error);
+    assert.ok(ps.writeDeathNote('   ', 3).error);
+    assert.deepEqual(ps.writeDeathNote('a deliberately wrong name', 3), { ok: true });
+    assert.equal(ps.funds, 16);
+    assert.equal(ps.stats.gold, 8);
+    assert.equal(ps.round.spent, 8);
+    assert.deepEqual(deathNoteKeys(h.m), []);
+    assert.ok(ps.writeDeathNote(rec.name, 3).error);
+    assert.equal(ps.funds, 16);
+    h.toPrep(4); ps.funds = 7;
+    assert.ok(ps.writeDeathNote(rec.name, 4).error);
+    ps.funds = 8;
+    assert.deepEqual(ps.writeDeathNote(rec.name, 4), { ok: true });
+    assert.equal(ps.funds, 0);
+    assert.ok(deathNoteKeys(h.m).includes(key));
+    assert.ok(resolveDeathNoteName(h.m, ` ${rec.name} `).includes(key));
+    assert.deepEqual(resolveDeathNoteName(h.m, key), [], 'internal IDs are not enemy names');
+    for (const owner of h.m.alivePlayers()) assert.deepEqual(h.m._normalOpts(owner).flags.deathNoteEnemyKeys, deathNoteKeys(h.m));
+    assert.equal(ps.privateView().deathNote.used, true);
+    assert.ok(!JSON.stringify(ps.privateView().deathNote).includes(key));
+    h.toPrep(5);
+    assert.deepEqual(deathNoteKeys(h.m), []);
+    assert.equal(ps.privateView().deathNote.used, false);
+    h.m.phase = PHASE.COMBAT;
+    assert.ok(ps.writeDeathNote(rec.name, 5).error);
+  } finally { h.m.dispose(); }
+});
+
+for (const clientCombat of [false, true]) test(`死亡笔记：书写后立即刷新全队与已有观战预览，写错和下回合不移除（client=${clientCombat}）`, () => {
+  const h = makeMatch({ humans: 3, fake: true, clientCombat, spectators: ['s_spec'] }).start();
+  try {
+    h.toPrep(1);
+    const { m } = h;
+    const owner = h.ps('p_0'), teammate = h.ps('p_1');
+    grantRelic(owner, 'relic_241'); owner.funds = 16;
+    const target = m.nextEnemiesFor(owner)[0].enemyKey;
+    const name = m.gd.enemy(target).name;
+    // Include a matching bounty too: all sources of this type disappear, while other rows stay intact.
+    teammate.bounties.push({ id: 'note-preview', card: { enemyKey: target, count: 2, coin: 1 }, roundsLeft: 2 });
+    for (const ps of m.alivePlayers()) ps.dirty();
+    m.flush();
+    const before = new Map(m.alivePlayers().map((ps) => [ps.playerId, h.lastTo(ps.playerId, 'm.private').nextEnemies]));
+    assert.ok(before.get(teammate.playerId).some((e) => e.enemyKey === target && e.tag === 'bounty'));
+    for (const pid of ['p_2', 's_spec']) assert.deepEqual(m.handle(pid, { t: 'g.watch', fieldId: 'n:p_1' }), { ok: true });
+    const scoutCounts = ['p_2', 's_spec'].map((pid) => [pid, h.allTo(pid, 'm.field').length]);
+    assert.deepEqual(m.handle(owner.playerId, { t: 'g.deathNote', name, round: 1 }), { ok: true });
+    const removed = new Set(deathNoteKeys(m));
+    assert.ok(removed.has(target));
+    for (const ps of m.alivePlayers()) {
+      assert.deepEqual(h.lastTo(ps.playerId, 'm.private').nextEnemies,
+        before.get(ps.playerId).filter((e) => !removed.has(e.enemyKey)), `${ps.playerId}: the same request pushes the new preview`);
+    }
+    for (const [pid, count] of scoutCounts) {
+      assert.equal(h.allTo(pid, 'm.field').length, count + 1, `${pid}: the existing scout refreshes immediately`);
+      assert.deepEqual(h.lastTo(pid, 'm.field').nextEnemies, h.lastTo(teammate.playerId, 'm.private').nextEnemies);
+    }
+    assert.equal(h.allTo('s_spec', 'm.private').length, 0);
+    h.toPrep(2);
+    const next = new Map(m.alivePlayers().map((ps) => [ps.playerId, m.nextEnemiesFor(ps)]));
+    assert.ok(next.get(teammate.playerId).some((e) => e.enemyKey === target && e.tag === 'bounty'), 'the next round restores the surviving bounty');
+    owner.funds = 8;
+    assert.deepEqual(m.handle(owner.playerId, { t: 'g.deathNote', name: 'a deliberately wrong name', round: 2 }), { ok: true });
+    for (const ps of m.alivePlayers()) assert.deepEqual(m.nextEnemiesFor(ps), next.get(ps.playerId));
+    assert.deepEqual(h.logs.error, []);
+  } finally { h.m.dispose(); }
+});
+
+test('死亡笔记：首领准备预览同时移除各阵地的领袖与同类型悬赏', () => {
+  const h = makeMatch({ humans: 3, fake: true }).start();
+  try {
+    h.toPrep(h.m.gd.bossRound);
+    const { m } = h;
+    const owner = h.ps('p_0');
+    const boss = m.gd.raw.bosses[m.bossId];
+    grantRelic(owner, 'relic_241'); owner.funds = 8;
+    for (const ps of m.alivePlayers()) {
+      ps.bounties.push({ id: `note-boss:${ps.playerId}`, card: { enemyKey: boss.enemyKey, count: 1 }, roundsLeft: 1 });
+      ps.dirty();
+    }
+    m.flush();
+    const before = new Map(m.alivePlayers().map((ps) => [ps.playerId, h.lastTo(ps.playerId, 'm.private').nextEnemies]));
+    for (const rows of before.values()) assert.ok(rows.some((e) => e.boss && e.enemyKey === boss.enemyKey));
+    assert.deepEqual(m.handle(owner.playerId, { t: 'g.deathNote', name: boss.name, round: m.round }), { ok: true });
+    const removed = new Set(deathNoteKeys(m));
+    for (const ps of m.alivePlayers()) {
+      const expected = before.get(ps.playerId).filter((e) => !removed.has(e.enemyKey));
+      assert.deepEqual(h.lastTo(ps.playerId, 'm.private').nextEnemies, expected);
+      assert.deepEqual(m.prepFieldMeta(ps).nextEnemies, expected);
+    }
+    assert.deepEqual(h.logs.error, []);
+  } finally { h.m.dispose(); }
+});
 
 // Keep the consumable slot occupied when isolating an ordinary relic in an otherwise exhausted catalogue.
 function exhaustOtherRelics(ps, id) {
@@ -306,7 +554,7 @@ test('collection: weaker same-tier duplicates cannot be drawn or granted', () =>
 });
 
 test('collection: every tier is populated, early pools cannot run out during ordinary play, definitions are immutable', () => {
-  assert.equal(RELICS.length, 64);
+  assert.equal(RELICS.length, 65);
   assert.equal(new Set(RELICS.map((r) => r.id)).size, RELICS.length);
   assert.ok(RELICS.filter((r) => r.tier === 1).length >= 9);
   for (const { tier } of RELIC_TIERS.filter((t) => t.normalDrop !== false)) assert.ok(RELICS.some((r) => r.tier === tier));

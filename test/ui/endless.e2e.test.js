@@ -65,8 +65,31 @@ test('extra challenge vote and successful settlement fit desktop and mobile; con
         M.mutate(s => { s.pub.round = 21; s.pub.extraRound = 6; s.pub.extraRounds = 5; s.pub.extraBossRound = true; });
         M.pushPublic();
       });
-      await page.waitForSelector('.endless-status');
-      assert.match(await page.$eval('.endless-status', el => el.textContent), /额外第 6 回合.*30%.*领袖战/);
+      await page.waitForFunction(() => document.querySelector('.roundbox__num')?.textContent === '6');
+      assert.equal(await page.$eval('.roundbox__label', el => el.textContent), '额外回合');
+      assert.equal(await page.$('.endless-status'), null, 'no floating extra-round status');
+      await page.click('[data-testid="check-player"]');
+      await page.waitForSelector('.edrawer');
+      await page.click('.edrawer .tabs__tab:nth-child(2)');
+      await page.waitForSelector('.edrawer__extra');
+      assert.equal(await page.$eval('.edrawer__extra', el => el.textContent), '敌方生命与攻击 +30%');
+      await page.screenshot({ path: `.cache/endless-ui/intel-${width}.png` });
+      // The screenshot's ordinary extra round must use the extra index, rather than total round 37 or hidden ??.
+      await page.evaluate(() => {
+        const M = globalThis.__MOCK__;
+        M.mutate(s => { s.pub.round = 37; s.pub.extraRound = 22; s.pub.extraBossRound = false; });
+        M.pushPublic();
+      });
+      await page.waitForFunction(() => document.querySelector('.roundbox__num')?.textContent === '22');
+      assert.equal(await page.$eval('.edrawer__extra', el => el.textContent), '敌方生命与攻击 +110%');
+      const round = await page.$eval('.roundbox', el => {
+        const box = el.getBoundingClientRect();
+        return { left: box.left, right: box.right, top: box.top, bottom: box.bottom, width: el.clientWidth, scroll: el.scrollWidth };
+      });
+      assert.ok(round.left >= 0 && round.right <= width && round.top >= 0 && round.bottom <= height && round.scroll <= round.width,
+        'extra round fits the top bar');
+      await page.click('.edrawer__close');
+      await page.screenshot({ path: `.cache/endless-ui/round-${width}.png` });
       await page.evaluate(() => {
         const M = globalThis.__MOCK__;
         M.setPhase('RESULT');

@@ -152,8 +152,9 @@ export class SharedPool {
    * `bias` (shopBias bondBias): a Set of active bond ids. A tier is drawn from items whose giveBondId is in that set
    * when any remain after the stock gate; an empty filtered tier falls back to the official list of that tier.
    * null or an empty Set keeps today's rng (one draw for the tier, one for the pick). Bias never grants an item.
+   * `round` applies the extra-challenge shop exclusions before bias and tier fallback.
    */
-  rollItem(rng, maxTier, stock = null, bias = null) {
+  rollItem(rng, maxTier, stock = null, bias = null, round = 1) {
     const shares = this.tierShares(maxTier);
     const tiers = Object.keys(shares).map(Number).sort((a, b) => a - b);
     let tier = null;
@@ -165,7 +166,7 @@ export class SharedPool {
       tier = 1 + Math.floor(rng() * Math.max(1, maxTier));
     }
     const useBias = bias instanceof Set && bias.size > 0;
-    const gated = (t) => (this.gd.shopItemsByTier[t] || []).filter((id) => !stock || stock.canGain(id));
+    const gated = (t) => (this.gd.shopItemsByTier[t] || []).filter((id) => this.gd.shopItemAllowed(id, round) && (!stock || stock.canGain(id)));
     const pick = (list) => (stock ? stock.pick(rng, list) : list[Math.floor(rng() * list.length)]);
     const choose = (t) => {
       const list = gated(t);

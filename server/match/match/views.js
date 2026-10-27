@@ -5,6 +5,7 @@
 // Installed on Match.prototype by server/match/Match.js (a method container: never instantiated; `this` is the match).
 
 import { activeRelicShield, activeReverseLp, previewRelicLpLoss, relicsView } from '../relics.js';
+import { deathNoteKeys } from '../deathNote.js';
 import { PHASE, GEO } from '../../../shared/constants.js';
 import { TEST_PUBLIC_LOG } from '../../../shared/testMode.js';
 import { boardOrder, pieceDir } from '../board.js';
@@ -280,13 +281,17 @@ export class MatchViews {
   /** nextEnemies preview for m.private. */
   nextEnemiesFor(ps) {
     if (!ps.alive) return [];
+    const removed = new Set(deathNoteKeys(this));
+    let spawns;
     if (this.bossWaves) {
       const g = this.bossGroupOf(ps);
       if (!g) return [];
-      return previewOf([...g.wave.spawns, ...bountySpawns(this.gd, this.round, g.wave, ps.bounties, ps.playerId, { solo: this.isSolo, side: g.side })]);
+      spawns = [...g.wave.spawns, ...bountySpawns(this.gd, this.round, g.wave, ps.bounties, ps.playerId, { solo: this.isSolo, side: g.side })];
+    } else {
+      if (!this.wave) return [];
+      spawns = this._normalRelicSpawns().get(ps.playerId) || [];
     }
-    if (!this.wave) return [];
-    return previewOf(this._normalRelicSpawns().get(ps.playerId) || []);
+    return previewOf(spawns.filter((s) => !removed.has(s.enemyKey)));
   }
 
   /** A 自选 piece's pick (like the sim's UnitInfo.diy): a scout's card composes the operator from it (shared/diy.js). */

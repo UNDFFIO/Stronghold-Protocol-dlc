@@ -16,7 +16,8 @@ export function settleRelics(ps, result, { completed = false, lpLoss = 0 } = {})
   const rng = createRng(deriveSeed(ps.m.seed, `relic-choice:${ps.seat}:${round}`));
   const leaked = result.leaked.some((l) => l && l.counted !== false);
   const count = 3 + [...new Set(ps.relics.map((r) => r.id))].reduce((sum, id) => sum + (getRelic(id)?.battleChoiceBonus || 0), 0);
-  const options = pickRelicChoices(round, ps.relics, rng, { count, leaked, multiplayer: !ps.m.isSolo, hasScratchTicket: ps.scratchTickets.length > 0, bonds: ps.bonds });
+  const options = pickRelicChoices(round, ps.relics, rng, { count, leaked, multiplayer: !ps.m.isSolo,
+    hasScratchTicket: ps.scratchTickets.length > 0, bonds: ps.bonds, extraRound: ps.m.gd.endlessRound(round) });
   if (!options.length) return null;
   ps.relicOffer = { id: `relic:${ps.seat}:${round}`, round, reason: 'lowLoss', leaked, options };
   ps.dirty();
@@ -29,7 +30,9 @@ export function selectRelic(ps, offerId, idx) {
   if (!ps.alive || ps.left || !offer || offer.id !== offerId || offer.round !== ps.m.round
     || !Number.isInteger(idx) || idx < 0 || idx >= offer.options.length) return null;
   const r = getRelic(offer.options[idx]);
-  if (!canReceiveRelic(r, ps.relics, { hasScratchTicket: ps.scratchTickets.length > 0, bonds: ps.bonds }) || (r.multiplayerOnly && ps.m.isSolo)) return null;
+  if (r?.normalDrop === false) return null;
+  if (!canReceiveRelic(r, ps.relics, { hasScratchTicket: ps.scratchTickets.length > 0, bonds: ps.bonds,
+    extraRound: ps.m.gd.endlessRound(ps.m.round) }) || (r.multiplayerOnly && ps.m.isSolo)) return null;
   ps.relicOffer = null;
   return grantRelic(ps, r.id, { round: offer.round });
 }
@@ -37,7 +40,8 @@ export function selectRelic(ps, offerId, idx) {
 /** Shared acquisition path for choices and immediate grants; preserves one-time collectible effects. */
 export function grantRelic(ps, id, { round = ps.m.round, battleRound = round + 1 } = {}) {
   const r = getRelic(id);
-  if (!ps.alive || ps.left || !canReceiveRelic(r, ps.relics, { bonds: ps.bonds })
+  if (r?.deathNote && ps.m.order.some((p) => p !== ps && p.relics.some((entry) => entry.id === id))) return null;
+  if (!ps.alive || ps.left || !canReceiveRelic(r, ps.relics, { bonds: ps.bonds, extraRound: ps.m.gd.endlessRound(ps.m.round) })
     || (r.multiplayerOnly && ps.m.isSolo)) return null;
   const reward = { id: r.id, round };
   if (!ps.relics.some((o) => o.id === id)) ps.relics.push(reward);

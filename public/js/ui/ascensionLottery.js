@@ -8,8 +8,8 @@ import { t, translateWire } from '../../../shared/i18n.js';
 
 const KINDS = ['coins', 'operators', 'relics', 'legendary'];
 const SYMBOL_RELICS = {
-  relics: RELICS.filter((r) => r.tier <= 3),
-  legendary: RELICS.filter((r) => r.tier === 5),
+  relics: RELICS.filter((r) => r.normalDrop !== false && r.tier <= 3),
+  legendary: RELICS.filter((r) => r.normalDrop !== false && r.tier === 5),
 };
 const STOP_MS = [1600, 2050, 2500];
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;

@@ -1,11 +1,35 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { RELICS } from '../../shared/relics.js';
-import { RelicList, relicEntries, relicPreview, relicOdds, ownerRelics, revivalTargets, tierName } from '../../public/js/ui/relicPanel.js';
+import { RelicList, RelicIcons, relicEntries, relicPreview, relicOdds, ownerRelics, revivalTargets, tierName } from '../../public/js/ui/relicPanel.js';
 import { liveLp } from '../../public/js/ui/hud.js';
 import { LpTower } from '../../public/js/ui/gameComponents.js';
 import { rowLp } from '../../public/js/ui/teamPanel.js';
 import { PHASE } from '../../shared/constants.js';
+import { redactEnemyNames, ownsEnemyNameMask } from '../../public/js/ui/enemyNameMask.js';
+
+test('死亡笔记：仅持有者遮蔽敌名，保留数字，不在效果说明或图鉴泄露隐藏负面', () => {
+  const state = { match: { public: {}, private: { relics: [{ id: 'relic_241' }] } } };
+  assert.equal(ownsEnemyNameMask(state), true);
+  assert.equal(ownsEnemyNameMask({ match: { ...state.match, private: { ...state.match.private, shinigamiEyes: true } } }), false);
+  assert.equal(ownsEnemyNameMask({ match: { public: {}, private: { relics: [] } } }), false);
+  assert.equal(redactEnemyNames('敌人 测试怪 ×12，测试怪甲', ['测试怪', '测试怪甲']), '敌人 ■■■ ×12，■■■■');
+  const entry = relicEntries([{ id: 'relic_241', round: 3 }])[0];
+  assert.equal(entry.tier, 5);
+  assert.match(entry.desc, /8金币/);
+  assert.doesNotMatch(entry.desc, /遮蔽|黑色|名字不可见/);
+});
+
+test('死神之眼：生命塔不输出本人生命、临界色、预计扣血、提示或无障碍数值', () => {
+  const view = LpTower({ value: 13, hidden: true, tone: 'danger', pending: 5, note: '联防中', tip: '目标生命值 13' });
+  assert.match(textOf(view), /■■/);
+  assert.doesNotMatch(textOf(view), /13|5|联防/);
+  assert.equal(view.props.title, '死神之眼：生命值不可见');
+  assert.equal(view.props['data-pending'], null);
+  assert.doesNotMatch(view.props.class, /danger|pending/);
+  assert.equal([...walk(view)].some((n) => n.props?.['aria-label']), false);
+  assert.match(textOf(LpTower({ value: 11 })), /11/, 'ordinary teammate towers remain visible');
+});
 
 function* walk(v) {
   if (Array.isArray(v)) { for (const c of v) yield* walk(c); return; }
@@ -19,6 +43,20 @@ function textOf(v) {
   if (Array.isArray(v)) return v.map(textOf).join('');
   return textOf(v.props?.children);
 }
+
+test('死亡笔记：本人图标直达书写页，列表提供入口，队友与图鉴保持只读', () => {
+  const relics = [{ id: 'relic_241', round: 3 }];
+  const open = () => {}, write = () => {};
+  const own = [...walk(RelicIcons({ relics, onOpen: open, onDeathNote: write }))].find((v) => v.type === 'button');
+  assert.equal(own.props.onClick, write);
+  const watched = [...walk(RelicIcons({ relics, onOpen: open }))].find((v) => v.type === 'button');
+  assert.equal(watched.props.onClick, open);
+  const list = RelicList({ relics, onDeathNote: write });
+  assert.match(textOf(list), /书写名字/);
+  assert.equal([...walk(list)].some((v) => v.type === 'input'), false);
+  assert.doesNotMatch(textOf(RelicList({ relics })), /书写名字$/);
+  assert.equal([...walk(RelicList({ relics, history: true, onDeathNote: write }))].some((v) => v.props?.onClick === write), false);
+});
 
 test('the full collection renders every acquired effect and round beyond the ten-effect HUD limit', () => {
   const chosen = RELICS.slice(0, 15);

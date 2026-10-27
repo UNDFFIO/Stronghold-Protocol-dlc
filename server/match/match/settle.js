@@ -12,6 +12,7 @@ import { FLOW_TICKER_PRIORITY } from './common.js';
 import { msg } from '../../../shared/i18n.js';
 import { onSettle, resetRoundCounters } from '../botEmotes.js';
 import { creditedKillsOf } from '../../sim/spec.js';
+import { settleDeathNote } from '../deathNote.js';
 
 export class MatchSettle {
   settle(plan, uniteResult) {
@@ -81,6 +82,8 @@ export class MatchSettle {
       this.dispatch(ps, 'onBattleResult', { result: r, lpLoss: loss, perfect: counted === 0 && r.perfect !== false, unite: uniteResult || null });
       ps.relicShield = 0;
       reviveSelf(ps);
+      settleDeathNote(ps, r, 'normal');
+      if (uniteRan && up) settleDeathNote(ps, up, 'unite');
       if (ps.lp > 0) settleRelics(ps, r, { completed: r.relicCompleted === true, lpLoss: loss });
       ps.recompute();
     }

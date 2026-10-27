@@ -48,6 +48,18 @@ function baseResult(over = {}) {
   };
 }
 
+test('死神之眼：结算状态随统计记录保留，使回看本人生命继续隐藏', () => {
+  const raw = baseResult();
+  raw.players[0].shinigamiEyes = true;
+  const rec = buildRecord(raw, { myId: 'p1', now: 1234 });
+  assert.equal(rec.players[0].shinigamiEyes, true);
+  assert.equal(recordToResult(rec).players[0].shinigamiEyes, true);
+  const state = liveState({ round: 3 });
+  state.match.private = { shinigamiEyes: true };
+  const live = createLiveMatch(); observeMatch(live, state, 10);
+  assert.equal(buildQuitRecord(state, { live, now: 20 }).players[0].shinigamiEyes, true);
+});
+
 test('extra-round success and counts survive storage, compaction and report replay after elimination', () => {
   const raw = baseResult({ extraRounds: 11 });
   raw.players[0] = { ...raw.players[0], alive: false, victory: true, extraRounds: 11 };

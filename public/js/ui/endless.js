@@ -31,8 +31,3 @@ export function EndlessVote({ pub }) {
     </div>` : null}
   <//>`;
 }
-
-export function EndlessStatus({ pub }) {
-  if (!(pub?.extraRound > 0)) return null;
-  return html`<div class="endless-status" role="status">${t('额外第 {n} 回合 · 敌方生命与攻击 +{percent}%', { n: pub.extraRound, percent: pub.extraRound * 5 })}${pub.extraBossRound ? ` · ${t('领袖战')}` : ''}</div>`;
-}

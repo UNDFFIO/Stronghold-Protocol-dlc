@@ -235,15 +235,15 @@ export function GIcon({ name, class: cls, title }) {
  * small tag after it (联防中); `tip` the title text.
  * @param {{ value: any, size?: 'sm'|'md'|'lg', class?: string, tone?: string|null, pending?: number, note?: string|null, tip?: string|null }} props
  */
-export function LpTower({ value, size = 'md', class: cls, tone, pending = 0, note = null, tip = null }) {
-  const ok = Number.isFinite(value);
+export function LpTower({ value, size = 'md', class: cls, tone, pending = 0, note = null, tip = null, hidden = false }) {
+  const ok = !hidden && Number.isFinite(value);
   const p = ok && Number.isFinite(pending) ? pending < 0 ? Math.trunc(pending) : Math.min(value, Math.trunc(pending)) : 0;
-  return html`<span class=${cx('lp', `lp--${size}`, tone && `lp--${tone}`, p > 0 && 'is-pending', cls)} title=${tip || tr('目标生命值')}
+  return html`<span class=${cx('lp', `lp--${size}`, !hidden && tone && `lp--${tone}`, p > 0 && 'is-pending', cls)} title=${hidden ? tr('死神之眼：生命值不可见') : tip || tr('目标生命值')}
       data-pending=${p !== 0 ? p : null}>
     <${Sprite} k="hudPanel/icon_hp" class="lp__icon" fallback=${html`<${Icon} name="rook" class="lp__icon" />`} />
-    <b class="num lp__val">${ok ? Math.max(0, value) : '--'}</b>
+    <b class="num lp__val">${hidden ? '■■' : ok ? Math.max(0, value) : '--'}</b>
     ${p !== 0 ? html`<span key=${p} class="lp__pend num" aria-label=${p < 0 ? tr('结算时增加 {p}', { p: -p }) : tr('结算时扣除 {p}', { p })}>${p < 0 ? '+' : '−'}${Math.abs(p)}</span>` : null}
-    ${note ? html`<span class="lp__note">${note}</span>` : null}
+    ${note && !hidden ? html`<span class="lp__note">${note}</span>` : null}
   </span>`;
 }
 

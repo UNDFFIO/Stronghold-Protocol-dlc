@@ -4,6 +4,7 @@
 // Installed on Match.prototype by server/match/Match.js (a method container: never instantiated; `this` is the match).
 
 import { redistributeRelicWaves } from '../relicWaves.js';
+import { deathNoteKeys } from '../deathNote.js';
 import { PHASE, GEO } from '../../../shared/constants.js';
 import { deriveSeed } from '../../sim/rng.js';
 import { withBounties } from '../waves.js';
@@ -80,7 +81,7 @@ export class MatchCombat {
       spawns: this._sanitizeSpawns(Array.isArray(ev.spawns) ? ev.spawns : spawns, ps.playerId),
       routes: wave.routes,
       sharedBoss: null,
-      flags: this.endlessFlags({ layerGainsEnabled: true, ...this.gd.dp }),
+      flags: this.endlessFlags({ layerGainsEnabled: true, ...this.gd.dp, deathNoteEnemyKeys: deathNoteKeys(this) }),
       fieldId: `n:${ps.playerId}`,
       enemyOverrides: wave.overrides,
       waveId: wave.templateId,

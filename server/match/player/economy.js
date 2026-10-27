@@ -72,7 +72,7 @@ export class PlayerEconomy {
     return id ? { kind: 'chess', id, basePrice: this.gd.chessPrice(id), frozen: false, sold: false } : null;
   }
 
-  _rollItemSlot() {
+  _rollItemSlot(round = this.m.round) {
     // startRound rolls the shop before recompute, so the cached this.bonds can be one round behind.
     // bondBias therefore calls computeBonds at the roll (no rng). The official rule passes null and
     // does not call it, so the shop's rng stays today's two draws.
@@ -82,7 +82,7 @@ export class PlayerEconomy {
       bias = new Set();
       for (const [id, st] of Object.entries(bonds)) if (st && st.active) bias.add(id);
     }
-    const id = this.m.pool.rollItem(this.m.rngShop, this.shop.level, this.m.itemPool, bias);
+    const id = this.m.pool.rollItem(this.m.rngShop, this.shop.level, this.m.itemPool, bias, round);
     return id ? { kind: 'item', id, basePrice: this.gd.itemPrice(id), frozen: false, sold: false } : null;
   }
 
@@ -97,11 +97,12 @@ export class PlayerEconomy {
     const layout = this.shop.layout || { chess: old.length, item: 0 };
     const oldChess = old.slice(0, layout.chess);
     const oldItems = old.slice(layout.chess);
-    const keep = (s, kind) => (keepFrozen && s && s.kind === kind && !s.sold && s.frozen ? { ...s } : null);
+    const keep = (s, kind) => (keepFrozen && s && s.kind === kind && !s.sold && s.frozen
+      && (kind !== 'item' || this.gd.shopItemAllowed(s.id, round)) ? { ...s } : null);
     // frozen slots keep their position; sold / empty / unfrozen positions are rerolled
     const slots = [];
     for (let i = 0; i < nChess; i++) slots.push(keep(oldChess[i], 'chess') ?? this._rollChessSlot());
-    for (let i = 0; i < nItem; i++) slots.push(keep(oldItems[i], 'item') ?? this._rollItemSlot());
+    for (let i = 0; i < nItem; i++) slots.push(keep(oldItems[i], 'item') ?? this._rollItemSlot(round));
     this.shop.slots = slots;
     this.shop.layout = { chess: nChess, item: nItem };
     for (const s of slots) if (s) s.frozen = this.shop.frozen;

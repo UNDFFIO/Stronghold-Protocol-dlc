@@ -28,6 +28,236 @@ async function closed(page) {
   await page.waitForSelector('.relic-panel', { hidden: true });
 }
 
+test('死亡笔记窗口：桌面放大，缩小界面、特大字号与短横屏仍完整显示图案、按钮和页脚', {
+  skip: !ENABLED && 'set SP_E2E=1 and provide system Chrome', timeout: 120000,
+}, async () => {
+  const page = await browser.newPage();
+  try {
+    await page.setViewport({ width: 1920, height: 1080 });
+    await page.goto(`${base}/dev/game-mock.html?shot=1&phase=PREP`, { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('.relic-icons__heading');
+    for (const selector of ['.tbanner', '.mpop--phase', '.pbanner--overlay']) await page.waitForSelector(selector, { hidden: true });
+    await page.evaluate(() => globalThis.__MOCK__.mutate((s) => {
+      s.priv.relics = [{ id: 'relic_241', round: 3 }]; s.priv.funds = 16; s.priv.ready = false;
+      s.priv.deathNote = { used: false };
+    }));
+    await page.click('.effect--relic[data-relic-id="relic_241"]');
+    await page.waitForSelector('.death-note input:not(:disabled)');
+    await page.type('.death-note input', 'enemy');
+    await page.mouse.move(0, 0);
+    const cases = [
+      [1920, 1080, 100, 'sm'], [1920, 900, 75, 'sm'], [1366, 768, 75, 'sm'],
+      [1366, 768, 100, 'xl'], [1280, 720, 100, 'md'], [844, 390, 100, 'sm'],
+      [640, 360, 75, 'sm'], [390, 844, 75, 'sm'], [320, 568, 100, 'xl'],
+    ];
+    for (const [width, height, ui, textSize] of cases) {
+      await page.setViewport({ width, height });
+      await page.evaluate(async ({ ui, textSize }) => {
+        const { updateSettings } = await import('/js/ui/settings.js');
+        const { updateFit } = await import('/js/ui/screenFit.js');
+        updateSettings({ textSize }); updateFit({ ui });
+      }, { ui, textSize });
+      await page.waitForFunction(() => document.querySelector('.death-note-panel').getAnimations().every((a) => a.playState === 'finished'));
+      const layout = await page.$eval('.death-note-panel', (el) => {
+        const box = el.getBoundingClientRect(), body = el.querySelector('.modal__body');
+        const inside = (r) => r.left >= box.left - 1 && r.right <= box.right + 1 && r.top >= box.top - 1 && r.bottom <= box.bottom + 1;
+        const clipped = [...el.querySelectorAll('.death-note-book, .death-note-book__edition, h2, .death-note-eyes__art, .death-note-eyes__name, .death-note-eyes__pact small, .death-note-book__folio, .death-note-book__cost, input, button')]
+          .filter((node) => !inside(node.getBoundingClientRect())).map((node) => node.className?.baseVal ?? node.className ?? node.tagName);
+        const blocked = [...el.querySelectorAll('input, button')].filter((node) => {
+          const r = node.getBoundingClientRect();
+          return !node.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2));
+        }).map((node) => node.className || node.tagName);
+        return { width: box.width, height: box.height, inViewport: box.left >= 0 && box.right <= innerWidth && box.top >= 0 && box.bottom <= innerHeight,
+          overflowX: body.scrollWidth - body.clientWidth, overflowY: body.scrollHeight - body.clientHeight, clipped, blocked };
+      });
+      const context = `${width}×${height}, ui=${ui}, text=${textSize}: ${JSON.stringify(layout)}`;
+      assert.equal(layout.inViewport, true, context);
+      assert.ok(layout.overflowX <= 1 && layout.overflowY <= 1, context);
+      assert.deepEqual(layout.clipped, [], context); assert.deepEqual(layout.blocked, [], context);
+      if (width === 1920) assert.ok(layout.width >= 1200 && layout.height >= 780, context);
+      if ((width === 1920 && height === 900) || width === 640) {
+        await page.screenshot({ path: `${OUT}/death-note-window-${width}x${height}.png` });
+      }
+    }
+  } catch (error) {
+    await page.screenshot({ path: `${OUT}/death-note-window-error.png` }); throw error;
+  } finally { await page.close(); }
+});
+
+test('死亡笔记：图标直达独立笔记本，桌面手机可书写、关闭、从列表打开，隐藏敌名可恢复', {
+  skip: !ENABLED && 'set SP_E2E=1 and provide system Chrome', timeout: 180000,
+}, async () => {
+  for (const [width, height] of [[1920, 1080], [390, 844]]) {
+    const page = await browser.newPage();
+    try {
+      await page.setViewport({ width, height });
+      await page.goto(`${base}/dev/game-mock.html?shot=1&phase=PREP`, { waitUntil: 'domcontentloaded' });
+      await page.waitForSelector('.relic-icons__heading');
+      await page.waitForSelector('.tbanner', { hidden: true });
+      await page.waitForSelector('.mpop--phase', { hidden: true });
+      await page.waitForSelector('.pbanner--overlay', { hidden: true });
+      const enemyName = await page.evaluate(async () => {
+        const { data } = await import('/js/data.js');
+        const name = data.list('enemies').find((r) => r.name).name;
+        const line = document.createElement('div'); line.id = 'death-note-probe'; line.title = name;
+        line.textContent = `${name} ×12`; document.body.append(line);
+        globalThis.__MOCK__.mutate((s) => {
+          s.priv.relics = [{ id: 'relic_241', round: 3 }]; s.priv.funds = 16; s.priv.ready = false;
+          s.priv.deathNote = { used: false };
+        });
+        return name;
+      });
+      await page.waitForFunction((name) => !document.querySelector('#death-note-probe').textContent.includes(name), {}, enemyName);
+      assert.match(await page.$eval('#death-note-probe', (el) => el.textContent), /■.*×12/);
+      assert.ok(!await page.$eval('#death-note-probe', (el) => /[^■]/.test(el.title)));
+      await page.waitForFunction(() => [...document.querySelectorAll('.effect--relic img')]
+        .some((img) => img.src.includes('relic_241.png') && img.complete && img.naturalWidth > 0));
+      const alpha = await page.$eval('.effect--relic img', (img) => {
+        const canvas = document.createElement('canvas'); canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0);
+        return ctx.getImageData(0, 0, 1, 1).data[3];
+      });
+      assert.equal(alpha, 0);
+      await page.click('.effect--relic[data-relic-id="relic_241"]');
+      await page.waitForSelector('.death-note input:not(:disabled)');
+      assert.equal(await page.$('.relic-panel'), null, 'icon opens the book directly');
+      const info = await page.$eval('.death-note-panel', (el) => {
+        const r = el.getBoundingClientRect();
+        const body = el.querySelector('.modal__body');
+        return { text: el.textContent, x: r.x, right: r.right, overflow: body.scrollWidth - body.clientWidth };
+      });
+      assert.ok(info.x >= 0 && info.right <= width);
+      assert.ok(info.overflow <= 1, 'both book pages fit without horizontal scrolling');
+      assert.match(info.text, /死亡笔记/);
+      assert.doesNotMatch(info.text, /传说|准备阶段可花费/);
+      assert.equal(await page.$eval('.death-note button', (el) => el.textContent.trim()), '书写名字');
+      const layout = await page.$eval('.death-note-book', (el) => {
+        const rect = (selector) => el.querySelector(selector).getBoundingClientRect();
+        const english = rect('.death-note-book__edition'), chinese = rect('h2');
+        const cost = rect('.death-note-book__cost'), page = rect('.death-note-book__page--right');
+        return { subtitleBelow: chinese.top >= english.bottom && chinese.top - english.bottom <= 20,
+          costBottomRight: cost.right <= page.right && cost.right > page.right - 60 && cost.bottom > page.bottom - 35,
+          cost: el.querySelector('.death-note-book__cost').textContent };
+      });
+      assert.equal(layout.subtitleBelow, true);
+      assert.equal(layout.costBottomRight, true);
+      assert.equal(layout.cost, '8金币');
+      assert.doesNotMatch(info.text, /敌名遮蔽|黑色方块/);
+      await page.keyboard.press('Escape');
+      await page.waitForSelector('.death-note-panel', { hidden: true });
+      const headingHit = await page.$eval('.relic-icons__heading', (el) => {
+        const r = el.getBoundingClientRect();
+        return el.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2));
+      });
+      assert.equal(headingHit, true, 'collection heading remains reachable beside the direct writing icon');
+      await page.click('.relic-icons__heading');
+      await page.waitForSelector('.relic-panel', { timeout: 5000 });
+      assert.equal(await page.$('.relic-panel .death-note input'), null);
+      await page.click('.relic-card:has(.relic-card__name) button');
+      await page.waitForSelector('.death-note-panel');
+      assert.equal(await page.$('.relic-panel'), null, 'list shortcut replaces the list');
+      await page.mouse.move(0, 0);
+      await page.waitForFunction(() => !document.querySelector('.tooltip.is-shown'));
+      await page.screenshot({ path: `${OUT}/death-note-book-${width}.png` });
+      await (await page.$('.death-note-panel')).screenshot({ path: `${OUT}/death-note-book-detail-${width}.png` });
+      await page.type('.death-note input', enemyName);
+      assert.equal(await page.$eval('.death-note input', (el) => el.value), enemyName);
+      await page.click('.death-note button');
+      await page.waitForFunction(() => globalThis.__MOCK__.S().priv.deathNote.used);
+      assert.equal(await page.evaluate(() => globalThis.__MOCK__.S().priv.funds), 8);
+      const request = await page.evaluate(() => globalThis.__MOCK__.S().requests.filter(([t]) => t === 'g.deathNote'));
+      assert.equal(request.length, 1); assert.equal(request[0][1].name, enemyName);
+      await page.waitForFunction(() => document.querySelector('.death-note button').disabled);
+      assert.equal(await page.$eval('.death-note input', (el) => el.value), enemyName, 'written name remains on the page');
+      const box = await page.$eval('.death-note', (el) => { const r = el.getBoundingClientRect(); return { x: r.x, right: r.right }; });
+      assert.ok(box.x >= 0 && box.right <= width);
+      await page.waitForSelector('.mpop--phase', { hidden: true });
+      await page.screenshot({ path: `${OUT}/death-note-${width}.png` });
+      await page.click('.death-note-book__close');
+      await page.waitForSelector('.death-note-panel', { hidden: true });
+      await page.click('.effect--relic[data-relic-id="relic_241"]');
+      await page.waitForSelector('.death-note input:disabled');
+      assert.match(await page.$eval('.death-note button', (el) => el.textContent), /本回合已书写/);
+      const beforeEyes = await page.evaluate(() => globalThis.__MOCK__.S().priv.lp);
+      await page.click('.death-note-eyes__pact');
+      await page.waitForFunction(() => globalThis.__MOCK__.S().priv.shinigamiEyes);
+      assert.equal(await page.evaluate(() => globalThis.__MOCK__.S().priv.lp), Math.ceil(beforeEyes / 2));
+      assert.equal(await page.$eval('.death-note-eyes__pact', (el) => el.disabled), true);
+      assert.equal(await page.$eval('.death-note-book__cost', (el) => el.textContent), '4金币');
+      assert.equal(await page.$eval('.death-note button', (el) => el.disabled), true, 'trade does not grant a second writing');
+      await page.waitForFunction((name) => document.querySelector('#death-note-probe').textContent === `${name} ×12`, {}, enemyName);
+      const lp = await page.evaluate(() => ({
+        own: [...document.querySelectorAll('.gtop__half--r .lp__val, .team__row.is-self .lp__val')].map((el) => el.textContent),
+        other: [...document.querySelectorAll('.team__row:not(.is-self) .lp__val')].map((el) => el.textContent),
+        titles: [...document.querySelectorAll('.gtop__half--r .lp, .team__row.is-self .lp')].map((el) => el.title),
+      }));
+      assert.deepEqual(lp.own, ['■■', '■■']);
+      assert.ok(lp.other.every((text) => /^\d+$/.test(text)));
+      assert.ok(lp.titles.every((text) => text === '死神之眼：生命值不可见'));
+      await (await page.$('.death-note-panel')).screenshot({ path: `${OUT}/death-note-eyes-active-${width}.png` });
+      await page.evaluate(() => globalThis.__MOCK__.mutate((s) => { s.pub.round++; s.priv.deathNote.used = false; }));
+      await page.waitForSelector('.death-note input:not(:disabled)');
+      await page.type('.death-note input', enemyName);
+      await page.click('.death-note button');
+      await page.waitForFunction(() => globalThis.__MOCK__.S().priv.deathNote.used);
+      assert.equal(await page.evaluate(() => globalThis.__MOCK__.S().priv.funds), 4, 'next round writing costs 4 coins');
+      assert.equal(await page.evaluate(() => globalThis.__MOCK__.S().requests.filter(([t]) => t === 'g.shinigamiEyes').length), 1);
+      await page.mouse.click(4, 4);
+      await page.waitForSelector('.death-note-panel', { hidden: true });
+      const pixi = await page.evaluate(async (name) => {
+        const { installPixiNumberMask } = await import('/js/ui/numberMask.js');
+        class Text { updateText() { this.rendered = this._text; } }
+        installPixiNumberMask({ Text });
+        const text = new Text(); text._text = `${name} ×12`; text.updateText();
+        const namesOnly = text.rendered;
+        globalThis.__MOCK__.mutate((s) => { s.priv.relics.push({ id: 'relic_159', round: 1 }); });
+        text.updateText();
+        const combined = text.rendered;
+        globalThis.__MOCK__.mutate((s) => { s.priv.relics = []; });
+        text.updateText();
+        return { namesOnly, combined, restored: text.rendered, raw: text._text };
+      }, enemyName);
+      assert.equal(pixi.namesOnly, `${enemyName} ×12`, 'the pact reveals Pixi enemy names too');
+      assert.ok(pixi.combined.startsWith(enemyName)); assert.match(pixi.combined, /×■■/); assert.equal(pixi.raw, `${enemyName} ×12`);
+      assert.equal(pixi.restored, pixi.raw);
+      await page.evaluate(() => globalThis.__MOCK__.mutate((s) => { s.priv.relics = []; }));
+      await page.waitForFunction((name) => document.querySelector('#death-note-probe').textContent === `${name} ×12`, {}, enemyName);
+      assert.equal(await page.$eval('#death-note-probe', (el) => el.title), enemyName);
+      await page.evaluate(async () => {
+        const { h, render } = await import('/vendor/preact.module.js');
+        const { FinalAssaultPlate } = await import('/js/ui/bossPlates.js');
+        const root = document.createElement('div'); root.id = 'death-note-boss-intro'; document.body.append(root);
+        render(h(FinalAssaultPlate, { myId: 'self', hideSelfLp: true, total: 24,
+          rows: [{ player: { playerId: 'self', name: 'self' }, lp: 13 }, { player: { playerId: 'ally', name: 'ally' }, lp: 11 }] }), root);
+      });
+      await page.waitForSelector('#death-note-boss-intro .fa__lp');
+      assert.deepEqual(await page.$$eval('#death-note-boss-intro .fa__lp', (els) => els.map((el) => el.textContent)), ['■■', '11']);
+      assert.equal(await page.$eval('#death-note-boss-intro .fa__total', (el) => el.textContent), '■■');
+      await page.evaluate(async () => {
+        const { render } = await import('/vendor/preact.module.js');
+        const root = document.getElementById('death-note-boss-intro'); render(null, root); root.remove();
+      });
+      await page.evaluate(async () => {
+        const eyes = globalThis.__MOCK__.S().priv.shinigamiEyes;
+        globalThis.__MOCK__.setPhase('RESULT'); // Mock phase changes start a fresh fixture; emulate the real result flag.
+        const { store } = await import('/js/store.js');
+        const state = store.get(), result = state.match.result;
+        store.patch('match', { result: { ...result, players: result.players.map((p) => p.playerId === state.me.playerId ? { ...p, shinigamiEyes: eyes } : p) } });
+      });
+      await page.waitForSelector('.settle__next');
+      await page.click('.settle__next');
+      await page.waitForSelector('.steam__detail');
+      await page.click('.steam__detail');
+      await page.waitForSelector('.rcard.is-self .lp__val');
+      assert.equal(await page.$eval('.rcard.is-self .lp__val', (el) => el.textContent), '■■');
+      assert.ok((await page.$$eval('.rcard:not(.is-self) .lp__val', (els) => els.map((el) => el.textContent))).every((text) => /^\d+$/.test(text)));
+    } catch (error) {
+      await page.screenshot({ path: `${OUT}/death-note-error-${width}.png` });
+      throw error;
+    } finally { await page.close(); }
+  }
+});
+
 test('四叶草化石：桌面与手机展示四选一，第四项可领取', {
   skip: !ENABLED && 'set SP_E2E=1 and provide system Chrome', timeout: 120000,
 }, async () => {
@@ -275,8 +505,9 @@ test('phone/desktop: icons wrap, tooltips stay clear of three-choice dialogs, an
       // Two icons: inspect the actual requested frame, source art and shared tooltip before testing overflow.
       const first = await page.evaluate(async () => {
         const { RELICS } = await import('/shared/relics.js');
-        globalThis.__MOCK__.mutate((s) => { s.priv.relics = RELICS.slice(0, 2).map((r, i) => ({ id: r.id, round: i + 1 })); });
-        return RELICS[0];
+        const ordinary = RELICS.filter((r) => r.tier === 1 && !r.scratchTicket).slice(0, 2);
+        globalThis.__MOCK__.mutate((s) => { s.priv.relics = ordinary.map((r, i) => ({ id: r.id, round: i + 1 })); });
+        return ordinary[0];
       });
       await page.waitForFunction(() => document.querySelectorAll('.effect--relic').length === 2);
       const frames = await page.evaluate(() => {

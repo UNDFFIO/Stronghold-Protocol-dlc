@@ -4,6 +4,7 @@
 // Installed on Match.prototype by server/match/Match.js (a method container: never instantiated; `this` is the match).
 
 import { PHASE, GEO } from '../../../shared/constants.js';
+import { deathNoteKeys } from '../deathNote.js';
 import { deriveSeed } from '../../sim/rng.js';
 import { uniteBattleOpts, uniteSurvivors } from '../unite.js';
 import { FieldRunner, timelineAt, uniteBillBounds } from '../fields.js';
@@ -61,7 +62,7 @@ export class MatchUnite {
       spawns: this._sanitizeSpawns(wave.spawns),
       routes: wave.routes,
       sharedBoss: null,
-      flags: this.endlessFlags({ layerGainsEnabled: false, ...this.gd.dp }),
+      flags: this.endlessFlags({ layerGainsEnabled: false, ...this.gd.dp, deathNoteEnemyKeys: deathNoteKeys(this) }),
       fieldId: 'u',
       // leaked enemies re-enter with the stats they had: the round template's stat overrides apply again
       enemyOverrides: this.wave && this.wave.overrides ? this.wave.overrides : {},

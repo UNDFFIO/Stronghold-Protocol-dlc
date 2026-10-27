@@ -2882,5 +2882,22 @@
   "成功 · 额外通过 {n} 回合": "Success · {n} extra rounds cleared",
   "领袖战": "Leader battle",
   "额外通过回合": "Extra rounds cleared",
-  "额外第 {n} 回合 · 领袖战": "Extra round {n} · Leader battle"
+  "额外第 {n} 回合 · 领袖战": "Extra round {n} · Leader battle",
+  "额外回合": "Extra round",
+  "敌方生命与攻击 +{percent}%": "Enemy HP and ATK +{percent}%",
+  "死亡笔记": "Death Note",
+  "准备阶段可花费8金币书写一个敌方名字，书写正确则移除本回合全队遭遇的该类型敌人，书写错误不生效（每回合限1次）": "During preparation, spend 8 coins to write an enemy name. A correct name removes that enemy type from all team fields this round; an incorrect name has no effect (once per round).",
+  "同人改编：《死亡笔记》中的笔记本；本游戏机制由维护者指定。": "Fan adaptation: the notebook from DEATH NOTE; its mechanics in this game were specified by the maintainer.",
+  "敌方名字": "Enemy name",
+  "本回合已书写": "Name written this round",
+  "书写失败，请重试": "Writing failed. Please try again.",
+  "书写名字": "Write a name",
+  "第 {round} 回合": "Round {round}",
+  "死神之眼": "Shinigami Eyes",
+  "死神之眼：生命值不可见": "Shinigami Eyes: HP is hidden",
+  "以当前生命值的一半交换：敌方名字不再遮挡，自身生命值不可见，书写名字花费降为4金币。本局仅可交换一次。": "Trade half your current HP to reveal enemy names, hide your own HP, and reduce writing cost to 4 coins. Once per match.",
+  "已获得": "Acquired",
+  "以一半生命值交换": "Trade half your HP",
+  "交换失败，请重试": "Trade failed. Please try again.",
+  "敌方名字不再遮挡，自身生命值不可见，书写名字花费降为4金币": "Enemy names are revealed, your own HP is hidden, and writing costs 4 coins."
 }

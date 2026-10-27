@@ -4,9 +4,11 @@
 // the player state).
 
 import { relicsView, relicOfferView, activeRelicShield, activeReverseLp } from '../relics.js';
+import { deathNoteView } from '../deathNote.js';
 import { ascensionLotteryView } from '../ascensionLottery.js';
 import { scratchView } from '../scratchTickets.js';
 import { PHASE } from '../../../shared/constants.js';
+import { N_ } from '../../../shared/i18n.js';
 import { boardOrder, pieceDir } from '../board.js';
 import { bondList, offBondCounts } from '../bondsMeta.js';
 import { bountyText, bountyCard } from '../choices.js';
@@ -35,6 +37,8 @@ export class PlayerViews {
 
   effectsView() {
     const out = [];
+    if (this.shinigamiEyes) out.push({ id: 'shinigami-eyes', name: N_('死神之眼'),
+      desc: N_('敌方名字不再遮挡，自身生命值不可见，书写名字花费降为4金币'), iconKind: 'item' });
     const band = this.bandId ? this.gd.band(this.bandId) : null;
     if (band) out.push({ id: band.effectId || band.bandId, name: band.effectName || band.name, desc: band.desc || '', iconKind: 'band', iconId: band.iconId || band.bandId });
     for (const e of this.effects) {
@@ -108,6 +112,8 @@ export class PlayerViews {
       relics: relicsView(this),
       relicReward: this.relicReward ? { ...this.relicReward } : null,
       relicOffer: relicOfferView(this),
+      deathNote: deathNoteView(this),
+      shinigamiEyes: this.shinigamiEyes,
       relicChessQueue: [...this.relicChessQueue],
       ascensionLottery: ascensionLotteryView(this),
       scratch: scratchView(this),

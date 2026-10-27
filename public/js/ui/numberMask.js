@@ -1,4 +1,5 @@
 import { getRelic } from '../../../shared/relics.js';
+import { installEnemyNameMask, maskEnemyNames } from './enemyNameMask.js';
 /** 木棍只遮蔽本客户端的显示；原始数据、输入值和战斗参数始终保留。 */
 export const maskDigits = (text) => String(text).replace(/[0-9０-９]/g, '■');
 export function ownsNumberMask(state) {
@@ -18,13 +19,22 @@ export function installPixiNumberMask(P) {
     proto.updateText = function (...args) {
       if (!this.__relicMaskRef) { this.__relicMaskRef = new WeakRef(this); texts.add(this.__relicMaskRef); }
       const raw = this._text;
-      if (enabled && raw != null) this._text = maskDigits(raw);
+      if (raw != null) this._text = maskEnemyNames(enabled ? maskDigits(raw) : raw);
       try { return original.apply(this, args); } finally { this._text = raw; }
     };
   }
 }
 export function installNumberMask(store, doc = globalThis.document) {
   if (!doc?.body) return () => {};
+  const refreshPixi = () => {
+    for (const ref of texts) {
+      const text = ref.deref();
+      if (!text || text.destroyed) { texts.delete(ref); continue; }
+      text.dirty = true;
+      text.updateText(true);
+    }
+  };
+  const disposeNames = installEnemyNameMask(store, doc, refreshPixi);
   const style = doc.createElement('style');
   style.textContent = '@font-face{font-family:RelicDigits;src:url(/js/ui/relic-digits.ttf) format("truetype");unicode-range:U+0030-0039,U+FF10-FF19;font-display:block}';
   doc.head.append(style);
@@ -77,5 +87,5 @@ export function installNumberMask(store, doc = globalThis.document) {
   }
   watch(); sync(store.get());
   const unsubscribe = store.subscribe(sync);
-  return () => { unsubscribe(); enabled = false; apply(); observer.disconnect(); style.remove(); };
+  return () => { unsubscribe(); disposeNames(); enabled = false; apply(); observer.disconnect(); style.remove(); };
 }

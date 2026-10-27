@@ -44,6 +44,14 @@ server/match/
 
 ### DLC: Extra rounds after Hidden Core
 
+From the first extra round, `GameData.shopSlots(level, round)` removes two operator slots, retaining item slots.
+Shop item rolls and frozen carry-over exclude Thrifty Doll (`chess_item_2_05_e_a`, including its golden form);
+owned dolls and their registered income effects remain valid. Ordinary rounds retain their existing shop rules.
+
+Extra-round collectible choices and all acquisition paths reject 木棍 (`relic_159`), 鸭梨手机 (`relic_157`) and
+解压玩具 (`relic_156`). Their shared `normalRoundsOnly` flag is checked with the match's current `extraRound`,
+including direct grants with a backdated reward round. Existing ownership and effects remain valid.
+
 After a victorious Hidden Core, `MatchEndless.openEndlessVote()` enters `CONTINUE_VOTE`. The server publishes
 `m.public.endlessVote { voters, agreed }` and accepts `g.endlessVote { agree: boolean }` only from a connected,
 surviving voter. All surviving present humans must consent; AI seats follow. Refusal, departure or a 30-second
@@ -54,7 +62,8 @@ original winners and starts the next round without invoking `finish` or publishi
 data. Normal waves reuse the last normal template and redraw faction entries; every sixth extra round redraws the
 weighted regular boss pool. `flags.endlessEnemyScale = 1 + 0.05 * N` travels through real, client, rehearsal and Unite
 BattleSpecs; spawn base HP/ATK scale once, outside inherited spawn mods, and shared boss HP scales independently.
-The public view carries `extraRound`, `extraRounds`, `extraBossRound` and `extraBossId`. Extra boss victories return
+The public view carries `extraRound`, `extraRounds`, `extraBossRound` and `extraBossId`. The client shows `extraRound`
+in the top round slot and the HP/ATK bonus in 敌方情报 (see [client contract](design/client.md#9-client-rendering-contract-publicjsrender)). Extra boss victories return
 to the round loop; losses preserve Hidden Core success. Results carry team/per-player `extraRounds` (completed
 extra rounds only), preserve the original winners, and retain base rewards. Full rules and assumptions:
 [design/match.md](design/match.md#dlc隐秘核心后的额外挑战2026-10-26维护者决定).
@@ -1318,3 +1327,10 @@ The host’s pre-match `room.setAiTakeover {on}` opts a co-op room in; default o
 ### DLC 与上游 0.3.2 集成
 
 收藏品、超限、刮刮票和分阶段商店沿用本 fork 规则。所有 AI 策略共用的休整前处理先打开并兑奖持有票券；其余招募、编队和演习采用上游更新。版本宿主与普通对局均传递 difficultyLevel。公开房间在选择同盟方式中滚动浏览，公开性和密码在房间底部难度胶囊旁设置。
+
+
+### 死亡笔记
+
+`Match.nextEnemiesFor` 在生成普通及首领波次预览时排除本回合 `deathNoteKeys` 中的全部敌方类型（含悬赏）。成功书写后标记全队存活玩家的私有状态，以同次请求推送更新后的敌方单位预览，并通过既有整备观战通知同步刷新队友与观众；写错不改变预览，回合切换后恢复正常生成。
+
+传说藏品 `relic_241` 不进入随机奖池，本人本局干员累计死亡50次后自动获得，多人同局唯一。`g.deathNote { name, round }` 仅准备阶段未准备的持有者可调用，每回合一次，基础花费8金币，拼写错误照常扣费。`g.shinigamiEyes { round }` 由同一整备校验保护，一局一次，以本人当前生命的一半获得死神之眼，剩余生命向上取整 [ASSUMED]；已有共享池时仅扣本人份额并重设同步权重。`m.private.shinigamiEyes` 表示交易结果，`m.private.deathNote` 返回本回合是否已书写与实际花费 `cost`（8或4）。交易不重置书写次数，实际扣费采用服务端状态，重复、过期和非持有者请求无效。服务端解析名字，将本回合全队的移除类型写入各阵地BattleSpec的 `flags.deathNoteEnemyKeys`，共享模拟器在排队和即时生成入口移除匹配敌人；命中领袖时同步完成共享生命池目标。获得、跨局清零、隐藏敌名负面及完整结算边界见 [收藏品规则](COLLECTIBLES.md)。

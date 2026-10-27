@@ -28,6 +28,7 @@ const SOURCES = ['effects', 'bands', 'items', 'garrisons'];
  */
 export function effectDesc(e) {
   const desc = e.desc || '';
+  if (e.id === 'shinigami-eyes') return t(desc);
   if (!desc) return desc;
   for (const file of SOURCES) {
     for (const id of [e.id, e.iconId]) {
@@ -51,11 +52,11 @@ export function EffectsList({ effects }) {
   return html`<div class="effects" aria-label=${t('生效中的效果')}>
     <${MicroLabel}>EFFECTS</${MicroLabel}>
     ${list.slice(0, 10).map((e, i) => html`<${Tooltip} key=${e.id ?? i} placement="bottom" text=${html`<div class="efftip">
-        <b>${tName(e.name) || t('效果')}</b><span class="efftip__kind">${t(KIND[e.iconKind] || '')}${e.counterText ? ` · ${bountyCounterText(e)}` : e.counter != null ? ` · ${e.counter}` : ''}</span>
+        <b>${(e.id === 'shinigami-eyes' ? t(e.name) : tName(e.name)) || t('效果')}</b><span class="efftip__kind">${t(KIND[e.iconKind] || '')}${e.counterText ? ` · ${bountyCounterText(e)}` : e.counter != null ? ` · ${e.counter}` : ''}</span>
         <${RichText} as="p" text=${effectDesc(e)} />
       </div>`}>
       <span class=${`effect effect--${e.iconKind || 'x'}`}>
-        <${Img} src=${effectIconUrl(m, e)} fallback=${html`<${GIcon} name="bolt" />`} />
+        <${Img} src=${effectIconUrl(m, e)} fallback=${html`<${GIcon} name=${e.id === 'shinigami-eyes' ? 'eye' : 'bolt'} />`} />
         ${e.counter != null && e.counter !== '' ? html`<b class="effect__n num">${e.counter}</b>` : null}
       </span>
     <//>`)}

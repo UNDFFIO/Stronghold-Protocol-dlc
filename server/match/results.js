@@ -127,6 +127,7 @@ export function buildResult(m, outcome) {
       lp: Math.max(0, ps.lp),
       bandId: ps.bandId,
       relics: relicsView(ps),
+      ...(ps.shinigamiEyes ? { shinigamiEyes: true } : {}),
       lineup,
       bonds: bondList(gd, ps.bonds).filter((b) => b.active || b.layers > 0),
       stats: {

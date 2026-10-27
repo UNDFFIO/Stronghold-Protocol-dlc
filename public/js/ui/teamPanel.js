@@ -113,11 +113,11 @@ export function rowLpTip(lp, cap = 10) {
 /**
  * @param {{ pub:any, myId:string, watching:string|null, bubbles: Map<string,{id:string,seq:number}>, onWatch:(p:any)=>void,
  *   compact?: boolean, teamLp?: number|null, self?: { lp?: number|null, pending: number, unite: boolean, left?: number|null } | null,
- *   cap?: number, uniteLocal?: Record<string, number> | null,
+ *   cap?: number, uniteLocal?: Record<string, number> | null, hideSelfLp?: boolean,
  *   observe?: null | { canObserve: (p:any) => { fieldId?: string, reason?: string|null, back?: boolean }, observing: boolean, onBack: () => void } }} props
  *   uniteLocal: the local 联防 replica's per-leaker counts while it is on screen (battle runner state().uniteLeft), else null
  */
-export function TeamPanel({ pub, myId, watching, bubbles, onWatch, compact = false, observe = null, self: selfLive = null, cap = 10, uniteLocal = null, spMarks = null }) {
+export function TeamPanel({ pub, myId, watching, bubbles, onWatch, compact = false, observe = null, self: selfLive = null, cap = 10, uniteLocal = null, spMarks = null, hideSelfLp = false }) {
   const [openPid, setOpenPid] = useState(null);
   // the playerId whose avatar just called onWatch, so the other click of a double-click does not open the view again
   const askedAt = useRef(/** @type {{ id: string|null, at: number }} */ ({ id: null, at: 0 }));
@@ -182,7 +182,7 @@ export function TeamPanel({ pub, myId, watching, bubbles, onWatch, compact = fal
         <div class="team__info">
           <span class="team__name">${p.name || t('博士')}</span>
           <div class="team__line">
-            <${LpTower} value=${lp.lp} size="sm" tone=${Number.isFinite(lp.lp) && lp.lp - lp.pending <= 5 ? 'danger' : null} pending=${lp.pending}
+            <${LpTower} value=${lp.lp} hidden=${self && hideSelfLp} size="sm" tone=${Number.isFinite(lp.lp) && lp.lp - lp.pending <= 5 ? 'danger' : null} pending=${lp.pending}
               tip=${rowLpTip(lp, cap)} />
             ${lp.left != null ? html`<${MissTag} n=${lp.left} name=${self ? null : p.name || t('博士')} />` : null}
             <${Tooltip} text=${offline ? t('连接已断开') : t(meta.text)} placement="right">

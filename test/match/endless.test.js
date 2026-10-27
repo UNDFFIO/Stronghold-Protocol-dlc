@@ -1,12 +1,16 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { makeMatch, DATA } from './harness.js';
+import { makeMatch, DATA, giveItem } from './harness.js';
+import { GameData } from '../../server/match/gamedata.js';
+import { SharedPool } from '../../server/match/pool.js';
 import { PHASE } from '../../shared/constants.js';
 import { validateC2S } from '../../shared/protocol.js';
 import { bossPoolHp } from '../../server/match/finalAssault.js';
 import { FakeBattle } from './fakeBattle.js';
 import { Battle } from '../../server/sim/Battle.js';
 import { buildBattleSpec, createBattleFromSpec } from '../../server/sim/spec.js';
+import { RELICS, pickRelic, pickRelicChoices, relicIncome } from '../../shared/relics.js';
+import { settleRelics, selectRelic, autoSelectRelic, grantRelic } from '../../server/match/relics.js';
 
 function atVote(t, options = {}) {
   const h = makeMatch({ fake: true, ...options }).start();
@@ -22,6 +26,116 @@ function atVote(t, options = {}) {
 function accept(h) {
   for (const id of [...h.m.endlessVote.voters]) assert.deepEqual(h.m.handle(id, { t: 'g.endlessVote', agree: true }), { ok: true });
 }
+
+const EXTRA_BLOCKED_RELICS = ['relic_159', 'relic_157', 'relic_156'];
+
+test('extra-round relic pools exclude the three restricted collectibles even when all other candidates are exhausted', () => {
+  for (const id of EXTRA_BLOCKED_RELICS) {
+    const owned = RELICS.filter(r => r.id !== id).map(r => ({ id: r.id, round: 1 }));
+    const opts = { multiplayer: true, hasScratchTicket: true };
+    assert.deepEqual(pickRelicChoices(15, owned, () => 0, opts), [id], `${id} remains available before continuation`);
+    for (const extraRound of [1, 6, 22]) {
+      assert.deepEqual(pickRelicChoices(15 + extraRound, owned, () => 0, { ...opts, extraRound }), []);
+      assert.equal(pickRelic(15 + extraRound, owned, () => 0,
+        { ...opts, extraRound, tierWeights: [5, 65, 30, 0, 0] }), null, 'explicit reward weights also respect eligibility');
+    }
+  }
+});
+
+for (const mode of ['solo', 'coop']) test(`${mode}: extra-round battle rewards and direct, manual and automatic grants enforce relic exclusions`, t => {
+  const h = atVote(t, { mode });
+  const p = h.ps('p_0');
+  accept(h);
+  const difficulty = h.m.difficultyLevel;
+  for (const id of EXTRA_BLOCKED_RELICS) {
+    assert.equal(grantRelic(p, id, { round: 1 }), null, 'backdating cannot bypass the current round gate');
+    p.relicOffer = { id: `forged:${id}`, round: h.m.round, options: [id] };
+    assert.equal(selectRelic(p, p.relicOffer.id, 0), null);
+    autoSelectRelic(p);
+    assert.ok(!p.relics.some(r => r.id === id));
+  }
+  assert.equal(h.m.difficultyLevel, difficulty, 'blocked phone cannot change difficulty');
+  p.relicOffer = null;
+  // Only the restricted trio and one valid permanent collectible remain. Fill the consumable slot legitimately.
+  const allowed = 'relic_025';
+  p.relics = RELICS.filter(r => !EXTRA_BLOCKED_RELICS.includes(r.id) && r.id !== allowed).map(r => ({ id: r.id, round: 1 }));
+  grantRelic(p, 'relic_235');
+  const offer = settleRelics(p, { perfect: true, leaked: [] }, { completed: true, lpLoss: 0 });
+  assert.deepEqual(offer.options, [allowed]);
+  assert.equal(selectRelic(p, offer.id, 0).id, allowed, 'other collectibles remain obtainable');
+});
+
+test('entering extra rounds preserves already held restricted relics and the stick income', t => {
+  const h = atVote(t, { mode: 'coop', difficulty: 'ASCENSION', difficultyLevel: 10 });
+  const p = h.ps('p_0');
+  for (const id of EXTRA_BLOCKED_RELICS) assert.equal(grantRelic(p, id).id, id);
+  const difficulty = h.m.difficultyLevel;
+  const before = p.funds;
+  accept(h);
+  assert.ok(EXTRA_BLOCKED_RELICS.every(id => p.relics.some(r => r.id === id)));
+  assert.equal(h.m.difficultyLevel, difficulty);
+  assert.equal(relicIncome(p.relics), 2);
+  assert.equal(p.funds - before, h.m.gd.income(h.m.round) + 2);
+});
+
+test('extra challenges remove exactly two operator slots at every shop level and retain item slots in every mode', () => {
+  for (const modeId of Object.keys(DATA.config.modes)) {
+    const gd = new GameData(DATA, modeId);
+    const start = Math.max(16, (gd.hiddenRound ?? gd.bossRound) + 1);
+    const normal = Array.from({ length: 6 }, (_, i) => gd.shopSlots(i + 1, start));
+    gd.endlessStartRound = start;
+    for (let level = 1; level <= 6; level++) {
+      assert.deepEqual(gd.shopSlots(level, start - 1), normal[level - 1]);
+      for (const round of [start, start + 5, start + 21]) {
+        assert.deepEqual(gd.shopSlots(level, round), { chess: normal[level - 1].chess - 2, item: normal[level - 1].item });
+      }
+    }
+  }
+});
+
+test('shop draws exclude Thrifty Doll only during extra rounds, with fallback and bond bias still working', () => {
+  const gd = new GameData(DATA, 'mode_single_funny');
+  const doll = 'chess_item_2_05_e_a';
+  const other = gd.shopItemsByTier[1][0];
+  // A controlled candidate list makes selecting the doll certain before continuation.
+  gd.shopItemsByTier = { 1: [doll, other] };
+  gd.endlessStartRound = gd.hiddenRound + 1;
+  const pool = new SharedPool(gd);
+  assert.equal(pool.rollItem(() => 0, 1, null, null, gd.hiddenRound), doll);
+  assert.equal(pool.rollItem(() => 0, 1, null, null, gd.endlessStartRound), other);
+  assert.equal(pool.rollItem(() => 0, 1, null, new Set(['yanShip']), gd.endlessStartRound), other);
+  assert.equal(gd.shopItemAllowed('chess_item_2_05_e_b', gd.endlessStartRound), false);
+  gd.shopItemsByTier = { 2: [doll] };
+  assert.equal(pool.rollItem(() => 0, 1, null, null, gd.endlessStartRound), null, 'exhausted candidates cannot restore the doll');
+});
+
+test('entering extra rounds shrinks frozen shops, replaces frozen dolls, preserves inventory, and uses the reduced layout on refresh and upgrade', t => {
+  const h = atVote(t, { mode: 'solo' });
+  const p = h.ps('p_0');
+  const doll = 'chess_item_2_05_e_a';
+  const owned = giveItem(h.m, p, doll);
+  p.rollShop();
+  const before = { ...p.shop.layout };
+  p.shop.frozen = true;
+  for (const slot of p.shop.slots) if (slot) slot.frozen = true;
+  const kept = p.shop.slots.slice(0, before.chess - 2).map(s => s?.id);
+  p.shop.slots[before.chess] = { kind: 'item', id: doll, basePrice: 3, sold: false, frozen: true };
+  accept(h);
+  assert.deepEqual(p.shop.layout, { chess: before.chess - 2, item: before.item });
+  assert.deepEqual(p.shop.slots.slice(0, p.shop.layout.chess).map(s => s?.id), kept);
+  assert.ok(p.shop.slots.every(s => !s || s.id !== doll));
+  assert.ok(p.find(owned.uid), 'owned doll remains in inventory');
+  h.toPrep(h.m.round);
+  p.funds = 100;
+  assert.deepEqual(p.refresh(), { ok: true });
+  assert.deepEqual(p.privateView().shop.layout, p.shop.layout);
+  assert.equal(p.shop.slots.length, before.chess - 2 + before.item);
+  assert.ok(p.shop.slots.every(s => !s || s.id !== doll));
+  assert.deepEqual(p.levelUp(), { ok: true });
+  assert.deepEqual(p.shop.layout, h.m.gd.shopSlots(p.shop.level, h.m.round));
+  assert.deepEqual(p.refresh(), { ok: true });
+  h.invariants();
+});
 
 test('continuation requires all surviving humans; bots follow, spectators cannot vote; reconnect restores progress', t => {
   const h = atVote(t, { humans: 2, bots: 1, spectators: [{ playerId: 's', name: 'S' }] });

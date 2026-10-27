@@ -201,7 +201,7 @@ test('supply pools exclude owned collectibles and never substitute a disallowed 
   const h = setup(seeds.legendary);
   try {
     const ps = h.ps('p_0');
-    const only = RELICS.find((r) => r.tier === 5).id;
+    const only = RELICS.find((r) => r.tier === 5 && r.normalDrop !== false).id;
     ps.relics = RELICS.filter((r) => r.tier === 5 && r.id !== only).map((r) => ({ id: r.id, round: 1 }));
     h.m.startRound(4);
     assert.deepEqual(ps.ascensionLottery.ids, [only]);

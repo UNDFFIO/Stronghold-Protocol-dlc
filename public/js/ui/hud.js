@@ -490,7 +490,8 @@ export function TopBar({ pub, priv, conn, hud, total, drawer, onExit, onDrawer, 
   // normal rounds: the leaks of the own battle so far (boss rounds: the team LP above already moves live)
   const pending = !boss && Number.isFinite(lp) && live && live.pending !== 0 ? Math.min(lp, live.pending) : 0;
   const hidden = phase === PHASE.HIDDEN_CORE || (Number.isFinite(pub?.lastRound) && pub.round > pub.lastRound);
-  const roundText = hidden ? '??' : pub?.round > 0 ? String(pub.round) : '--';
+  const extra = pub?.extraRound > 0;
+  const roundText = extra ? String(pub.extraRound) : hidden ? '??' : pub?.round > 0 ? String(pub.round) : '--';
   // a spectator seat (no m.private, community report #26) never readies
   const showReady = phase === PHASE.PREP && !spectator && priv?.alive !== false;
   // boss rounds: the overtime warning follows the clock (4 Hz while live; frozen while paused)
@@ -499,7 +500,7 @@ export function TopBar({ pub, priv, conn, hud, total, drawer, onExit, onDrawer, 
   const now = Number.isFinite(frozenAt) ? frozenAt : serverNow();
   const ot = otLive ? overtimeState(pub, now, { perSec: overtimeDrainPerSec(config) }) : null;
   const draining = ot?.state === 'drain';
-  const lowLp = (Number.isFinite(lp) && lp - pending <= 5) || draining;
+  const lowLp = !priv?.shinigamiEyes && ((Number.isFinite(lp) && lp - pending <= 5) || draining);
   const cap = Number(config?.lpCapPerRound) > 0 ? Number(config.lpCapPerRound) : 10;
   const frozenSecs = Number.isFinite(frozenAt) ? remainAt(pub?.deadline, frozenAt) : null;
   const btn = checkButtons({ pen, penAvail, infoOpen: !!drawer });
@@ -535,8 +536,8 @@ export function TopBar({ pub, priv, conn, hud, total, drawer, onExit, onDrawer, 
         <${DecoType} k="txt2" text="STRONGHOLD PROTOCOL" side="c" />
         <${DecoType} k="txt3" text="RHODES ISLAND TERMINAL SERVICE" side="r" />
         <div class="gtop__half gtop__half--l">
-          <div class="roundbox">
-            <span class="roundbox__label">${t('回合')}</span>
+          <div class=${cx('roundbox', extra && 'roundbox--extra')}>
+            <span class="roundbox__label">${extra ? t('额外回合') : t('回合')}</span>
             <b class="roundbox__num num" key=${roundText}>${roundText}</b>
           </div>
         </div>
@@ -545,7 +546,7 @@ export function TopBar({ pub, priv, conn, hud, total, drawer, onExit, onDrawer, 
           ${fx.kind && fx.kind !== 'enter' ? html`<${CapsuleScene} kind=${fx.kind} />` : null}
         </div>
         <div class="gtop__half gtop__half--r">
-          <${LpTower} value=${lp} size="lg" tone=${lowLp ? 'danger' : boss ? 'team' : null} pending=${pending}
+          <${LpTower} value=${lp} hidden=${!!priv?.shinigamiEyes} size="lg" tone=${lowLp ? 'danger' : boss ? 'team' : null} pending=${pending}
             note=${pending > 0 && live?.unite ? t('联防中') : null} tip=${pendingTip(lp, pending, { unite: !!live?.unite, cap, left: live?.left ?? null })} />
         </div>
       </div>

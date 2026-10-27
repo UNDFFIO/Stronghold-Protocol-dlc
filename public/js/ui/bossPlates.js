@@ -186,9 +186,9 @@ function Portrait({ src, done = false, core = false, class: cls }) {
 
 /**
  * 最终攻势: the survivors' LP merging into the team's pool, then the leader.
- * @param {{ rows: { player: any, lp: number }[], total: number, bossId?: string|null, myId?: string|null, onDone?: Function }} props
+ * @param {{ rows: { player: any, lp: number }[], total: number, bossId?: string|null, myId?: string|null, onDone?: Function, hideSelfLp?: boolean }} props
  */
-export function FinalAssaultPlate({ rows, total, bossId = null, myId = null, onDone }) {
+export function FinalAssaultPlate({ rows, total, bossId = null, myId = null, onDone, hideSelfLp = false }) {
   const leaving = useTimedLeave(FINAL_PLATE_MS, onDone);
   const shown = useCountUp(total, 700, 450);
   const ys = finalRowsY(rows.length);
@@ -205,11 +205,11 @@ export function FinalAssaultPlate({ rows, total, bossId = null, myId = null, onD
         </svg>
         ${rows.map((r, i) => html`<div key=${r.player?.playerId ?? i} class="fa__row" style=${`top:${px(ys[i] - 45)};--i:${i}`}>
           <${PlayerAvatar} player=${r.player} self=${r.player?.playerId === myId} class="fa__ava" />
-          <span class="fa__lp num">${r.lp}</span>
+          <span class="fa__lp num">${hideSelfLp && r.player?.playerId === myId ? '■■' : r.lp}</span>
         </div>`)}
         <div class="fa__node" aria-hidden="true">
           <i class="fa__ring fa__ring--o"></i><i class="fa__ring fa__ring--i"></i>
-          <span class="fa__box"><${Art} k="hudPanel/icon_hp" class="fa__rook" /><b class="fa__total num">${shown}</b></span>
+          <span class="fa__box"><${Art} k="hudPanel/icon_hp" class="fa__rook" /><b class="fa__total num">${hideSelfLp ? '■■' : shown}</b></span>
         </div>
         <div class="fa__words">
           <span class="fa__micro">${t('最终攻势')}</span>

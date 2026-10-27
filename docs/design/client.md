@@ -18,6 +18,11 @@ get ordinary scrolling without snap animation. No wheel interception or fixed-du
 
 ## 9. Client rendering contract (public/js/render)
 
+**DLC extra-round HUD (maintainer request, 2026-10-27).** During extra challenges, the top bar's round slot
+shows 额外回合 and `m.public.extraRound`, taking priority over the hidden-round `??` display. The enemy HP/ATK
+bonus (`extraRound × 5%`) appears in the 敌方情报 summary. There is no separate floating extra-round status.
+Ordinary rounds and Hidden Core retain their existing round display; voting and gameplay rules are unchanged.
+
 **Operator skins (§34.23, [SKINS.md](../SKINS.md)).** [ASSUMED] Retain received skin IDs separately from displayed
 skins so the other-player switch restores loaded units when re-enabled, including boss prep partners. Any-phase
 `room.skins` refreshes owner/private and existing scout views; public seat choices update current battle rendering
@@ -1152,3 +1157,14 @@ is presentation inferred from the available animation roles; simulation facing a
 ### DLC collectible copy and disclosure
 
 The collection dialog shows held collectibles and pending grants first. Native collapsed details labeled 掉落规则 contain acquisition rules, unlock rounds, probabilities and stacking rules. Empty collection states only describe the empty state. Choice dialogs retain leak downgrades and timeout auto-selection notices; untimed choices need no progression hint.
+
+
+### 死亡笔记书写与名称遮蔽
+
+书写命中敌方类型后，服务端立即推送全队过滤后的 `m.private.nextEnemies`，已有整备观战者同步收到更新的 `m.field.nextEnemies`；棋盘上方的敌方单位预览、首领站位与敌方情报列表共同移除该类型的普通及悬赏单位。写错不改变预览，本回合移除不延续至下一回合。
+
+独立窗口按浏览器可用宽高计算尺寸，桌面最大宽度1280px并保持双页比例，屏幕边缘保留至少16px和安全区空间；不再随棋盘的 `rem` 界面缩放缩小。窗口正文不裁切书本，窄屏保留双页、短屏收紧留白和图案尺寸，保证眼睛交易、书写、关闭按钮、页码和价格完整可见。
+
+点击右侧本人的死亡笔记图标直接打开独立书写页，沿用刮刮票的专属页面入口；收藏列表中的「书写名字」按钮也打开同一页面并关闭列表。页面以展开的黑皮双页笔记本呈现：左页保留英文名及紧随其下的中文副标题，空白区为可点击的眼睛刻印，交易后变为暗红色并标记已获得，图案提示说明生命代价和效果；不展示品质和原藏品效果说明；右页为回合号、自由输入框与「书写名字」按钮，8金币需求以小字置于右页右下角。保留纸张、书脊与封皮边缘。准备阶段未准备、资金足够且本回合未书写时可用；提交后本次打开期间保留所写名字，可用关闭按钮、Esc或点击遮罩退出。队友详情和图鉴只读。持有者客户端以 `enemyNameMask.js` 遮蔽敌人与领袖名称，覆盖DOM文本、提示与无障碍属性及Pixi文字；语言切换和新增节点同样处理，失去藏品或离开对局恢复。输入值、数据记录和BattleSpec不改写；与木棍的数字遮蔽组合。正面描述及图鉴不展示隐藏负面。
+
+死神之眼交易通过 `g.shinigamiEyes` 由服务端扣除生命，客户端不自行发奖。`shinigamiEyes` 私有状态使 `enemyNameMask.js` 恢复敌名，书写页使用服务端 `cost` 更新门槛与右下角价格。顶部与同盟列表的本人生命塔、首领战生命合并动画中的本人份额和合计以黑色方块代替数值，同时去除生命值提示、预计损血和临界颜色；队友生命及单位生命条不受影响。结算与统计回看依据本人结果行的同名标志保持遮蔽。未准备的准备阶段才可交易，交换后本局持续，不能再次交易；不能通过交换重新获得本回合书写次数。

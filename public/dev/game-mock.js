@@ -360,6 +360,7 @@ function buildResult(victory) {
     bossId: 'boss_5', hiddenBossId: 'boss_8', difficulty: 'HARD', modeId: 'mode_multi_hard', stageId: S.pub.stageId, durationMs: 52 * 60000,
     players: S.pub.players.map((p, i) => ({
       playerId: p.playerId, seat: p.seat, name: p.name, isBot: p.isBot, left: false, alive: i !== 3, victory, lp: [12, 12, 12, 0][i], bandId: p.bandId,
+      ...(p.playerId === S.priv.playerId && S.priv.shinigamiEyes ? { shinigamiEyes: true } : {}),
       roundsPassed: i === 3 ? 9 : victory ? 14 : 11, eliminatedRound: i === 3 ? 10 : null, title: pickTitle(i),
       lineup: VARIANTS.has('equipped') ? equippedLineup() : shuffle(S.pool).slice(0, 8 + (i % 2)).map((c, k) => ({ id: k < 3 ? c.goldenId : c.chessId, golden: k < 3, tier: c.tier, row: 9 + (k % 4), col: 2 + k, items: [] })),
       bonds: shuffle(data.list('bonds')).slice(0, 4).map((b, k) => ({ bondId: b.bondId, count: 3 - (k % 3), layers: [359, 136, 34, 12][k], active: k < 3, tier: k < 3 ? 1 : 0 })),
@@ -572,6 +573,23 @@ async function mockRequest(t, f = {}) {
   const pub = S.pub;
   const prepOnly = () => { if (pub.phase !== PHASE.PREP) fail('WRONG_PHASE'); if (p.ready && t !== 'g.ready') fail('ALREADY'); };
   switch (t) {
+    case 'g.shinigamiEyes': {
+      prepOnly();
+      if (!p.alive || p.shinigamiEyes || f.round !== pub.round || !(p.lp > 0)
+        || !p.relics?.some((r) => r.id === 'relic_241')) fail('BAD_TARGET');
+      p.shinigamiEyes = true; p.lp = Math.ceil(p.lp / 2);
+      p.deathNote = { ...p.deathNote, cost: 4 };
+      refreshPrivate(); return {};
+    }
+    case 'g.deathNote': {
+      prepOnly();
+      if (!p.relics?.some((r) => r.id === 'relic_241') || p.deathNote?.used || f.round !== pub.round
+        || typeof f.name !== 'string' || !f.name.trim()) fail('BAD_TARGET');
+      const cost = p.shinigamiEyes ? 4 : 8;
+      if (p.funds < cost) fail('NO_FUNDS');
+      p.funds -= cost; p.deathNote = { used: true, cost };
+      refreshPrivate(); return {};
+    }
     case 'g.scratchBuy': {
       prepOnly();
       const spec = scratchTier(f.tier);

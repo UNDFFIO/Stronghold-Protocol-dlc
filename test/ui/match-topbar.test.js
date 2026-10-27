@@ -30,7 +30,7 @@ test('ui/hud.js TopBar: frame · + · band (deco type, round | capsule | LP) · 
   const at = (s) => { const i = hud.indexOf(s); assert.ok(i > 0, s); return i; };
   const order = ['<div class="gtop__center">', 'gtop__frame gtop__frame--l', 'testid="check-player"', 'gtop__plus gtop__plus--l', '<div class="gtop__band">',
     '<${DecoType} k="txt1"', '<${DecoType} k="txt2"', '<${DecoType} k="txt3"',
-    'gtop__half gtop__half--l', 'class="roundbox"', "cx('gtop__cap'", '<${PhaseCapsule}', 'gtop__half gtop__half--r', '<${LpTower}',
+    'gtop__half gtop__half--l', "cx('roundbox'", "cx('gtop__cap'", '<${PhaseCapsule}', 'gtop__half gtop__half--r', '<${LpTower}',
     'gtop__plus gtop__plus--r', 'gtop__frame gtop__frame--r', 'testid="check-enemy"'].map(at);
   assert.deepEqual(order, [...order].sort((a, b) => a - b), 'in the event\'s order');
   // the round number flips when it changes (a keyed element replays gtop-flip)

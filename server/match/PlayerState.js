@@ -221,6 +221,11 @@ export class PlayerState {
     /** Battle collectibles last for this match only; they do not occupy equipment or hand slots. */
     this.relics = [];
     this.relicSettledRounds = new Set();
+    this.deathNoteDeaths = 0;
+    this.deathNoteSettled = new Set();
+    this.deathNoteAwarded = false;
+    this.deathNoteEntry = null;
+    this.shinigamiEyes = false;
     this.relicOffer = null;
     this.relicShield = 0;
     this.relicShieldRound = 0;
