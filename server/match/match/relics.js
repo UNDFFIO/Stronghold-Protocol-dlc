@@ -50,7 +50,7 @@ export class MatchRelics {
     target.ready = false;
     target.restoreEliminatedRoster();
     // 首领回合的整备允许救人，重新配对后所有阵地沿用新的部署区域。
-    if (this.round === this.gd.bossRound || this.round === this.gd.hiddenRound) this._planBossWaves();
+    if (this.gd.isBossRound(this.round)) this._planBossWaves();
     target.startRound(this.round);
     this.dispatch(target, 'onRoundStart', { round: this.round });
     this.dispatch(target, 'onPrepStart', { round: this.round });

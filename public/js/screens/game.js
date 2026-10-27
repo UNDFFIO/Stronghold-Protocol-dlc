@@ -104,6 +104,7 @@ import { Ticker } from '../ui/ticker.js';
 import { EmoteWheel } from '../ui/emotes.js';
 import { DamageRanking } from '../ui/damageRanking.js';
 import { EffectsList } from '../ui/effectsList.js';
+import { EndlessVote, EndlessStatus } from '../ui/endless.js';
 import { RelicCollection, RelicChoice, ownerRelics, revivalTargets } from '../ui/relicPanel.js';
 import { RelicDebugPanel } from '../ui/relicDebug.js';
 import { isLocalAccess } from '../ui/gameLogic/localAccess.js';
@@ -2012,6 +2013,8 @@ function MatchScreen() {
     ${!hasOffers && banner && !banner.plate && !roundPop ? html`<${PhaseBanner} key=${banner.key} mode="overlay" title=${banner.title} sub=${banner.sub} micro=${banner.micro}
       tone=${banner.tone} duration=${banner.duration || 1500} onDone=${() => setBanner(null)} />` : null}
     <${AscensionLottery} reward=${priv?.ascensionLottery} round=${pub?.round} />
+    <${EndlessVote} pub=${pub} />
+    <${EndlessStatus} pub=${pub} />
     <${RelicChoice} offer=${priv?.relicOffer} deadline=${pub?.deadline} onChoose=${actions.relic} />
 
     ${resultBox ? html`<${ResultDialog} key=${resultBox.key} title=${resultBox.title} sub=${resultBox.sub} micro=${resultBox.micro}

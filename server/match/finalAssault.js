@@ -62,7 +62,7 @@ export function bossFieldPlacement(side, row, col, dir = 'RIGHT') {
  * Core its own `boss-pairs:<round>` — it draws pairs and sides anew (GitHub #845, DESIGN §35.27).
  */
 export function bossPairSalt(gd, round) {
-  return round === gd.hiddenRound && round !== gd.bossRound ? `boss-pairs:${round}` : 'boss-pairs';
+  return gd.endlessRound?.(round) || (round === gd.hiddenRound && round !== gd.bossRound) ? `boss-pairs:${round}` : 'boss-pairs';
 }
 
 /** Seeded pairing; `previous` carries player-id pairs from a round's plan through its prep and combat. */

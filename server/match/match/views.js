@@ -103,6 +103,9 @@ export class MatchViews {
       hiddenBossId: this.hiddenBossId,
       bossRound: this.gd.bossRound,
       hiddenRound: this.gd.hiddenRound,
+      ...(this.endlessVote ? { endlessVote: { voters: this.endlessVote.voters.slice(), agreed: [...this.endlessVote.agreed] } } : {}),
+      ...(this.endless ? { extraRound: this.gd.endlessRound(this.round), extraRounds: this.endless.cleared,
+        extraBossRound: this.gd.isBossRound(this.round), extraBossId: this.endless.bossId || null } : {}),
       bossPairs: this.bossWaves ? this.bossWaves.map(w => w.players.slice()) : this.bossPairs ? this.bossPairs.map(ids => ids.slice()) : null,
       spRound: this.gd.spRounds().includes(this.round),
       // DESIGN §14: 'client' = battles are simulated by the browsers (b.start specs), 'server' = legacy streaming

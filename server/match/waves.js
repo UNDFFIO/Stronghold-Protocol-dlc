@@ -224,7 +224,8 @@ export function setupMatchWaves(gd, rng) {
 export function roundPick(gd, rng, factionsOrSetup, round) {
   const src = factionsOrSetup;
   const picks = src && !Array.isArray(src) && Array.isArray(src.picks) ? src.picks : (src && src.schedule && Array.isArray(src.schedule.picks) ? src.schedule.picks : null);
-  if (picks) return picks[round] ?? null;
+  if (picks && !gd.endlessRound(round)) return picks[round] ?? null;
+  round = gd.waveRound(round);
   const factions = Array.isArray(src) ? src : (src && Array.isArray(src.factions) ? src.factions : []);
   const g = gen(gd);
   const types = gd.factions.types && typeof gd.factions.types === 'object' ? gd.factions.types : {};

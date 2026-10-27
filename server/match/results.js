@@ -95,7 +95,8 @@ export function buildResult(m, outcome) {
   const titles = assignTitles(gd, players.filter(ps => !Number.isInteger(ps.aiTakeoverRound)), victory);
   const teamRounds = victory ? gd.bossRound + (hiddenCleared ? 1 : 0) : Math.max(0, Math.min(m.round, gd.bossRound) - 1);
   const rows = players.map((ps) => {
-    const roundsPassed = !ps.alive && ps.eliminatedRound != null ? Math.max(0, ps.eliminatedRound - 1) : teamRounds;
+    const savedClear = !!m.endless?.winners.has(ps.playerId);
+    const roundsPassed = savedClear ? teamRounds : !ps.alive && ps.eliminatedRound != null ? Math.max(0, ps.eliminatedRound - 1) : teamRounds;
     const lineup = boardOrder(ps.board).filter((x) => x.piece.kind === 'chess').map(({ r, c, piece }) => {
       const e = { id: piece.id, golden: gd.isGolden(piece.id), tier: gd.tierOf(piece.id), row: r, col: c, items: (piece.items || []).map((i) => i.id) };
       // 0.2.0 自选编队: a DIY slot's pick — the result screen names and draws the operator (shared/diy.js diyRecord)
@@ -108,7 +109,7 @@ export function buildResult(m, outcome) {
       return e;
     });
     // the team's clear counts for the players still in; an eliminated / departed teammate did not pass the boss round
-    const cleared = victory && ps.alive;
+    const cleared = victory && (ps.alive || savedClear);
     return {
       playerId: ps.playerId,
       seat: ps.seat,
@@ -118,6 +119,8 @@ export function buildResult(m, outcome) {
       left: ps.left,
       alive: ps.alive,
       victory: cleared,
+      ...(m.endless ? { extraRounds: savedClear ? Math.min(m.endless.cleared,
+        ps.eliminatedRound == null ? m.endless.cleared : Math.max(0, ps.eliminatedRound - m.endless.startRound)) : 0 } : {}),
       roundsPassed,
       creditedKills: ps.creditedKills,
       eliminatedRound: ps.eliminatedRound,
@@ -143,6 +146,7 @@ export function buildResult(m, outcome) {
     roundsPassed: teamRounds,
     hiddenReached,
     hiddenCleared,
+    ...(m.endless ? { extraRounds: m.endless.cleared } : {}),
     reason: outcome.reason,
     // the merged Final Assault pool (null before round 14); players[].lp are the alive players' shares of it
     teamLp: m.teamLp != null ? Math.max(0, Math.round(m.teamLp)) : null,

@@ -362,11 +362,18 @@ export class GameData {
   get maxShopLevel() { return posIntOr(this.mode.maxShopLevel, DEFAULTS.maxShopLevel); }
 
   roundCfg(r) {
+    r = this.waveRound(r);
     const rounds = this.mode.rounds;
     return rounds && typeof rounds === 'object' && rounds[String(r)] && typeof rounds[String(r)] === 'object' ? rounds[String(r)] : null;
   }
 
   spRounds() { return Array.isArray(this.mode.spRounds) ? this.mode.spRounds.filter((n) => Number.isInteger(n)) : []; }
+
+  endlessRound(r) { return this.endlessStartRound > 0 && r >= this.endlessStartRound ? r - this.endlessStartRound + 1 : 0; }
+  endlessScale(r) { return 1 + this.endlessRound(r) * 0.05; }
+  isBossRound(r) { return this.endlessRound(r) > 0 ? this.endlessRound(r) % 6 === 0 : r === this.bossRound || r === this.hiddenRound; }
+  // [ASSUMED] Extra waves reuse the final normal-wave template and the normal boss pool, drawing enemies afresh.
+  waveRound(r) { return this.endlessRound(r) ? (this.isBossRound(r) ? this.bossRound : this.bossRound - 1) : r; }
 
   upgradePrices() {
     const arr = Array.isArray(this.mode.upgradePrices) ? this.mode.upgradePrices : DEFAULTS.upgradePrices;
@@ -441,6 +448,7 @@ export class GameData {
    * `enemy_exclude` leaves out the 14 器物 hit-count keys — they take hpMul / supplyHpMul (archetypes.js `times`).
    */
   baseEnemyScale(r) {
+    r = this.waveRound(r);
     const e = this.mode.enemyScale && this.mode.enemyScale[String(r)];
     if (!e || typeof e !== 'object') return { hpMul: 1, atkMul: 1, speedMul: 1 };
     const supply = numOr(e.supplyHp, 1);

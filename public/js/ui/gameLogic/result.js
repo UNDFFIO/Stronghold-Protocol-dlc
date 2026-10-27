@@ -30,6 +30,8 @@ export function normalizeResult(res, pub) {
       isBot: !!(p.isBot ?? pp.isBot),
       ...(Number.isInteger(p.aiTakeoverRound ?? pp.aiTakeoverRound) ? { aiTakeoverRound: p.aiTakeoverRound ?? pp.aiTakeoverRound } : {}),
       alive,
+      victory: !!p.victory,
+      extraRounds: Number.isInteger(p.extraRounds) ? p.extraRounds : null,
       lp: teamLp != null ? (alive === false ? 0 : Math.max(0, teamLp)) : ownLp,
       lpShared: teamLp != null,
       bandId: p.bandId ?? pp.bandId ?? null,
@@ -45,6 +47,7 @@ export function normalizeResult(res, pub) {
   }).sort((a, b) => a.seat - b.seat);
   return {
     victory: !!r.victory,
+    extraRounds: Number.isInteger(r.extraRounds) ? r.extraRounds : null,
     roundsPassed: Number.isFinite(r.roundsPassed) ? r.roundsPassed : Math.max(0, ...players.map((p) => p.roundsPassed), 0),
     lastRound: Number.isFinite(r.lastRound) ? r.lastRound : (Number.isFinite(pub?.lastRound) ? pub.lastRound : 14),
     hiddenCleared: !!r.hiddenCleared,

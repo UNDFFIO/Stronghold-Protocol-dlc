@@ -30,7 +30,8 @@ function EnemiesTab({ pub, priv, onEnemy }) {
   const types = factionTypes(pub?.factions);
   const f = data.get('factions')?.types || {};
   const total = rows.reduce((s, r) => s + r.count, 0);
-  const boss = pub?.bossId ? data.lookup('bosses', pub.bossId) : null;
+  const bossId = pub?.extraBossRound ? pub.extraBossId : pub?.bossId;
+  const boss = bossId ? data.lookup('bosses', bossId) : null;
   return html`<div class="edrawer__body">
     <div class="edrawer__sum">
       <span>${tParts('第 {r} 回合 · 即将迎击 {n} 名敌人', { r: html`<b class="num">${pub?.round ?? '-'}</b>`, n: html`<b class="num t-orange">${total}</b>`, count: total })}</span>
@@ -55,7 +56,7 @@ function EnemiesTab({ pub, priv, onEnemy }) {
     ${boss ? html`<div class="eboss">
       <${UnitThumb} kind="enemy" id=${boss.enemyKey} size="md" />
       <div><${MicroLabel} tone="gold">${t('ENEMY LEADER // 敌方领袖')}</${MicroLabel}><b>${boss.name}</b>
-        <span class="t-lo">${t('第 {r} 回合 · 最终攻势', { r: data.get('config')?.modes?.[pub.modeId]?.bossRound ?? pub.lastRound ?? 14 })}</span></div>
+        <span class="t-lo">${pub.extraBossRound ? t('额外第 {n} 回合 · 领袖战', { n: pub.extraRound }) : t('第 {r} 回合 · 最终攻势', { r: data.get('config')?.modes?.[pub.modeId]?.bossRound ?? pub.lastRound ?? 14 })}</span></div>
     </div>` : null}
   </div>`;
 }

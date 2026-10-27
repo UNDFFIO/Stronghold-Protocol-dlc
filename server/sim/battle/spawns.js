@@ -112,6 +112,10 @@ export class BattleSpawns {
     const mm = (v, pos = false) => { const n = fin(v, 1); return n < 0 || (pos && n <= 0) ? 1 : n; };
     const m0 = opts.mods || {};
     const m = { hpMul: mm(m0.hpMul, true), atkMul: mm(m0.atkMul), defMul: mm(m0.defMul), resMul: mm(m0.resMul), speedMul: mm(m0.speedMul) };
+    // Extra-round growth is separate from inherited spawn mods: split children and Unite apply it exactly once.
+    const endless = Math.max(1, fin(this.flags.endlessEnemyScale, 1));
+    m.hpMul *= endless;
+    m.atkMul *= endless;
     const e = new Unit({
       id: ++this._idSeq, side: 'enemy', kind: 'enemy', def, defId: def.key ?? enemyKey, name: def.name,
       x: start[1], y: start[0], motion: def.motion,

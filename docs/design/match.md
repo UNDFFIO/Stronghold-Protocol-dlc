@@ -427,3 +427,11 @@ layout search inside the five-hook contract; `ioleta-adaptive` composes Russell-
 variants and contact repairs extend the list up to eight. Extension stops after a clean completed zero-leak result,
 or at a strict six-times-per-candidate total tick cap. Server and host Worker share RehearsalRun, limits and counters.
 Default legacy rules remain the baseline. See [BOT_STRATEGIES](../BOT_STRATEGIES.md).
+
+## DLC：隐秘核心后的额外挑战（2026-10-26，维护者决定）
+
+仅击败隐秘核心后开放继续挑战投票。仍存活且未离场的真人玩家全部同意后，保留本局阵容、收藏品、资金、盟约层数和剩余生命值，从下一回合继续；AI 队友跟随决定，已淘汰玩家及观战者不参与。任一人拒绝或离场则正常成功结算。同盟投票限时 30 秒，超时结算，断线不视为同意且重连可恢复投票；独立模拟不限时。投票范围、AI 跟随和超时规则为 [ASSUMED]。
+
+额外第 N 回合的敌方生命值与攻击力乘以 `1 + 0.05 × N`（按基础值累加，不复利），速度、防御和抗性不变。额外第 6、12、18……回合为领袖战，每次按现有普通领袖池权重重新抽取，可重复；其共享生命池也乘以相同倍率。普通回合复用最终攻势前一回合模板，并重新随机该局派系敌人；领袖回合复用最终攻势模板与配对机制。模板及领袖池选择为 [ASSUMED]。召唤、分裂及联防中的敌人同样生效，继承属性不重复叠加额外倍率。
+
+普通额外回合恢复个人生命值结算，领袖战重新合并存活玩家生命值；不免费回血或复活。之后失败仍按成功通关结算，保存参与额外挑战前已获得的个人通关资格，展示「成功 · 额外通过 N 回合」。额外回合数只统计已通过的回合，失败所在回合不计；首个额外回合失败为 0，已淘汰队友不继续累加个人回合数。该计数口径为 [ASSUMED]。基础通关回合、奖杯和奖励不随额外回合膨胀；未进入额外挑战的早期淘汰玩家不获得成功资格。

@@ -1078,3 +1078,14 @@ button.bpop__harmony:hover { border-style: solid; color: #fff; }
 /* #746: optional selected-unit bond timers; labels wrap at narrow widths and large text sizes. */
 .dbond-times__row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .08rem .2rem; margin: .1rem 0; font-size: calc(.24 * var(--t)); }
 .dbond-times__row > span { min-width: 0; overflow-wrap: anywhere; }
+.endless-vote-actions { display: flex; flex-wrap: wrap; gap: .12rem; margin-top: .18rem; }
+.endless-vote { font-size: max(14px, .18rem); }
+.endless-vote p, .endless-vote li { line-height: 1.5; }
+.endless-vote h2 { font-size: max(18px, .24rem); }
+.endless-vote-actions button { min-height: 40px; font-size: max(14px, .18rem); }
+.endless-status {
+  position: absolute; top: 1.7rem; left: 50%; transform: translateX(-50%);
+  max-width: 75%; padding: .06rem .12rem; border-radius: .06rem;
+  background: #101b22e6; color: #a9f5d5; font-size: max(12px, .14rem);
+  text-align: center; pointer-events: none; z-index: 12;
+}

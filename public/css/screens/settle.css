@@ -383,3 +383,4 @@ span.settle__nexticon .icon { width: .34rem; height: .34rem; }
   .settle *, .settle *::before, .settle *::after { animation: none; }
   .sintro { display: none; }
 }
+.settle__extra { display: block; margin-top: .1rem; font-size: max(12px, .16rem); color: #a9f5d5; text-align: center; }

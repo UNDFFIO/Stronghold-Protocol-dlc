@@ -6,7 +6,7 @@
 
 import { drawAscensionLottery } from '../ascensionLottery.js';
 import { PHASE, ERR } from '../../../shared/constants.js';
-import { buildNormalWave, buildBossWave } from '../waves.js';
+import { buildNormalWave, buildBossWave, weightedPick } from '../waves.js';
 import { pairPlayers, bossPairSalt } from '../finalAssault.js';
 import { createRng, deriveSeed } from '../../sim/rng.js';
 import { OK, fail, DELAYS, BAND_TURN_SECONDS } from './common.js';
@@ -293,17 +293,25 @@ export class MatchPhases {
     this.wave = null;
     this.bossWaves = null;
     this.bossPairsRound = null;
-    const alive = this.alivePlayers();
     // the round's enemies (shared composition, generated now so the prep preview is exact). Planned BEFORE the players'
     // round start: its recompute() checks the board on the field the player deploys on this round (deployFieldOf reads
     // the boss pairing), so R14 → R15 never re-checks a boss-field board against the normal field (user playtest #5
     // item 7). rngWaves is used only here, so the order leaves every random stream unchanged.
-    const isBoss = r === this.gd.bossRound || r === this.gd.hiddenRound;
+    const isBoss = this.gd.isBossRound(r);
+    if (this.endless) {
+      this.bossPool = null;
+      this.teamLp = null;
+      // Boss-pool rounding can leave a survivor with a zero personal share. Resolve that before normal prep.
+      this.eliminateBroken();
+      if (!this.alivePlayers().length) { this.finish({ victory: true, hiddenCleared: true, reason: 'endless' }); return; }
+      if (isBoss) this.endless.bossId = weightedPick(this.rngWaves, this.gd.bossWeights(false));
+    }
     if (isBoss) {
       this._planBossWaves();
     } else {
       this.wave = buildNormalWave(this.gd, this.rngWaves, this.factions, r);
     }
+    const alive = this.alivePlayers();
     for (const ps of alive) ps.startRound(r);
     for (const ps of alive) this.dispatch(ps, 'onRoundStart', { round: r });
     // an eliminated player's pending 信标 gift still goes to its teammate (effects flagged afterElimination; GitHub #86)
@@ -324,14 +332,14 @@ export class MatchPhases {
   _planBossWaves() {
     const r = this.round;
     const hidden = r === this.gd.hiddenRound && r !== this.gd.bossRound;
-    const bossId = hidden ? this.hiddenBossId : this.bossId;
+    const bossId = this.endless?.bossId && this.gd.endlessRound(r) ? this.endless.bossId : hidden ? this.hiddenBossId : this.bossId;
     // Pairing uses an independent seeded draw, consuming no shop, wave, draft or battle randomness. The Hidden Core
     // draws its pairs and sides anew (GitHub #845: the official R15 of BV1VCXyBjEN1 p1 pairs 1-2 / 3-4 after an R14 of
     // 1-4 / 2-3; DESIGN §35.27, superseding §30.12's kept partners) from a stream of its own, so the Final Assault's
     // draw is unchanged; a player who changes half keeps the board (bossFieldPlacement mirrors it, the halves' deploy
     // maps are identical). Only the round's first plan draws anew: a re-plan after a departure in its round start, 机变
     // draft or prep (platform.js _quit) keeps the intact pairs and re-pairs the orphan, as the Final Assault does.
-    const fresh = hidden && this.bossPairsRound !== r;
+    const fresh = (hidden || this.gd.endlessRound(r) > 0) && this.bossPairsRound !== r;
     const groups = pairPlayers(this.alivePlayers(), createRng(deriveSeed(this.seed, bossPairSalt(this.gd, r))), fresh ? null : this.bossPairs);
     this.bossPairs = groups.map(g => g.map(p => p.playerId));
     this.bossPairsRound = r;

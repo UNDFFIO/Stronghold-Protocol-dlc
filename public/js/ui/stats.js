@@ -232,6 +232,7 @@ function normalizePlayerRow(raw, quit = false) {
     alive: bool(p.alive, true),
     victory: bool(p.victory), // server semantics: team won AND this player was still in at the end
     roundsPassed: quit ? num(p.roundsPassed) : int(p.roundsPassed, 0),
+    ...(Number.isInteger(p.extraRounds) && p.extraRounds >= 0 ? { extraRounds: p.extraRounds } : {}),
     ...(Number.isInteger(p.creditedKills) && p.creditedKills >= 0 && p.creditedKills <= 1e9 ? { creditedKills: p.creditedKills } : {}),
     eliminatedRound: num(p.eliminatedRound),
     lp: num(p.lp),
@@ -267,6 +268,7 @@ export function normalizeRecord(raw) {
     end: quit ? 'quit' : 'settled',
     victory: bool(r.victory),
     roundsPassed: quit ? num(r.roundsPassed) : int(r.roundsPassed, 0),
+    ...(Number.isInteger(r.extraRounds) && r.extraRounds >= 0 ? { extraRounds: r.extraRounds } : {}),
     lastRound: num(r.lastRound),
     hiddenReached: bool(r.hiddenReached),
     hiddenCleared: bool(r.hiddenCleared),
@@ -397,7 +399,7 @@ export function peekStatsRecords() {
 // ---- compaction + the storage budget ---------------------------------------------------------------------------
 
 const COMPACT_FRAME = ['id', 'v', 't', 'end', 'victory', 'roundsPassed', 'lastRound', 'hiddenReached', 'hiddenCleared', 'reason', 'modeId',
-  'difficulty', 'roomMode', 'durationMs', 'selfId', 'vs', 'content', 'version', 'test', 'testActions'];
+  'difficulty', 'roomMode', 'durationMs', 'extraRounds', 'selfId', 'vs', 'content', 'version', 'test', 'testActions'];
 
 /**
  * The compact form of a record: the frame and the player's OWN row without lineup, bonds and name — everything the
@@ -415,6 +417,7 @@ export function compactRecord(rec) {
     playerId: self.playerId, seat: self.seat, alive: self.alive, victory: self.victory, roundsPassed: self.roundsPassed,
     eliminatedRound: self.eliminatedRound, bandId: self.bandId, title: self.title, left: self.left, stats: self.stats,
     ...(Number.isInteger(self.aiTakeoverRound) ? { aiTakeoverRound: self.aiTakeoverRound } : {}),
+    ...(Number.isInteger(self.extraRounds) ? { extraRounds: self.extraRounds } : {}),
     trophies: self.trophies,
     reward: self.reward,
     ...(usedBondIds.length ? { usedBondIds } : {}),
@@ -517,6 +520,7 @@ export function buildRecord(res, ctx = {}) {
     end: 'settled',
     victory: bool(r.victory),
     roundsPassed: int(r.roundsPassed, 0),
+    ...(Number.isInteger(r.extraRounds) && r.extraRounds >= 0 ? { extraRounds: r.extraRounds } : {}),
     lastRound: num(r.lastRound),
     hiddenReached: bool(r.hiddenReached),
     hiddenCleared: bool(r.hiddenCleared),
@@ -664,6 +668,7 @@ export function recordToResult(rec) {
   const res = {
     victory: r.victory,
     roundsPassed: r.roundsPassed,
+    ...(Number.isInteger(r.extraRounds) && r.extraRounds >= 0 ? { extraRounds: r.extraRounds } : {}),
     hiddenReached: r.hiddenReached,
     hiddenCleared: r.hiddenCleared,
     reason: r.reason,

@@ -25,7 +25,7 @@ export function phaseMode(phase) {
   if (phase === PHASE.BAND_DRAFT) return 'draft';
   if (phase === PHASE.BATTLE_CHECK) return 'boot';
   if (phase === PHASE.RESULT) return 'result';
-  if (phase === PHASE.SETTLE) return 'settle';
+  if (phase === PHASE.SETTLE || phase === PHASE.CONTINUE_VOTE) return 'settle';
   if (COMBAT_PHASES.has(phase)) return 'combat';
   if (PREP_PHASES.has(phase)) return 'prep';
   return 'prep';

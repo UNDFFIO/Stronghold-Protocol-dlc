@@ -12,7 +12,7 @@ function fixture() {
     armor: [], dps: new Map() };
   const m = { round: 1, stageId: 'unknown', wave: { templateId: 'wave' }, _botPath: model, botRehearsal: 3,
     rngBots() { throw new Error('Candidate repair must not draw RNG'); },
-    gd: { bossRound: 14, hiddenRound: 15, chess: id => records[id] } };
+    gd: { bossRound: 14, hiddenRound: 15, isBossRound: r => r === 14 || r === 15, chess: id => records[id] } };
   const map = new Map([['9,3', 'melee'], ['9,4', 'melee'], ['10,6', 'ranged']]);
   const ps = { gd: m.gd, deployMap: () => map };
   const chosen = [{ uid: 1, id: 'front', kind: 'chess' }, { uid: 2, id: 'damage', kind: 'chess' }];

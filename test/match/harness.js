@@ -124,6 +124,7 @@ export function makeMatch(o = {}) {
       for (const ps of m.players.values()) if (m.phase === 'SETTLE' && ps.relicOffer && !ps.left) {
         m.handle(ps.playerId, { t: 'g.relic', offerId: ps.relicOffer.id, idx: 0 });
       }
+      if (m.endlessVote) m.handle(m.endlessVote.voters[0], { t: 'g.endlessVote', agree: false });
       return h.ended != null;
     }, opts);
     assert.ok(h.ended, `match did not end (phase ${m.phase} R${m.round})`);
@@ -152,6 +153,7 @@ export function makeMatch(o = {}) {
       if (h.ended) return !!pred();
       for (const ps of m.players.values()) {
         if (ps.isBot || ps.left) continue;
+        if (m.endlessVote?.voters.includes(ps.playerId)) m.handle(ps.playerId, { t: 'g.endlessVote', agree: false });
         if (m.phase === 'SETTLE' && ps.relicOffer) m.handle(ps.playerId, { t: 'g.relic', offerId: ps.relicOffer.id, idx: 0 });
         if (m.phase === 'INFO_CHECK' && !ps.infoReady) m.handle(ps.playerId, { t: 'g.infoReady' });
         if (m.phase === 'BAND_DRAFT' && m.draftTurn() === ps.playerId) m.handle(ps.playerId, { t: 'g.band', bandId: band });

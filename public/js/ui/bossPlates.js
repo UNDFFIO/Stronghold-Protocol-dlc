@@ -99,6 +99,7 @@ export function bossRoundOver(pub) {
  * @returns {'allClear'|'coreFail'|'abort'|null}
  */
 export function endPlateOf(phase, pub) {
+  if (pub?.extraRound > 0) return null;
   if (phase === PHASE.HIDDEN_CORE && bossRoundOver(pub)) return Number(pub.bossHp.hp) <= 0 ? 'allClear' : 'coreFail';
   if (phase === PHASE.FINAL_ASSAULT && bossRoundOver(pub) && Number(pub.bossHp.hp) > 0) return 'abort';
   // [ASSUMED] the settlement that eliminates the last player shows 模拟中断 in place of the round's result box

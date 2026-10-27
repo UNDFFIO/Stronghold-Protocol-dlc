@@ -46,12 +46,12 @@ export class MatchBoss {
     this.phase = hidden ? PHASE.HIDDEN_CORE : PHASE.FINAL_ASSAULT;
     this.lastResults = new Map();
     if (!hidden) this._openTeamLp();
-    const bossId = hidden ? this.hiddenBossId : this.bossId;
+    const bossId = this.endless?.bossId && this.gd.endlessRound(this.round) ? this.endless.bossId : hidden ? this.hiddenBossId : this.bossId;
     // BOSS_HIT tickers ("对敌方领袖造成的伤害超过20% / 50% / 80%"): the player's damage to THIS leader over its pool —
     // the pool's own per-player tally, one pool per boss round. stats.bossDamage (the result's 领袖伤害) adds up both
     // rounds, so it would credit the Final Assault's damage to the hidden leader ("隐藏boss还没打就出了50%播报").
     const hitSteps = new Map();
-    const pool = new SharedBossPool(bossPoolHp(this.gd, bossId, alive.length), {
+    const pool = new SharedBossPool(bossPoolHp(this.gd, bossId, alive.length) * this.gd.endlessScale(this.round), {
       onHit: (pid, dmg) => {
         const ps = this.players.get(pid);
         if (!ps) return;
@@ -105,7 +105,7 @@ export class MatchBoss {
         routes: wave.routes,
         sharedBoss: this.bossPool,
         // the round's enemy effects for the leaders' mid-fight summons (server/sim/content/bosses.js summonMods)
-        flags: { layerGainsEnabled: false, ...this.gd.dp, enemyScale: this.gd.enemyScale(this.round) },
+        flags: this.endlessFlags({ layerGainsEnabled: false, ...this.gd.dp, enemyScale: this.gd.enemyScale(this.round) }),
         fieldId,
         enemyOverrides: wave.overrides,
         waveId: wave.templateId,
@@ -578,7 +578,7 @@ export class MatchBoss {
         if (pp && ps) this.dispatch(ps, 'onBattleResult', { result: pp, lpLoss: 0, perfect: !!pp.perfect, boss: true });
       }
     }
-    const eligible = !hidden && victory && !!this.hiddenBossId
+    const eligible = !this.endless && !hidden && victory && !!this.hiddenBossId
       && hiddenEligible(this.gd, { layerSum: this.hiddenLayerSum, teamLp: this.teamLp });
     this._syncTeamLp();
     // Collectibles are supplies for the next stage, never an extra choice before the final result.
@@ -588,7 +588,16 @@ export class MatchBoss {
     this.overtimeAt = 0;
     this.markPublic();
     this.runner = null;
-    if (eligible) {
+    if (this.endless) {
+      if (victory) {
+        this.endless.cleared = this.gd.endlessRound(this.round);
+        this.setDeadline(DELAYS.SETTLE / 1000, () => this.startRound(this.round + 1), { silent: this.soloUntimed });
+      } else {
+        this.setDeadline(DELAYS.SETTLE / 1000, () => this.finish({ victory: true, hiddenCleared: true, reason: 'endless' }), { silent: this.soloUntimed });
+      }
+    } else if (hidden && victory) {
+      this.setDeadline(DELAYS.SETTLE / 1000, () => this.openEndlessVote(), { silent: this.soloUntimed });
+    } else if (eligible) {
       this._waitRelicChoices(() => {
         this.hiddenReached = true;
         this.bossPool = null;

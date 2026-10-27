@@ -209,6 +209,7 @@ export class MatchPlatform {
         this.finish({ victory: false, reason: 'abandoned' });
         return;
       }
+      if (this.endlessVote) { this.declineEndless(); return; }
       this._quit(ps);
     });
   }

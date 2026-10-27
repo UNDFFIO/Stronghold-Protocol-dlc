@@ -824,6 +824,7 @@ export function runMatch(cfg) {
   let levelled = !cfg.human?.shopLevel;
   const prepFunds = {};
   sched.runUntil(() => {
+    if (m.endlessVote) m.handle(m.endlessVote.voters[0], { t: 'g.endlessVote', agree: false });
     const key = `${m.phase}:${m.round}`;
     if (key !== last) {
       last = key;

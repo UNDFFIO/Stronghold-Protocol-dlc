@@ -1303,7 +1303,7 @@ function bossCandidateOpts(m, ps, byUid, plan) {
   const players = g.players.map((id) => m.players.get(id)).filter(Boolean);
   const hidden = m.round === m.gd.hiddenRound && m.round !== m.gd.bossRound;
   const kind = hidden ? 'hidden' : 'boss';
-  const bossId = hidden ? m.hiddenBossId : m.bossId;
+  const bossId = m.endless?.bossId && m.gd.endlessRound(m.round) ? m.endless.bossId : hidden ? m.hiddenBossId : m.bossId;
   let spawns = (Array.isArray(wave.spawns) ? wave.spawns : []).map((s) => ({ ...s, mods: s.mods ? { ...s.mods } : undefined }));
   const waveSpawns = (Array.isArray(wave.spawns) ? wave.spawns : []).map((s) => ({ ...s, mods: s.mods ? { ...s.mods } : undefined }));
   players.forEach((p, j) => {
@@ -1330,7 +1330,7 @@ function bossCandidateOpts(m, ps, byUid, plan) {
     if (Array.isArray(ev.spawns)) spawns = ev.spawns;
     if (Array.isArray(ev.routes)) routes = ev.routes;
   }
-  const hp = bossPoolHp(m.gd, bossId, alive.length);
+  const hp = bossPoolHp(m.gd, bossId, alive.length) * m.gd.endlessScale(m.round);
   return {
     seed: faRehearsalSeed(m, ps),
     kind,
@@ -1345,7 +1345,7 @@ function bossCandidateOpts(m, ps, byUid, plan) {
     sharedBoss: new SharedBossPool(hp),
     // the spec the host's browser rebuilds the pool from (buildBattleSpec reads `boss`, not the live pool object)
     boss: { poolHp: hp, poolMax: hp },
-    flags: { layerGainsEnabled: false, ...m.gd.dp, enemyScale: m.gd.enemyScale(m.round) },
+    flags: m.endlessFlags({ layerGainsEnabled: false, ...m.gd.dp, enemyScale: m.gd.enemyScale(m.round) }),
     fieldId: `rb:${ps.playerId}`,
     enemyOverrides: wave.overrides,
     waveId: wave.templateId,
@@ -2189,7 +2189,7 @@ export function* arrangeSteps(m, ps, { final = false, defer = false, delegate = 
  */
 export function* contactCandidatePlansSteps(m, ps, chosen, plans, { budget = Math.min(8, Math.floor(m.botRehearsal)) } = {}) {
   if (!(budget > 1) || !m.wave || !Number.isInteger(m.round) || m.round < 1
-    || m.round === m.gd.bossRound || m.round === m.gd.hiddenRound || !plans.length) return plans;
+    || m.gd.isBossRound(m.round) || !plans.length) return plans;
   const model = fieldModel(m, ps);
   if (!model.routes.length) return plans;
   const base = plans[0], pgd = ps.gd || m.gd, deployMap = ps.deployMap();

@@ -48,6 +48,22 @@ function baseResult(over = {}) {
   };
 }
 
+test('extra-round success and counts survive storage, compaction and report replay after elimination', () => {
+  const raw = baseResult({ extraRounds: 11 });
+  raw.players[0] = { ...raw.players[0], alive: false, victory: true, extraRounds: 11 };
+  const rec = normalizeRecord({ ...raw, selfId: 'p1', end: 'settled' });
+  const replay = recordToResult(rec);
+  assert.equal(replay.extraRounds, 11);
+  assert.equal(replay.players[0].extraRounds, 11);
+  assert.equal(replay.players[0].victory, true);
+  const compact = compactRecord(rec);
+  assert.equal(compact.extraRounds, 11);
+  assert.equal(compact.players[0].extraRounds, 11);
+  const view = normalizeResult(replay, null);
+  assert.equal(view.extraRounds, 11);
+  assert.equal(view.players[0].victory, true);
+});
+
 /** Fake localStorage: Map-backed, with an optional byte budget that makes setItem throw like a full quota. */
 function fakeStorage({ budget = Infinity } = {}) {
   const m = new Map();

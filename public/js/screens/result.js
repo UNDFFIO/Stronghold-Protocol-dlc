@@ -75,7 +75,7 @@ function PlayerCard({ p, relics, myId, titles, best, solo = false, skinOwnerId =
   const band = p.bandId ? gd.band(p.bandId) : null;
   const lineup = p.lineup.slice(0, 10);
   const bonds = resultBonds(p.bonds, (id) => gd.bond(id));
-  return html`<article class=${cx('rcard', p.playerId === myId && 'is-self', p.alive === false && 'is-dead')}>
+  return html`<article class=${cx('rcard', p.playerId === myId && 'is-self', p.alive === false && !p.victory && 'is-dead')}>
     <header class="rcard__head">
       <${PlayerAvatar} player=${p} self=${p.playerId === myId} />
       <div class="rcard__who">
@@ -91,6 +91,7 @@ function PlayerCard({ p, relics, myId, titles, best, solo = false, skinOwnerId =
         ${bonds.length ? html`<div class="rcard__bonds">${bonds.map((b) => html`<span key=${b.bondId} class=${cx('rbond', b.active && 'is-on')} title=${gd.bond(b.bondId)?.name || b.bondId}>
           <${BondGlyph} bondId=${b.bondId} />${b.hideLayers ? null : html`<b class="num">${b.layers ?? 0}</b>`}</span>`)}</div>` : null}
       </div>
+      ${p.extraRounds != null && p.victory ? html`<p>${t('成功 · 额外通过 {n} 回合', { n: p.extraRounds })}</p>` : null}
       <div class="rcard__round"><${MicroLabel}>ROUNDS</${MicroLabel}><b class="num">${p.roundsPassed}</b>
         ${p.trophies > 0 || p.reward > 0 ? html`<span class="rcard__gain">${p.trophies > 0 ? html`<span title=${t('获得奖杯')}><${Icon} name="crown" /><b class="num">+${p.trophies}</b></span>` : null}${p.reward > 0 ? html`<span title=${t('卫戍认证')}><${Icon} name="shield" /><b class="num">+${p.reward}</b></span>` : null}</span>` : null}
       </div>
@@ -149,6 +150,7 @@ export function ResultView({ res, pub = null, myId = null, backLabel, onBack, qu
         <${UnofficialMark} room=${content ? { content } : null} class="result__modmark" /><${VersionTag} version=${version} class="result__vertag" />
         ${res?.test === true ? html`<p class="result__test" data-testid="result-test"><${TestMark} /> ${t('测试对局')}${Number.isInteger(res.testActions) ? html` · ${t('测试指令 {n} 次', { n: res.testActions })}` : null}</p>
           <p class="t-dim">${t('本局为测试对局，不计入统计、成就、称号、徽章与卫戍认证。')}</p>` : null}
+        ${r.extraRounds != null ? html`<p class="result__sub">${t('成功 · 额外通过 {n} 回合', { n: r.extraRounds })}</p>` : null}
         <p class="result__sub">${r.victory ? t('成功卫戍 · 敌方领袖已被击败') : t('防线已被突破')}</p>
         <div class="result__rounds">
           <span class="result__rlabel">${t('通过回合')}</span>

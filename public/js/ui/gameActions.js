@@ -90,6 +90,7 @@ export const actions = {
   destroy: (uid) => act('g.destroy', { uid }),
   unequip: (itemUid) => act('g.unequip', { itemUid }),
   reward: (idx) => act('g.reward', { idx }),
+  endlessVote: (agree) => act('g.endlessVote', { agree }),
   relic: (offerId, idx) => act('g.relic', { offerId, idx }),
   relicDebug: (relicId, action) => act('g.relicDebug', { relicId, action }),
   relicRevive: (relicId, playerId) => act('g.relicRevive', { relicId, playerId }, { sfx: 'confirm' }),

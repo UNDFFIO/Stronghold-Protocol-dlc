@@ -465,7 +465,7 @@ function SelfPage({ r, res, raw, self, gd, prog, content, onNext, version = null
       <div class="sself__band">${self.bandId ? html`<${BandIcon} bandId=${self.bandId} size="lg" />` : html`<${PlayerAvatar} player=${self} self=${true} />`}<i aria-hidden="true"></i></div>
       <div class="sself__mode"><${ModePill} r=${r} /><${UnofficialMark} room=${content ? { content } : null} class="sself__modmark" /><${VersionTag} version=${version} class="sself__vertag" /><${SettleTestMark} res=${res} /></div>
       <${SettleTitle} class="sself__title">${cleared ? t('模拟完成') : t('模拟中断')}</${SettleTitle}>
-      <div class="sself__rounds"><span>${t('通过回合')}</span><b class="num">${rounds}</b></div>
+      <div class="sself__rounds"><span>${t('通过回合')}</span><b class="num">${rounds}</b>${self.extraRounds != null && cleared ? html`<small class="settle__extra">${t('成功 · 额外通过 {n} 回合', { n: self.extraRounds })}</small>` : null}</div>
       ${medals.length ? html`<div class="sself__medals">${medals.map((m, i) => html`<${Medal} key=${m.kind} m=${m} i=${i} />`)}</div>` : null}
       <div class="splate">
         <${PlayerAvatar} player=${self} self=${true} class="splate__ava" />
@@ -516,14 +516,14 @@ function TeamCard({ p, i, gd, self, victory, raw }) {
   const title = titleView(p, gd);
   const cleared = rowCleared(raw, p, victory);
   const band = p.bandId ? gd.band(p.bandId) : null;
-  return html`<article class=${cx('tcard', self && 'is-self', p.alive === false && 'is-dead', p.left && 'is-left', cleared ? 'is-clear' : 'is-fail')} style=${`--i:${i}`}>
+  return html`<article class=${cx('tcard', self && 'is-self', p.alive === false && !cleared && 'is-dead', p.left && 'is-left', cleared ? 'is-clear' : 'is-fail')} style=${`--i:${i}`}>
     <header class="tcard__head" aria-hidden="true"><i class="tcard__pin"></i><span class="tcard__code"><i></i><i></i><i></i>STRONGHOLD PROTOCOL</span><span class="tcard__seat num">${pad2(p.seat + 1)}</span></header>
     <div class="tcard__art">
       <${OperatorImage} m=${gd.m} chess=${v?.rec} ownerId=${p.playerId} skin=${ace?.skin} portrait avatarFallback portraitClass="tcard__img is-portrait" avatarClass="tcard__img is-avatar" fallback=${html`<span class="tcard__glyph">${[...(p.name || '?')][0]}</span>`} />
       ${p.left ? html`<span class="tcard__cut">${t('连接中断')}</span>` : null}
       ${title ? html`<div class="tcard__title" title=${title.text}>
         <${Img} src=${title.icon} class="tcard__ticon" fallback=${html`<${Icon} name="crown" class="tcard__ticon" />`} /><b>${title.name}</b></div>` : null}
-      <div class="tcard__rounds"><span>${t('通过回合')}</span><b class="num">${p.roundsPassed}</b></div>
+      <div class="tcard__rounds"><span>${p.extraRounds != null && cleared ? t('额外通过回合') : t('通过回合')}</span><b class="num">${p.extraRounds != null && cleared ? p.extraRounds : p.roundsPassed}</b></div>
     </div>
     <div class="tcard__plate">
       <${Sprite} k=${plateArt(p, self)} class="tcard__platebg" />
@@ -563,7 +563,7 @@ function TeamPage({ r, res, gd, myId, at: when, content, backLabel, onBack, onDe
         <span class="steam__tags"><${ModePill} r=${r} /><${UnofficialMark} room=${content ? { content } : null} /><${VersionTag} version=${version} /><${SettleTestMark} res=${res} /></span>
         <${SettleTitle} as="b" class="steam__title">${r.victory ? t('模拟完成') : t('模拟中断')}</${SettleTitle}>
       </div>
-      <div class="steam__rounds"><span>${t('同盟通过回合')}</span><b class="num">${rounds}</b></div>
+      <div class="steam__rounds"><span>${t('同盟通过回合')}</span><b class="num">${rounds}</b>${r.extraRounds != null ? html`<small class="settle__extra">${t('成功 · 额外通过 {n} 回合', { n: r.extraRounds })}</small>` : null}</div>
       <div class="steam__when">
         <span class="steam__row"><${Sprite} k="settle/date_time_bg" class="steam__rowbg" /><${Sprite} k="settle/time_icon" class="steam__ico" />${fmtDuration(r.durationMs)}</span>
         <span class="steam__row"><${Sprite} k="settle/date_time_bg" class="steam__rowbg" /><${Sprite} k="settle/date_icon" class="steam__ico" />${fmtDate(when)}</span>

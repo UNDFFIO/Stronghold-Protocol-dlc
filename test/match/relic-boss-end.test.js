@@ -32,7 +32,11 @@ for (const scenario of ['no hidden boss', 'insufficient layers', 'insufficient L
       } else {
         assert.equal(ps.relicOffer, null);
         assert.ok(!m._relicContinue);
-        h.run(() => m.ended);
+        if (hidden && victory) {
+          h.run(() => m.phase === PHASE.CONTINUE_VOTE);
+          assert.equal(m.ended, false);
+          assert.deepEqual(m.voteEndless(ps, false), { ok: true });
+        } else h.run(() => m.ended);
         assert.equal(m.phase, PHASE.RESULT);
         assert.equal(ps.relics.length, 0);
         assert.equal(m.outcome.victory, hidden || victory);

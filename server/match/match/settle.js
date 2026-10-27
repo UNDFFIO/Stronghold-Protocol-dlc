@@ -133,11 +133,14 @@ export class MatchSettle {
 
   afterSettle() {
     if (!this.alivePlayers().length) { this.finish({ victory: false, reason: 'eliminated' }); return; }
+    if (this.endless) this.endless.cleared = this.gd.endlessRound(this.round);
     resetRoundCounters(this); // AI bot merge-counter resets each round (server/match/botEmotes.js)
     this.startRound(this.round + 1);
   }
 
   finish({ victory, hiddenCleared = false, reason = 'defeat' }) {
+    if (this.endless || this.endlessVote) { victory = true; hiddenCleared = true; }
+    this.endlessVote = null;
     // A command that ends a test match must be audited/counted before publishing its result.
     if (this.test && this._testApplying) { this._testOutcome = { victory, hiddenCleared, reason }; return; }
     if (this.ended || this.disposed) return;

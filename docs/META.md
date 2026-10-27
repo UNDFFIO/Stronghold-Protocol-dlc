@@ -42,6 +42,23 @@ server/match/
 
 ## 1. Match flow
 
+### DLC: Extra rounds after Hidden Core
+
+After a victorious Hidden Core, `MatchEndless.openEndlessVote()` enters `CONTINUE_VOTE`. The server publishes
+`m.public.endlessVote { voters, agreed }` and accepts `g.endlessVote { agree: boolean }` only from a connected,
+surviving voter. All surviving present humans must consent; AI seats follow. Refusal, departure or a 30-second
+team deadline settles the clear; solo has no deadline. Reconnect receives the current vote. Acceptance records the
+original winners and starts the next round without invoking `finish` or publishing `m.result`.
+
+`GameData.endlessRound`, `waveRound` and `isBossRound` extend the round configuration without changing generated
+data. Normal waves reuse the last normal template and redraw faction entries; every sixth extra round redraws the
+weighted regular boss pool. `flags.endlessEnemyScale = 1 + 0.05 * N` travels through real, client, rehearsal and Unite
+BattleSpecs; spawn base HP/ATK scale once, outside inherited spawn mods, and shared boss HP scales independently.
+The public view carries `extraRound`, `extraRounds`, `extraBossRound` and `extraBossId`. Extra boss victories return
+to the round loop; losses preserve Hidden Core success. Results carry team/per-player `extraRounds` (completed
+extra rounds only), preserve the original winners, and retain base rewards. Full rules and assumptions:
+[design/match.md](design/match.md#dlc隐秘核心后的额外挑战2026-10-26维护者决定).
+
 ### DLC: Collectible eligibility
 
 Completed battles offer one collectible from three choices when the surviving, present player's actual LP loss is at most 5, including zero. Normal settlement passes the loss after the per-round cap, co-op rescue and LP effects; healing counts as zero loss. Boss settlement uses the player's loss of their shared-pool allocation and still requires a victorious Final Assault that unlocks Hidden Core. Missing, synthetic and duplicate results never grant extra rewards. Consecutive-leak compensation, promoted quality draws and next-round shield grants are removed. No-leak tier weights and unlock rounds are unchanged. Counted personal leaks shift each candidate down one quality tier, floored at Common, even after co-op rescue. `dropWeights(round, { leaked: true })` combines I+II into I and shifts III/IV/V into II/III/IV before exhausted-tier normalization. Leaking rewards cannot be Legendary; unrelated explicit reward pools are unchanged. Source: maintainer request, 2026-10-24.
@@ -81,8 +98,9 @@ The maintainer-defined Negative quality uses internal tier 6 with `normalDrop: f
 ### DLC: Boss-stage collectible choices
 
 `Match._finishFinal` generates and waits for collectible choices only when a victorious Final Assault unlocks
-Hidden Core. Without a next stage (including after Hidden Core), it retains the settlement presentation delay
-and proceeds to RESULT without creating offers or granting collectibles to bots.
+Hidden Core. Without a next stage it retains the settlement presentation delay and proceeds to RESULT. A Hidden
+Core victory instead opens the continuation vote, without creating offers or granting collectibles to bots. Extra
+normal rounds retain ordinary collectible eligibility; extra boss rounds do not grant new collectible choices.
 
 ### DLC integration with upstream 0.3.0
 
