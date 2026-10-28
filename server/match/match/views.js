@@ -6,6 +6,7 @@
 
 import { activeRelicShield, activeReverseLp, previewRelicLpLoss, relicsView } from '../relics.js';
 import { deathNoteKeys } from '../deathNote.js';
+import { withRoadEnemies } from '../relicRoad.js';
 import { PHASE, GEO } from '../../../shared/constants.js';
 import { TEST_PUBLIC_LOG } from '../../../shared/testMode.js';
 import { boardOrder, pieceDir } from '../board.js';
@@ -287,6 +288,8 @@ export class MatchViews {
       const g = this.bossGroupOf(ps);
       if (!g) return [];
       spawns = [...g.wave.spawns, ...bountySpawns(this.gd, this.round, g.wave, ps.bounties, ps.playerId, { solo: this.isSolo, side: g.side })];
+      spawns = withRoadEnemies(this, ps, spawns, g.wave.routes, { side: this.isSolo || g.players.length === 1 ? null : g.side,
+        baseSpawns: g.wave.spawns });
     } else {
       if (!this.wave) return [];
       spawns = this._normalRelicSpawns().get(ps.playerId) || [];

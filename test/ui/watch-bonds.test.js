@@ -252,6 +252,12 @@ describe('§20.15 the ‹ › pill of a shared field watched with 前往查看 (
 });
 
 describe('§20.15 the bonds: views + live layers', () => {
+  test('little grinder: live losses reach zero when the holder has the curse', () => {
+    const pub = PUB();
+    pub.players.find((p) => p.playerId === 'p2').relics = [{ id: 'relic_220' }];
+    const view = playerBonds({ pub, priv: PRIV, myId: ME, ownerId: 'p2', live: { p2: { sargonShip: 0 } } });
+    assert.equal(view.find((b) => b.bondId === 'sargonShip').layers, 0);
+  });
   test('ownerBonds: your m.private list, a teammate\'s m.public list', () => {
     assert.equal(ownerBonds({ pub: PUB(), priv: PRIV, myId: ME, ownerId: ME }), PRIV.bonds);
     assert.deepEqual(ownerBonds({ pub: PUB(), priv: null, myId: ME, ownerId: ME }), PUB().players[0].bonds, 'no m.private yet: the public row');

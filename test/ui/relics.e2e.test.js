@@ -28,6 +28,132 @@ async function closed(page) {
   await page.waitForSelector('.relic-panel', { hidden: true });
 }
 
+test('four new official curses: collection, journal-ready copy and transparent PNG decoding', {
+  skip: !ENABLED && 'set SP_E2E=1 and provide system Chrome', timeout: 120000,
+}, async () => {
+  const page = await browser.newPage();
+  try {
+    await page.goto(`${base}/dev/game-mock.html?shot=1&phase=PREP`, { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('.relic-icons__heading');
+    const ids = ['relic_227', 'relic_228', 'relic_219', 'relic_220'];
+    await page.evaluate((ids) => globalThis.__MOCK__.mutate((s) => {
+      s.priv.relics = ids.map((id) => ({ id, round: 2 }));
+    }), ids);
+    await page.waitForFunction((ids) => ids.every((id) => {
+      const img = document.querySelector(`.effect--relic[data-relic-id="${id}"] img`);
+      return img?.complete && img.naturalWidth > 0;
+    }), {}, ids);
+    await page.$eval('.relic-icons__heading', (el) => el.click());
+    await page.waitForSelector('.relic-panel');
+    const text = await page.$eval('.relic-panel', (el) => el.textContent);
+    // The public roster controls the global curse; this fixture exercises the plain catalogue copy first.
+    for (const name of ['无垠赠礼', '路网', '追忆仪', '“小磨唧”']) assert.ok(text.includes(name));
+    assert.match(text, /负面/); assert.match(text, /50%/); assert.match(text, /20层/); assert.match(text, /7件/);
+    for (const selector of ['.tbanner', '.mpop--phase', '.pbanner--overlay']) await page.waitForSelector(selector, { hidden: true });
+    await page.screenshot({ path: `${OUT}/official-four-new-curses.png` });
+    for (const id of ids) {
+      const decoded = await page.evaluate(async (id) => {
+        const response = await fetch(`/assets/relics/${id}.png`);
+        const bitmap = await createImageBitmap(await response.blob());
+        const canvas = document.createElement('canvas'); canvas.width = bitmap.width; canvas.height = bitmap.height;
+        const ctx = canvas.getContext('2d'); ctx.drawImage(bitmap, 0, 0);
+        const rgba = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+        return { status: response.status, width: canvas.width, alpha: [...rgba].some((v, i) => i % 4 === 3 && v === 0) };
+      }, id);
+      assert.equal(decoded.status, 200); assert.ok(decoded.width > 0); assert.equal(decoded.alpha, true);
+    }
+  } finally { await page.close(); }
+});
+
+test('boundless gift: teammate-owned global reversal, dynamic DOM/attributes/Pixi, digit-mask composition and full restoration', {
+  skip: !ENABLED && 'set SP_E2E=1 and provide system Chrome', timeout: 120000,
+}, async () => {
+  const page = await browser.newPage();
+  const errors = []; page.on('pageerror', (e) => errors.push(e.message));
+  try {
+    await page.goto(`${base}/dev/game-mock.html?shot=1&phase=PREP`, { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('.relic-icons__heading');
+    await page.evaluate(async () => {
+      const label = document.createElement('div'); label.id = 'gift-label'; label.textContent = '金币123'; label.title = '金币123'; document.body.append(label);
+      const input = document.createElement('input'); input.id = 'gift-input'; input.value = '书写名字123'; document.body.append(input);
+      const { installPixiNumberMask } = await import('/js/ui/numberMask.js');
+      class Text { constructor() { this._text = '金币123'; } updateText() { this.rendered = this._text; } }
+      installPixiNumberMask({ Text }); globalThis.__giftText = new Text(); globalThis.__giftText.updateText();
+      globalThis.__MOCK__.mutate((s) => { s.pub.players[1].relics = [{ id: 'relic_227', round: 1 }]; });
+    });
+    await page.waitForFunction(() => document.querySelector('#gift-label').textContent === '321币金');
+    assert.deepEqual(await page.evaluate(() => [document.querySelector('#gift-label').title, document.querySelector('#gift-input').value,
+      globalThis.__giftText.rendered, globalThis.__giftText._text]), ['321币金', '书写名字123', '321币金', '金币123']);
+    await page.evaluate(() => {
+      document.querySelector('#gift-label').firstChild.nodeValue = '准备45';
+      document.querySelector('#gift-label').title = '准备45';
+      globalThis.__MOCK__.mutate((s) => { s.priv.relics = [{ id: 'relic_159', round: 1 }]; });
+    });
+    await page.waitForFunction(() => document.querySelector('#gift-label').textContent === '54备准' && document.querySelector('#gift-label').title === '■■备准');
+    await page.screenshot({ path: `${OUT}/boundless-gift-reversed.png` });
+    await page.evaluate(() => globalThis.__MOCK__.mutate((s) => { s.pub.players[1].relics = []; s.priv.relics = []; }));
+    await page.waitForFunction(() => document.querySelector('#gift-label').textContent === '准备45' && document.querySelector('#gift-label').title === '准备45');
+    assert.deepEqual(await page.evaluate(() => [globalThis.__giftText.rendered, globalThis.__giftText._text]), ['金币123', '金币123']);
+    assert.deepEqual(errors, []);
+  } finally { await page.close(); }
+});
+
+test('四件官方负面藏品：名称效果、红色品质与官方PNG实际解码', {
+  skip: !ENABLED && 'set SP_E2E=1 and provide system Chrome', timeout: 120000,
+}, async () => {
+  const page = await browser.newPage();
+  try {
+    await page.goto(`${base}/dev/game-mock.html?shot=1&phase=PREP`, { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('.relic-icons__heading');
+    const ids = ['relic_177', 'relic_181', 'relic_185', 'relic_187'];
+    await page.evaluate((ids) => globalThis.__MOCK__.mutate((s) => {
+      s.priv.relics = ids.map((id) => ({ id, round: 2 }));
+    }), ids);
+    for (const id of ids) {
+      const selector = `.effect--relic[data-relic-id="${id}"]`;
+      await page.waitForFunction((selector) => {
+        const img = document.querySelector(`${selector} img`);
+        return img?.complete && img.naturalWidth > 0;
+      }, {}, selector);
+    }
+    await page.$eval('.relic-icons__heading', (el) => el.click());
+    await page.waitForSelector('.relic-panel');
+    const text = await page.$eval('.relic-panel', (el) => el.textContent);
+    for (const name of ['乌萨斯弯刀', '莱塔尼亚权杖', '半洗孤钻', '酒神的印记']) assert.ok(text.includes(name));
+    assert.match(text, /负面/); assert.match(text, /金币数量-50%/); assert.match(text, /可同时部署人数-1/);
+    assert.match(text, /最多降至1/);
+    for (const selector of ['.tbanner', '.mpop--phase', '.pbanner--overlay']) await page.waitForSelector(selector, { hidden: true });
+    await page.screenshot({ path: `${OUT}/official-negative-relics.png` });
+    for (const id of ids) assert.equal((await page.goto(`${base}/assets/relics/${id}.png`)).status(), 200);
+  } finally { await page.close(); }
+});
+
+test('负面死亡笔记：收藏栏与详情显示负面品质并解码复用图标', {
+  skip: !ENABLED && 'set SP_E2E=1 and provide system Chrome', timeout: 120000,
+}, async () => {
+  const page = await browser.newPage();
+  try {
+    await page.goto(`${base}/dev/game-mock.html?shot=1&phase=PREP`, { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('.relic-icons__heading');
+    await page.evaluate(() => globalThis.__MOCK__.mutate((s) => {
+      s.priv.relics = [{ id: 'relic_241', round: 2 }, { id: 'relic_242', round: 3 }];
+    }));
+    const selector = '.effect--relic[data-relic-id="relic_242"]';
+    await page.waitForFunction((selector) => {
+      const img = document.querySelector(`${selector} img`);
+      return img?.complete && img.naturalWidth > 0;
+    }, {}, selector);
+    assert.ok(await page.$('.effect--relic[data-relic-id="relic_241"]'));
+    await page.$eval(selector, (el) => el.click());
+    await page.waitForSelector('.relic-panel');
+    const text = await page.$eval('.relic-panel', (el) => el.textContent);
+    assert.match(text, /死亡笔记/); assert.match(text, /负面/);
+    assert.match(text, /本场战斗无法复活/);
+    const response = await page.goto(`${base}/assets/relics/relic_242.png`);
+    assert.equal(response.status(), 200);
+  } finally { await page.close(); }
+});
+
 test('热水壶：重复补位卡片更新后仍可选择最后一项', {
   skip: !ENABLED && 'set SP_E2E=1 and provide system Chrome', timeout: 120000,
 }, async () => {
@@ -594,7 +720,8 @@ test('phone/desktop: icons wrap, tooltips stay clear of three-choice dialogs, an
           ? r.left < icons[i - 1].left && r.top === icons[0].top
           : r.left === icons[i - 1].left && r.top > icons[i - 1].top));
         const style = getComputedStyle(el);
-        return { noScroll: style.overflowX === 'visible' && style.overflowY === 'visible', visible: last.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)), rows: rows.size, columns: columns.size, ordered, right: r.right, bottom: r.bottom };
+        return { noScroll: style.overflowX === 'visible' && style.overflowY === 'visible', visible: last.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)), rows: rows.size, columns: columns.size, ordered, right: r.right, bottom: r.bottom,
+          cover: document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)?.outerHTML.slice(0, 400) };
       });
       assert.ok(wrapping.noScroll && wrapping.visible && wrapping.rows === 5 && wrapping.columns === 3 && wrapping.ordered, `${width}: icons must fill columns downwards from right to left ${JSON.stringify(wrapping)}`);
       assert.ok(wrapping.right <= width && wrapping.bottom <= height);
@@ -778,6 +905,7 @@ test('收藏栏：最多三列、更多入口、稀有度优先及隐藏票券�
             rows: new Set(frames.map((r) => Math.round(r.top))).size,
             equalFrames: frames.every((r) => r.width === frames[0].width && r.height === frames[0].height),
             reachable: !more || more.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)),
+            cover: more ? document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)?.outerHTML.slice(0, 400) : null,
             inViewport: frames.every((r) => r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight),
             label: more?.getAttribute('aria-label'), dots: more?.textContent.trim() };
         });
@@ -798,6 +926,8 @@ test('收藏栏：最多三列、更多入口、稀有度优先及隐藏票券�
         const { drawScratchTicket } = await import('/shared/scratchTickets.js');
         globalThis.__MOCK__.mutate((s) => {
           s.priv.scratch = { seq: 1, tickets: [{ id: 'scratch:overflow:1', tier: 1, relicId: 'relic_235', round: 1, opened: false }], lastResult: null };
+          // The catalog can exceed the 64-entry sample: a ticket requires its identity card and collection record.
+          for (const id of ['relic_234', 'relic_235']) if (!s.priv.relics.some((r) => r.id === id)) s.priv.relics.push({ id, round: 1 });
           s.scratchSecret = { 'scratch:overflow:1': drawScratchTicket(1, () => .5) };
         });
       });

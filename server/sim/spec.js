@@ -415,7 +415,7 @@ export function compactResult(res) {
   for (const pid of Object.keys(r.perPlayer || {}).slice(0, 4)) {
     const p = r.perPlayer[pid] || {};
     const layerGains = {};
-    for (const [k, v] of Object.entries(p.layerGains || {}).slice(0, 40)) if (isKey(k) && fnum(v) > 0) layerGains[k] = Math.min(1e4, fnum(v));
+    for (const [k, v] of Object.entries(p.layerGains || {}).slice(0, 40)) if (isKey(k) && fnum(v) !== 0) layerGains[k] = Math.max(-1e4, Math.min(1e4, fnum(v)));
     const total = Math.max(0, Math.trunc(fnum(p.total)));
     perPlayer[pid] = {
       // `killed` keeps the sim's reading (every counted knock-out, runtime splits / summons included) and is deliberately

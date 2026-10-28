@@ -399,7 +399,7 @@ export function createBattleRunner(deps) {
    */
   function noteLayers(e) {
     const b = e.battle;
-    if (!b || (b.flags && b.flags.layerGainsEnabled === false) || typeof b.getPlayer !== 'function') return;
+    if (!b || typeof b.getPlayer !== 'function') return;
     let sum = 0;
     let live = null;
     for (const sp of Array.isArray(e.spec.players) ? e.spec.players : []) {
@@ -409,14 +409,16 @@ export function createBattleRunner(deps) {
       for (const id of Object.keys(ps.bonds)) {
         const n = Number(ps.bonds[id] && ps.bonds[id].layers) || 0;
         const from = Number(start[id] && start[id].layers) || 0;
-        if (!(n > from)) continue;
+        if (n === from) continue;
         sum += n - from;
         if (!live) live = {};
         if (!live[sp.playerId]) live[sp.playerId] = {};
         live[sp.playerId][id] = n;
       }
     }
-    if (sum === e.layerSum) return;
+    const signature = JSON.stringify(live);
+    if (signature === e.layerSignature) return;
+    e.layerSignature = signature;
     e.layerSum = sum;
     e.live = live;
     leaksDirty = true;

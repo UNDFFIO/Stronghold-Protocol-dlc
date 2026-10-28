@@ -6,6 +6,46 @@ import { DataSource } from '../../server/sim/simdata.js';
 import { buildBattleSpec, createBattleFromSpec, resultDigest } from '../../server/sim/spec.js';
 
 const ATK = 'relic_003';
+test('官方负面藏品：出生满血、真实伤害、后续生成、重复持有及安装不叠加', () => {
+  for (const [relics, mul] of [[['relic_177'], 1.4], [['relic_181'], 1.3], [['relic_185'], 1.25],
+    [['relic_187'], 1.3], [['relic_177', 'relic_181', 'relic_185', 'relic_187', 'relic_177'], 2.25]]) {
+    const f = fight(relics, { enemies: [{ key: 'curse_enemy', mods: { hpMul: 2, atkMul: 2, defMul: 2 } }],
+      defs: { chess: { r_guard: op('r_guard') },
+        enemies: { curse_enemy: enemyRec({ key: 'curse_enemy', hp: 1000, atk: 100, def: 100, speed: 0 }) } },
+      players: [player(relics), player(relics, [piece('r_guard', 2, 10, 6)], { playerId: 'p2', seat: 1 })] });
+    f.step(); const e = f.enemies()[0];
+    close(e.s.maxHp, 2000 * mul, 'HP'); close(e.hp, e.s.maxHp, 'full health');
+    close(e.s.atk, 200 * mul, 'ATK'); close(e.s.def, 200 * mul, 'DEF');
+    close(f.unit(1).s.maxHp, 2000, 'allies unchanged');
+    installRelics(f.b); installRelics(f.b); close(e.s.atk, 200 * mul, 'installation idempotent');
+    const child = f.b.spawnEnemy('curse_enemy', { mods: e.mods });
+    close(child.s.maxHp, e.s.maxHp, 'inherited spawn mods receive one curse');
+    f.b.dealDamage({ source: null, target: child, amount: 100, type: 'true' });
+    close(child.hp, child.s.maxHp - 100, 'real damage on increased health');
+    healthy(f);
+  }
+});
+
+test('官方负面藏品：共享首领实际生命强化，服务端与浏览器JSON spec结果一致', () => {
+  const raw = { enemies: { curse_boss: enemyRec({ key: 'curse_boss', hp: 1000, atk: 100, def: 100, speed: 0 }) },
+    stages: { curse_stage: flatStage({ id: 'curse_stage' }) } };
+  for (const kind of ['normal', 'unite', 'boss', 'hidden']) {
+    const spec = buildBattleSpec({ seed: 28, stageId: 'curse_stage', kind, round: 8, timeLimit: 2,
+      players: [player(['relic_177'], [])], routes: flatRoutes(), boss: { poolHp: 1000, poolMax: 1000 },
+      spawns: [{ time: 0, enemyKey: 'curse_boss', count: 1, tag: kind === 'boss' || kind === 'hidden' ? 'boss' : null }] });
+    const server = createBattleFromSpec(spec, new DataSource(raw, null), { quiet: true });
+    const browser = createBattleFromSpec(JSON.parse(JSON.stringify(spec)), new DataSource(JSON.parse(JSON.stringify(raw)), null), { quiet: true });
+    for (const b of [server, browser]) {
+      b.step(); const e = b.enemies[0];
+      close(e.s.maxHp, 1400, 'leader HP'); close(e.hp, 1400, 'leader full health');
+      b.dealDamage({ source: null, target: e, amount: 140, type: 'true' });
+      close(e.hp, 1260, '140 damage removes 140 effective health');
+      if (e.bossPool) close(e.bossPool.hp, 900, '100 base-pool units');
+      b.runToEnd(3); assert.deepEqual(b.errors, []);
+    }
+    assert.equal(resultDigest(server.result()).hash, resultDigest(browser.result()).hash);
+  }
+});
 test('死亡笔记：相同JSON spec在服务端和浏览器数据源移除相同类型，结果digest一致', () => {
   const raw = { enemies: { enemy_erased: enemyRec({ key: 'enemy_erased', hp: 1000, speed: 0 }) },
     stages: { note_stage: flatStage({ id: 'note_stage' }) } };
@@ -69,6 +109,83 @@ const BELL = 'relic_154';
 const SHIRT = 'relic_155';
 
 const close = (actual, expected, message) => assert.ok(Math.abs(actual - expected) < 1e-7, `${message}: ${actual} != ${expected}`);
+
+test('负面死亡笔记：开场仅杀死本人一名干员，绕过保命并禁止所有再部署路径', () => {
+  const f = fight(['relic_242', 'relic_242'], {
+    players: [player(['relic_242', 'relic_242'], [piece(), piece('r_guard', 2, 10, 5)]),
+      { ...player([], [piece('r_guard', 3, 10, 6)]), playerId: 'p2', seat: 1 }],
+  });
+  let survival = 0;
+  f.b.on('kill', ({ victim }) => { survival++; victim.hp = victim.s.maxHp; });
+  f.b.on('death', ({ unit }) => {
+    assert.equal(f.b.redeploy(unit), false, 'death-hook revival is refused');
+    assert.equal(f.b._deploy(unit), false, 'direct deployment cannot bypass permanent removal');
+  });
+  f.step();
+  const dead = f.b.allyUnits.filter((u) => u.ownerId === 'p1' && !u.alive);
+  assert.equal(dead.length, 1);
+  assert.equal(dead[0].hp, 0);
+  assert.equal(dead[0].removed, true);
+  assert.equal(f.unit(3).alive, true);
+  assert.equal(survival, 0, 'forced death bypasses kill-hook survival');
+  assert.equal(f.b._buildResult().perPlayer.p1.deaths, 1);
+  f.run(3);
+  assert.equal(dead[0].alive, false, 'automatic redeployment is refused');
+  f.b.emit('battleStart', {});
+  assert.equal(f.b.allyUnits.filter((u) => u.ownerId === 'p1' && !u.alive).length, 1);
+  assert.deepEqual(f.b.errors, []);
+});
+
+test('负面死亡笔记：每名持有者独立触发，空阵容不出错，下一场重新生效', () => {
+  for (let round = 1; round <= 2; round++) {
+    const f = fight(['relic_242'], { round,
+      players: [player(['relic_242']), { ...player(['relic_242'], [piece('r_guard', 2, 10, 6)]), playerId: 'p2', seat: 1 },
+        { ...player(['relic_242'], []), playerId: 'p3', seat: 2 }],
+    });
+    f.step();
+    assert.equal(f.unit(1).alive, false);
+    assert.equal(f.unit(2).alive, false);
+    assert.deepEqual(f.b.errors, []);
+  }
+  const plain = fight(); plain.step();
+  assert.equal(plain.unit(1).alive, true);
+});
+
+test('负面死亡笔记：种子相同则随机目标相同，不同种子可选择不同干员', () => {
+  const selected = new Set();
+  for (let seed = 1; seed <= 20; seed++) {
+    const run = () => {
+      const f = fight(['relic_242'], { seed,
+        players: [player(['relic_242'], [piece(), piece('r_guard', 2, 10, 5), piece('r_guard', 3, 10, 6)])] });
+      f.step();
+      return f.b.allyUnits.find((u) => u.removed).uid;
+    };
+    const target = run();
+    assert.equal(run(), target);
+    selected.add(target);
+  }
+  assert.ok(selected.size > 1);
+});
+
+test('负面死亡笔记：排除召唤物，JSON两端选择与结果一致', () => {
+  const raw = { chess: { r_guard: op('r_guard') },
+    tokens: { note_token: { name: 'test summon', stats: { maxHp: 2000 }, rangeGrid: [[0, 0]], skill: null } },
+    stages: { note_stage: flatStage({ id: 'note_stage' }) } };
+  for (const kind of ['normal', 'unite', 'boss', 'hidden']) {
+    const spec = buildBattleSpec({ seed: 17, stageId: 'note_stage', kind, round: 5, timeLimit: 5,
+      players: [player(['relic_242'], [piece(),
+        { uid: 2, kind: 'token', tokenId: 'note_token', row: 10, col: 5 }])], routes: flatRoutes(), spawns: [] });
+    const server = createBattleFromSpec(spec, new DataSource(raw, null), { quiet: true });
+    const browser = createBattleFromSpec(JSON.parse(JSON.stringify(spec)), new DataSource(JSON.parse(JSON.stringify(raw)), null), { quiet: true });
+    server.step(); browser.step();
+    assert.equal(server.allyUnits.find((u) => u.kind === 'op').removed, true);
+    assert.equal(server.allyUnits.find((u) => u.kind === 'token').alive, true);
+    server.runToEnd(6); browser.runToEnd(6);
+    assert.equal(resultDigest(server.result()).hash, resultDigest(browser.result()).hash);
+    assert.deepEqual(server.errors, []); assert.deepEqual(browser.errors, []);
+    checkInvariants(server); checkInvariants(browser);
+  }
+});
 const op = (id, profession = 'WARRIOR', extra = {}) => chessRec({
   id, profession, skill: null,
   stats: { maxHp: 2000, atk: 500, def: 200, respawnTime: 0.5 },

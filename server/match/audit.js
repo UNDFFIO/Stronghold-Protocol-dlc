@@ -48,7 +48,7 @@ import { mergeTile, pieceDir, canPlace, placeClass } from './board.js';
 import { bossPoolHp, hiddenEligible } from './finalAssault.js';
 import { helperOrder } from './unite.js';
 import { BAND_TURN_SECONDS } from './Match.js';
-import { relicIncome, RELIC_CHOICE_SECONDS, getRelic } from '../../shared/relics.js';
+import { relicIncome, relicRoundIncome, RELIC_CHOICE_SECONDS, getRelic } from '../../shared/relics.js';
 import { scratchTier } from '../../shared/scratchTickets.js';
 
 /**
@@ -158,7 +158,7 @@ export function attachAudit(m, { invariants = true, limit = 200 } = {}) {
         else {
           if (inc.initial.income !== want || inc.initial.pending !== p0) fail(`${id}: onIncome started with ${inc.initial.income}+${inc.initial.pending}, expected ${want}+${p0}`);
           const nn = (v) => (Number.isFinite(v) && v > 0 ? Math.trunc(v) : 0);
-          const credited = nn(inc.ev.income) + nn(inc.ev.pending) + relicIncome(ps.relics);
+          const credited = relicRoundIncome(ps.relics, nn(inc.ev.income) + nn(inc.ev.pending) + relicIncome(ps.relics));
           if (ps.funds - f0 !== credited) fail(`${id}: funds ${f0} → ${ps.funds}, credited ${credited}`);
         }
         const upWant = r > 1 ? Math.max(0, up0 - 1) : up0;

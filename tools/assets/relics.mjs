@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { isCompletePng } from './formats.mjs';
 
 export const CUSTOM_RELIC_ICON_FILES = Object.freeze({
+  relic_242: 'relic_241.png',
   relic_241: 'relic_241.png',
   relic_154: 'relic_154.png',
   relic_155: 'relic_155.png',
@@ -34,6 +35,14 @@ export async function prepareCustomRelicIcons(assetsRoot) {
 }
 
 export const RELIC_ICON_FILES = Object.freeze({
+  "relic_227": "rogue_3_relic_boss_2.png", // 无垠赠礼，银凇止境 No.227，PRTS 2026-10-28
+  "relic_228": "rogue_3_relic_boss_2b.png", // 路网，银凇止境 No.228
+  "relic_219": "rogue_5_relic_final_7.png", // 追忆仪，界园志异 No.219
+  "relic_220": "rogue_5_relic_final_8.png", // “小磨唧”，界园志异 No.220
+  "relic_177": "rogue_1_relic_c01.png", // 乌萨斯弯刀，傀影与猩红孤钻 No.177，PRTS 2026-10-28
+  "relic_181": "rogue_1_relic_c03.png", // 莱塔尼亚权杖，No.181
+  "relic_185": "rogue_1_relic_c05.png", // 半洗孤钻，No.185
+  "relic_187": "rogue_1_relic_c06.png", // 酒神的印记，No.187
   "relic_014": "rogue_6_relic_legacy_1.png", // 热水壶，No.014，PRTS 核对于 2026-10-28
   "relic_195": "rogue_6_relic_legacy_113.png", // 四叶草化石，No.195，核对于 2026-10-24
   "relic_132": "rogue_6_relic_fight_20.png", // 天师锦囊，No.132，核对于 2026-10-24

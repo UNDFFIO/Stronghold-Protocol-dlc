@@ -235,8 +235,9 @@ export function bondsWithGains(bonds, gains) {
   for (const [id, n] of Object.entries(gains)) {
     const b = bonds && bonds[id];
     if (!b) continue;
-    const add = layerGainRoom(b.layers, Math.floor(Number(n) || 0));
-    if (!(add > 0)) continue;
+    const delta = Math.floor(Number(n) || 0);
+    const add = delta < 0 ? -Math.min(b.layers || 0, -delta) : layerGainRoom(b.layers, delta);
+    if (!add) continue;
     if (!out) out = { ...bonds };
     out[id] = { ...b, layers: (b.layers || 0) + add };
   }

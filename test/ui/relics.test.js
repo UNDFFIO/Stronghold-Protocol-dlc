@@ -6,7 +6,15 @@ import { liveLp } from '../../public/js/ui/hud.js';
 import { LpTower } from '../../public/js/ui/gameComponents.js';
 import { rowLp } from '../../public/js/ui/teamPanel.js';
 import { PHASE } from '../../shared/constants.js';
-import { redactEnemyNames, ownsEnemyNameMask } from '../../public/js/ui/enemyNameMask.js';
+import { redactEnemyNames, ownsEnemyNameMask, ownsTextReverse, reverseText } from '../../public/js/ui/enemyNameMask.js';
+
+test('boundless gift: any public holder reverses every client, with grapheme-safe reversal and match reset', () => {
+  assert.equal(ownsTextReverse({ match: { public: { players: [{ playerId: 'other', relics: [{ id: 'relic_227' }] }] } } }), true);
+  assert.equal(ownsTextReverse({ match: { public: { players: [] }, private: { relics: [] } } }), false);
+  assert.equal(ownsTextReverse({ match: { public: null } }), false);
+  assert.equal(reverseText('金币123'), '321币金');
+  assert.equal(reverseText('A👨‍👩‍👧‍👦e\u0301'), 'e\u0301👨‍👩‍👧‍👦A');
+});
 
 test('死亡笔记：仅持有者遮蔽敌名，保留数字，不在效果说明或图鉴泄露隐藏负面', () => {
   const state = { match: { public: {}, private: { relics: [{ id: 'relic_241' }] } } };
@@ -89,15 +97,15 @@ test('HUD preview fits three five-row columns and reserves More only beyond fift
 
 test('HUD preview prioritizes negative quality, then descending rarity, leaving unknown records last', () => {
   const entries = relicEntries(RELICS.map((r) => ({ id: r.id, round: 1 })));
-  const negative = { id: 'negative-fixture', tier: 6, round: 2 };
+  const negatives = entries.filter((r) => r.tier === 6);
   const unknown = { id: 'future-relic', round: 3 };
-  const input = [unknown, ...entries, negative];
+  const input = [unknown, ...entries];
   const { visible, hidden } = relicPreview(input);
-  assert.equal(visible[0], negative);
+  assert.deepEqual(visible.slice(0, negatives.length), negatives);
   assert.equal(visible.length, 14);
   assert.equal(hidden, input.length - 14);
   assert.ok(visible.every((r, i) => i === 0 || r.tier <= visible[i - 1].tier));
-  assert.deepEqual(visible.slice(1), entries.filter((r) => r.tier === 5).concat(entries.filter((r) => r.tier === 4)).slice(0, 13));
+  assert.deepEqual(visible, negatives.concat(entries.filter((r) => r.tier === 5), entries.filter((r) => r.tier === 4)).slice(0, 14));
   assert.deepEqual(relicPreview([unknown, { tier: 1 }]).visible, [{ tier: 1 }, unknown]);
 });
 

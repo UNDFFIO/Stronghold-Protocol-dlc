@@ -1090,6 +1090,8 @@ logged error names the open frames (`chain: hit(enemy_x→chess_y) > damaged(che
 | `battle.grid` | `tile(r,c)` → `{glyph, key, height:'LOW'|'HIGH', build, pass:'ALL'|'FLY'|'NONE', terrain, special}`, `inRect`, `canStand(r,c,{ranged})` (every automatic placement: the 突袭 landing tile, tactical points, summon tiles — `build` is the effective deploy type, so never the 深水区 `tile_deepsea` (PRTS 深水区 地形信息 "拒绝部署（待补充）"; the 特制水上平台 of the inactive act1 m05 is not modelled, its tiles stay NONE here [ASSUMED]); no melee unit on a hard-blocked 射击台 / mound tile), `groundPassable`, `isLow`, `findPath(sr,sc,er,ec)`, `specialTiles('start'|'end'|…)`; `battle.rect`, `battle.stage` (normalised stage incl. `special` terrain params) |
 | `battle.data` | DataSource: `getChess(id, loadout?)`, `getEnemy(key)`, `getToken(id, ownerChessId, ownerLoadout?)`, `getStage(id)`, `getWave(id)` (normalised defs; raw record in `def.raw`; the per-battle loadout view, §12) |
 
+永久退场的单位（`removed`）不能通过 `redeploy` 或底层部署返回。本 fork 的负面死亡笔记使用 `retreat(unit, { reason: 'killed', permanent: true, dying: true })` 强制死亡：跳过 `kill` 保命钩子，仍发送 `death` 并计入持有者干员死亡次数。
+
 Wild Mane S2 rear hits use `effect: true`: the #782 footage measures about 14 px / 154 px per tile = 0.09 tile
 at weight 1, matching the 特效 level −2 distance 0.085. **[ASSUMED]** Only the rear hemisphere selects this
 column, preserving the task's front/side/near-front distances (weight 1: 1.7 / 0.12 / 0.12 tiles).
@@ -1967,3 +1969,11 @@ No.116–119的击倒/部署效果见[收藏品规则](COLLECTIBLES.md)：death�
 `relic_132` 在持有者每场战斗首个炎盟约干员的 `deploy` 事件中原位召唤一只集成战略版炎佑，后续部署不再触发；与炎盟约自身的强化召唤独立。`spawnYanyou({ at: [r, c] })` 使用 `spawnToken({ airborne: true })`，仅飞行召唤物可与干员共享部署格且不写入地面占格；移动和死亡保留原占格单位。锦囊炎佑使用基础属性，没有炎干员属性继承及元素损伤免疫；攻击、灼燃附伤、光环及喷火复用已有机制。[ASSUMED] 以当前炎盟约归属（含赋予盟约的装备）判断触发干员。
 
 `relic_133` 对本战场现有与后续生成的敌人安装幂等持久增益：`elemTakenMul: 1.75` 与 `elementalTakenMul: 1.75`，分别用于元素损伤累计和元素伤害，包含队友及无来源伤害，不影响我方。多人持有或重复安装不叠加，与其他元素脆弱独立相乘。
+
+
+**DLC 官方负面收藏品（2026-10-28）：** 新增No.177乌萨斯弯刀、No.181莱塔尼亚权杖、No.185半洗孤钻、No.187酒神的印记，沿用负面品质定向发放。敌方属性最终乘算覆盖后续生成和共享首领，权杖新回合扣血、孤钻回合收入减半、印记部署上限-1；原作效果适配及取整、多人叠加、超额退回等[ASSUMED]边界见[收藏品规则](COLLECTIBLES.md#猩红剧团负面藏品dlc)。
+
+
+### “小磨唧”的盟约损失（2026-10-28）
+
+`content/relics.js` 在每个完整战斗秒随机选持有者一个仍有层数的激活盟约，扣除至多20层，写入实时 `bonds` 与 `layerGains` 的负向净变化，不触及队友或未激活盟约。重复 ID／重复安装不叠加。所有战斗种类均扣层，`layerGainsEnabled: false` 仅禁止正向增层；结果压缩与 digest 保留负值，服务端权威结算并带到下场。正常未持有该藏品的战斗结果及黄金不变。见[收藏品规则](COLLECTIBLES.md)。

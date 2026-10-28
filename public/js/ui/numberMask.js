@@ -1,5 +1,5 @@
 import { getRelic } from '../../../shared/relics.js';
-import { installEnemyNameMask, maskEnemyNames } from './enemyNameMask.js';
+import { installEnemyNameMask, displayRelicText } from './enemyNameMask.js';
 /** 木棍只遮蔽本客户端的显示；原始数据、输入值和战斗参数始终保留。 */
 export const maskDigits = (text) => String(text).replace(/[0-9０-９]/g, '■');
 export function ownsNumberMask(state) {
@@ -19,7 +19,7 @@ export function installPixiNumberMask(P) {
     proto.updateText = function (...args) {
       if (!this.__relicMaskRef) { this.__relicMaskRef = new WeakRef(this); texts.add(this.__relicMaskRef); }
       const raw = this._text;
-      if (raw != null) this._text = maskEnemyNames(enabled ? maskDigits(raw) : raw);
+      if (raw != null) this._text = displayRelicText(enabled ? maskDigits(raw) : raw);
       try { return original.apply(this, args); } finally { this._text = raw; }
     };
   }
@@ -39,7 +39,6 @@ export function installNumberMask(store, doc = globalThis.document) {
   style.textContent = '@font-face{font-family:RelicDigits;src:url(/js/ui/relic-digits.ttf) format("truetype");unicode-range:U+0030-0039,U+FF10-FF19;font-display:block}';
   doc.head.append(style);
   const originals = new Map();
-  const attributes = new Map();
   const observer = new MutationObserver(() => apply());
   const watch = () => observer.observe(doc.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['style', 'class', 'title', 'aria-label', 'placeholder', 'alt'] });
   function apply() {
@@ -47,29 +46,16 @@ export function installNumberMask(store, doc = globalThis.document) {
     if (enabled) {
       for (const el of doc.body.querySelectorAll('*')) {
         if (!el.style || ['SCRIPT', 'STYLE'].includes(el.tagName)) continue;
-        for (const name of ['title', 'aria-label', 'placeholder', 'alt']) {
-          const value = el.getAttribute(name);
-          if (value == null) continue;
-          let saved = attributes.get(el);
-          if (!saved) { saved = new Map(); attributes.set(el, saved); }
-          const previous = saved.get(name);
-          if (!previous || value !== previous.masked) {
-            const masked = maskDigits(value); saved.set(name, { raw: value, masked });
-            if (value !== masked) el.setAttribute(name, masked);
-          }
-        }
         const current = el.style.fontFamily;
         if (current.startsWith('RelicDigits')) continue;
         originals.set(el, current);
         const family = getComputedStyle(el).fontFamily.replace(/(?:"?RelicDigits"?,?\s*)/g, '');
         el.style.fontFamily = `RelicDigits, ${family || 'sans-serif'}`;
       }
-      for (const el of originals.keys()) if (!el.isConnected) { originals.delete(el); attributes.delete(el); }
+      for (const el of originals.keys()) if (!el.isConnected) originals.delete(el);
     } else {
       for (const [el, family] of originals) if (el.style.fontFamily.startsWith('RelicDigits')) el.style.fontFamily = family;
       originals.clear();
-      for (const [el, values] of attributes) for (const [name, value] of values) if (el.getAttribute(name) === value.masked) el.setAttribute(name, value.raw);
-      attributes.clear();
     }
     watch();
   }

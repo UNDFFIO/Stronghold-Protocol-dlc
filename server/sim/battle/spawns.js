@@ -10,6 +10,7 @@ import { compileRoute } from '../ai.js';
 import { unitInfo } from '../snapshot.js';
 import { normalizeRoute, normalizeEnemy } from '../simdata.js';
 import { fin } from './util.js';
+import { relicEnemyMultiplier } from '../../../shared/relics.js';
 
 const FALLBACK_ENEMY = Object.freeze({
   type: 'enemy', id: 'enemy_unknown', key: 'enemy_unknown', name: '未知敌人', rank: 'NORMAL', maxHp: 2000, atk: 200, def: 100, res: 0,
@@ -176,6 +177,11 @@ export class BattleSpawns {
       const pp = this._pp(e.ownerId);
       if (pp) pp.total++;
     }
+    // Separate from inherited spawn mods: split children and Unite receive the curse exactly once.
+    // [ASSUMED] One field-wide bonus per distinct ID, with different curse bonuses added.
+    const curse = relicEnemyMultiplier(this.players.flatMap((p) => p.input?.relics ?? []));
+    if (curse !== 1) this.addBuff(e, { key: 'relic:enemy-stats', duration: Infinity, persist: true,
+      mods: { atkMul: curse, defMul: curse, hpMul: curse } });
     if (e.tag === 'boss') {
       e.isBoss = true;
       if (this.sharedBoss) { e.bossPool = this.sharedBoss; this._syncBossHp(e); }

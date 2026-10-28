@@ -35,8 +35,8 @@ export function operatorTraitLayerAllowance(player, gd) {
   return out;
 }
 // [ASSUMED] Derive these fields on the server, including bosses; no client cap proves a burst happened.
-export const requiresTraitLayerAuthority = (spec, gd) => spec?.flags?.layerGainsEnabled !== false
-  && (spec?.players ?? []).some(p => operatorTraitLayerAllowance(p, gd).size > 0);
+export const requiresTraitLayerAuthority = (spec, gd) => (spec?.players ?? []).some(p => p.relics?.includes('relic_220'))
+  || (spec?.flags?.layerGainsEnabled !== false && (spec?.players ?? []).some(p => operatorTraitLayerAllowance(p, gd).size > 0));
 
 const EVENTS = { onTraitGain: 'gain', onTraitDeploy: 'deploy', onRoundStart: 'roundStart', onBuy: 'buy', onSold: 'sell',
   onMerge: 'merge', onLevelUp: 'levelUp', onBattleResult: 'battleResult' };

@@ -4,6 +4,8 @@ import { Img } from './gameComponents.js';
 import { data } from '../data.js';
 import { relicIconUrl } from './assetUrls.js';
 import { getRelic, RELIC_TIERS } from '../../../shared/relics.js';
+import { useStore } from '../store.js';
+import { ownsTextReverse, reverseText } from './enemyNameMask.js';
 import { SCRATCH_TIERS } from '../../../shared/scratchTickets.js';
 import { t } from '../../../shared/i18n.js';
 
@@ -99,6 +101,7 @@ function ScratchDebris({ emitRef }) {
 }
 
 function ScratchCoating({ tier, region, progress, disabled, revealAll, onChange, onScratch, children }) {
+  const reversed = useStore(ownsTextReverse);
   const canvas = useRef(null), pointer = useRef(null), strokes = useRef([]), coverage = useRef(0);
   const [revealing, setRevealing] = useState(false);
   const animating = useRef(false);
@@ -125,13 +128,13 @@ function ScratchCoating({ tier, region, progress, disabled, revealAll, onChange,
     };
     marker.src = `/images/scratch-tickets/marker-${tier}.webp`;
     ctx.textAlign = 'center'; ctx.font = '16px sans-serif'; ctx.fillStyle = '#616b73';
-    ctx.fillText(t('刮开此处'), 150, 80);
+    ctx.fillText(reversed ? reverseText(t('刮开此处')) : t('刮开此处'), 150, 80);
     strokes.current = Array.isArray(progress?.strokes) ? progress.strokes : [];
     for (const line of strokes.current) erase(ctx, line);
     coverage.current = erasedRatio(ctx.getImageData(0, 0, 300, 100).data);
     // Only recreate the foil on mount / language changes, never on every stroke.
     return () => { active = false; marker.onload = null; };
-  }, [done, tier, t('刮开此处')]);
+  }, [done, tier, t('刮开此处'), reversed]);
 
   useEffect(() => {
     if (done || (!revealing && !revealAll)) return;

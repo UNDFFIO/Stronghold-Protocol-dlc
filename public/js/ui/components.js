@@ -16,6 +16,7 @@ import { useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } fro
 import htm from '../../vendor/htm.module.js';
 import { DIFFICULTY_NAMES, DIFFICULTY_COLORS } from '../../../shared/constants.js';
 import { ownsNumberMask } from './numberMask.js';
+import { ownsTextReverse, reverseText } from './enemyNameMask.js';
 import { serverNow, useStore } from '../store.js';
 import { t } from '../../../shared/i18n.js';
 import { data, useData, localAsset } from '../data.js';
@@ -306,10 +307,11 @@ function SegChar({ ch, hideNumbers }) {
  */
 export function SevenSeg({ text, tone = 'mint', size, class: cls, flicker = false }) {
   const hideNumbers = useStore(ownsNumberMask);
+  const reversed = useStore(ownsTextReverse);
   const s = String(text ?? '');
   return html`<span class=${cx('seg', `seg--${tone}`, flicker && 'is-flicker', cls)} style=${size ? `--seg-h:${size}` : undefined}
       role="img" aria-label=${s}>
-    ${[...s].map((ch, i) => html`<${SegChar} key=${i} ch=${ch} hideNumbers=${hideNumbers} />`)}
+    ${[...(reversed ? reverseText(s) : s)].map((ch, i) => html`<${SegChar} key=${i} ch=${ch} hideNumbers=${hideNumbers} />`)}
   </span>`;
 }
 

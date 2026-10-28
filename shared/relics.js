@@ -35,7 +35,15 @@ export const RELIC_TIERS = Object.freeze([
  * @property {boolean} [normalRoundsOnly]
  * @property {boolean} [redistributeEnemies]
  * @property {number} [skillEndSp]
+ * @property {number} [enemyStatPct]
+ * @property {number} [roundLpLoss]
+ * @property {number} [incomeMul]
+ * @property {number} [deployCapPenalty]
  * @property {Readonly<{lp: number, operators: number}>} [reviveOnce]
+ * @property {boolean} [reverseText]
+ * @property {boolean} [extraEnemyType]
+ * @property {boolean} [loseReserves]
+ * @property {number} [bondLayerLossPerSecond]
  */
 /**
  * @param {string} number
@@ -52,6 +60,24 @@ const relic = (number, name, tier, desc, sourceEffect, mods, extra = {}) => Obje
 
 // Tiers describe the adapted strength, rather than the original rarity. "All" means the owner's operators only.
 export const RELICS = Object.freeze([
+  relic('227', N_('无垠赠礼'), 6, N_('所有玩家游戏界面上的文字倒序显示'),
+    N_('坍缩值+3，让探索开启不同的方向'), {}, { reverseText: true }),
+  relic('228', N_('路网'), 6, N_('战斗中额外出现原定敌人数50%的另一类敌人，该类敌人不在本局原定敌人种类中（仅对自己生效）'),
+    N_('战斗出现额外敌人，让探索开启不同的方向'), {}, { extraEnemyType: true }),
+  relic('219', N_('追忆仪'), 6, N_('获得时，失去备战区所有干员和装备，失去7件随机收藏品'),
+    N_('获得时，失去所有的源石锭及希望，并使战斗后获得的指挥等级经验和源石锭-50％。在误入奇境有特殊用处'), {}, { loseReserves: true }),
+  relic('220', N_('“小磨唧”'), 6, N_('战斗开始后每秒失去20层随机激活盟约层数'),
+    N_('费用自然回复速度降低50％，让探索开启不同的方向。在故肆有特殊用处'), {}, { bondLayerLossPerSecond: 20 }),
+  relic('177', N_('乌萨斯弯刀'), 6, N_('所有敌方单位的攻击力、防御力和最大生命值+40%'),
+    N_('所有敌方单位的攻击力、防御力、生命+40%。'), {}, { enemyStatPct: 0.4 }),
+  relic('181', N_('莱塔尼亚权杖'), 6, N_('所有敌方单位的攻击力、防御力和最大生命值+30%，每进入一个新回合时失去1点目标生命值（最多降至1）'),
+    N_('所有敌方单位的攻击力、防御力、生命+30%，每进入一个新节点后失去1目标生命（最多降至1）。'), {}, { enemyStatPct: 0.3, roundLpLoss: 1 }),
+  relic('185', N_('半洗孤钻'), 6, N_('所有敌方单位的攻击力、防御力和最大生命值+25%，每回合获得的金币数量-50%'),
+    N_('所有敌方单位的攻击力、防御力、生命+25%，战斗获得的指挥经验-50%。'), {}, { enemyStatPct: 0.25, incomeMul: 0.5 }),
+  relic('187', N_('酒神的印记'), 6, N_('所有敌方单位的攻击力、防御力和最大生命值+30%，可同时部署人数-1'),
+    N_('所有敌方单位的攻击力、防御力、生命+30%，可同时部署人数-2。'), {}, { enemyStatPct: 0.3, deployCapPenalty: 1 }),
+  relic('242', N_('死亡笔记'), 6, N_('每场战斗开始时，随机一名我方干员立即死亡，且本场战斗无法复活'),
+    N_('同人改编：复用传说死亡笔记图标，负面效果由维护者指定。'), {}),
   relic('014', N_('热水壶'), 1, N_('获得时恢复2点目标生命值'),
     N_('目标生命上限+2，希望+2。'), {}, { fallbackOnly: true, healLpOnAcquire: 2 }),
   relic('241', N_('死亡笔记'), 5, N_('准备阶段可花费8金币书写一个敌方名字，书写正确则移除本回合全队遭遇的该类型敌人，书写错误不生效（每回合限1次）'),
@@ -180,6 +206,26 @@ export function relicIncome(owned) {
   let income = 0;
   for (const id of idsOf(owned)) income += getRelic(id)?.economy?.income || 0;
   return income;
+}
+
+/** Field-wide: each distinct curse applies once, including in co-op; different bonuses add. */
+export function relicEnemyMultiplier(owned) {
+  let bonus = 0;
+  for (const id of idsOf(owned)) bonus += getRelic(id)?.enemyStatPct || 0;
+  return 1 + bonus;
+}
+
+/** Round income only: includes deferred funds and collectible income; fractions are discarded once. */
+export function relicRoundIncome(owned, amount) {
+  let mul = 1;
+  for (const id of idsOf(owned)) mul *= getRelic(id)?.incomeMul ?? 1;
+  return Math.max(0, Math.floor(amount * mul));
+}
+
+export function relicDeployPenalty(owned) {
+  let penalty = 0;
+  for (const id of idsOf(owned)) penalty += getRelic(id)?.deployCapPenalty || 0;
+  return penalty;
 }
 
 /** Base tier weights for the just-completed round, before removing exhausted tiers. */

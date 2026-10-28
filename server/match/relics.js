@@ -60,11 +60,50 @@ export function grantRelic(ps, id, { round = ps.m.round, battleRound = round + 1
     ps.m.markPublic();
   }
   if (r.reverseLpOnce) ps.relicReverseLpRound = battleRound;
+  if (r.loseReserves) loseRelicReserves(ps, r.id, round);
+  if (r.deployCapPenalty) ps.recompute();
   ps.relicReward = reward;
   ps.dirty();
+  if (r.reverseText) ps.m.markPublic();
   const tier = RELIC_TIERS[r.tier - 1];
   ps.m.toast(ps, 'success', msg('获得{tier}收藏品「{name}」', { tier: dn(tier.name), name: dn(r.name) }));
   return reward;
+}
+
+/** [ASSUMED] Reserve includes hand and temporary overflow, with equipped items; deployed pieces stay.
+ * The newly acquired instrument is excluded from the seven random losses. No sale payouts or refunds. */
+function loseRelicReserves(ps, acquiredId, round) {
+  for (const slots of [ps.hand, ps.temp]) for (let i = 0; i < slots.length; i++) {
+    const p = slots[i];
+    if (!p || !['chess', 'item'].includes(p.kind)) continue;
+    if (p.kind === 'chess') {
+      ps.returnCopies(p); ps.removeTokensOf(p.uid);
+      for (const item of p.items || []) ps.releaseItemStock(item);
+      p.items = [];
+    } else ps.releaseItemStock(p);
+    ps._tempDue.delete(p.uid);
+    slots[i] = null;
+  }
+  const rng = createRng(deriveSeed(ps.m.seed, `relic-reserves:${ps.seat}:${round}`));
+  const candidates = ps.relics.filter((r) => r.id !== acquiredId);
+  rng.shuffle(candidates);
+  const removed = new Set(candidates.slice(0, 7));
+  const ids = new Set([...removed].map((r) => r.id));
+  ps.relics = ps.relics.filter((r) => !removed.has(r));
+  ps.scratchTickets = ps.scratchTickets.filter((ticket) => !ids.has(ticket.relicId));
+  if (ids.has('relic_158')) ps.relicReverseLpRound = 0;
+  ps.recompute();
+  ps.m.markPublic();
+}
+
+/** Non-normal battles disable gains but still persist the curse's signed layer deltas. */
+export function settleRelicLayerLosses(ps, result) {
+  if (!result || result.synthetic || !ps.relics.some((r) => getRelic(r.id)?.bondLayerLossPerSecond)) return;
+  for (const [id, n] of Object.entries(result.layerGains || {})) {
+    if (!ps.gd.bond(id) || !Number.isFinite(n) || n >= 0) continue;
+    ps.layers[id] = Math.max(0, (ps.layers[id] || 0) + Math.trunc(n));
+  }
+  ps.recompute();
 }
 
 export function autoSelectRelic(ps) {
@@ -89,6 +128,17 @@ export function consumeRelicShield(ps, amount) {
   return Math.max(0, amount - used);
 }
 export function startRelicRound(ps, round) {
+  if (ps.alive && !ps.left && ps.relicRoundStarted !== round) {
+    const loss = [...new Set(ps.relics.filter((r) => r.round < round).map((r) => r.id))]
+      .reduce((sum, id) => sum + (getRelic(id)?.roundLpLoss || 0), 0);
+    if (loss) {
+      if (ps.m.teamLp != null) ps.m._syncTeamLp();
+      if (ps.lp > 1) ps.lp = Math.max(1, ps.lp - loss);
+      if (ps.m.teamLp != null) ps.m._openTeamLp();
+      ps.m.markPublic();
+    }
+    ps.relicRoundStarted = round;
+  }
   ps.relicShield = 0;
   ps.relicShieldRound = round;
   ps.relicNextShieldRound = 0;

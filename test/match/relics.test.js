@@ -4,10 +4,113 @@ import { PHASE } from '../../shared/constants.js';
 import { validateC2S } from '../../shared/protocol.js';
 import { RELICS, RELIC_TIERS, getRelic, dropWeights, pickRelic, pickRelicChoices, relicModifiers, relicIncome } from '../../shared/relics.js';
 import { createRng } from '../../server/sim/rng.js';
-import { settleRelics, selectRelic, grantRelic } from '../../server/match/relics.js';
+import { settleRelics, selectRelic, grantRelic, startRelicRound } from '../../server/match/relics.js';
 import { makeMatch } from './harness.js';
 import { makeBattle, chessRec, enemyRec } from '../helpers/battleHarness.js';
 import { settleDeathNote, deathNoteKeys, resolveDeathNoteName } from '../../server/match/deathNote.js';
+import { attachAudit } from '../../server/match/audit.js';
+
+test('官方负面藏品：合法定向领取、排重、普通池隔离与下一场敌方强化', () => {
+  for (const [id, mul] of [['relic_177', 1.4], ['relic_181', 1.3], ['relic_185', 1.25], ['relic_187', 1.3]]) {
+    const h = makeMatch({ mode: 'solo', fake: true }).start();
+    try {
+      h.toPrep(1); const ps = h.ps('p_0');
+      assert.equal(getRelic(id).tier, 6);
+      assert.equal(grantRelic(ps, id).id, id);
+      assert.equal(grantRelic(ps, id), null);
+      assert.ok(ps.privateView().relics.some((r) => r.id === id));
+      for (let round = 1; round <= 20; round++) assert.ok(!pickRelicChoices(round, [], createRng(round)).includes(id));
+      const b = makeBattle({ autoFinish: false, players: [{ ...ps.battleInput(), units: [] }],
+        defs: { enemies: { curse_enemy: enemyRec({ key: 'curse_enemy', hp: 1000, atk: 100, def: 80, speed: 0 }) } },
+        enemies: [{ key: 'curse_enemy' }] });
+      b.step();
+      assert.equal(b.enemies()[0].s.maxHp, 1000 * mul);
+      assert.deepEqual(b.b.errors, []);
+    } finally { h.m.dispose(); }
+  }
+});
+
+test('莱塔尼亚权杖：下回合起每回合扣一次、最低1，隔离队友及战斗损血', () => {
+  const h = makeMatch({ humans: 2, fake: true }).start();
+  try {
+    h.toPrep(1); const ps = h.ps('p_0'), mate = h.ps('p_1');
+    ps.lp = 4; mate.lp = 10;
+    grantRelic(ps, 'relic_181');
+    ps.relics.push({ id: 'relic_181', round: 1 });
+    startRelicRound(ps, 1); assert.equal(ps.lp, 4);
+    const lost = ps.stats.lpLost;
+    ps.relicReverseLpRound = 2;
+    startRelicRound(ps, 2); assert.equal(ps.lp, 3);
+    startRelicRound(ps, 2); assert.equal(ps.lp, 3);
+    assert.equal(ps.stats.lpLost, lost);
+    h.m._openTeamLp();
+    startRelicRound(ps, 3);
+    assert.equal(h.m.teamLp, 12); assert.equal(ps.lp, 2); assert.equal(mate.lp, 10);
+    h.m._syncTeamLp(); assert.equal(ps.lp, 2); assert.equal(mate.lp, 10);
+    startRelicRound(ps, 4); startRelicRound(ps, 5);
+    assert.equal(ps.lp, 1); assert.equal(ps.alive, true);
+    assert.equal(mate.lp, 10);
+  } finally { h.m.dispose(); }
+});
+
+test('半洗孤钻：回合收入连同延期资金及收藏品收入减半取整，审计一致', () => {
+  const h = makeMatch({ humans: 2, fake: true }).start();
+  try {
+    h.toPrep(1); const ps = h.ps('p_0'), mate = h.ps('p_1');
+    const audit = attachAudit(h.m, { invariants: false });
+    grantRelic(ps, 'relic_185'); grantRelic(ps, 'relic_025');
+    ps.relics.push({ id: 'relic_185', round: 1 });
+    ps.funds = 9; ps.pendingFunds = 3;
+    ps.clearUnfrozenShop();
+    ps.startRound(3);
+    assert.equal(ps.funds, 9 + Math.floor((h.m.gd.income(3) + 3 + 1) / 2));
+    assert.equal(ps.pendingFunds, 0);
+    assert.deepEqual(audit.violations, []);
+    const f = ps.funds; ps.addFunds(7, { reason: 'reward' }); assert.equal(ps.funds, f + 7);
+    mate.funds = 0; mate.startRound(3); assert.equal(mate.funds, h.m.gd.income(3));
+  } finally { h.m.dispose(); }
+});
+
+test('酒神的印记：实际部署上限减少，超额干员退回、移除恢复，队友独立', () => {
+  const h = makeMatch({ humans: 2, fake: true }).start();
+  try {
+    h.toPrep(1); const ps = h.ps('p_0'), mate = h.ps('p_1');
+    const cap = ps.deployCap, mateCap = mate.deployCap;
+    const id = [...h.m.pool.entries.keys()][0];
+    for (let i = 0; i < cap; i++) ps.board.set(`10,${i + 2}`, { uid: 1000 + i, kind: 'chess', id, items: [] });
+    const total = ps.allChess().length;
+    grantRelic(ps, 'relic_187');
+    assert.equal(ps.deployCap, cap - 1); assert.ok(ps.deployCount <= ps.deployCap);
+    assert.equal(ps.allChess().length, total);
+    assert.equal(mate.deployCap, mateCap);
+    ps.deployCapMin = cap + 3; assert.equal(ps.deployCap, cap + 2);
+    ps.relics = []; ps.recompute(); assert.equal(ps.deployCap, cap + 3);
+  } finally { h.m.dispose(); }
+});
+
+test('负面死亡笔记：与传说版并存，可定向授予但不进入普通候选池', () => {
+  assert.equal(getRelic('relic_242').tier, 6);
+  assert.equal(getRelic('relic_241').tier, 5);
+  for (let round = 1; round <= 20; round++) {
+    assert.ok(!pickRelicChoices(round, [], createRng(round)).includes('relic_242'));
+  }
+  const h = makeMatch({ mode: 'solo', fake: true }).start();
+  try {
+    h.toPrep(1);
+    const ps = h.ps('p_0');
+    assert.equal(grantRelic(ps, 'relic_241').id, 'relic_241');
+    assert.equal(grantRelic(ps, 'relic_242').id, 'relic_242');
+    assert.equal(grantRelic(ps, 'relic_242'), null);
+    assert.ok(ps.battleInput().relics.includes('relic_242'));
+    const battle = makeBattle({ autoFinish: false,
+      players: [{ ...ps.battleInput(), units: [{ uid: 1, kind: 'chess', chessId: 'note_op', row: 10, col: 4 }] }],
+      defs: { chess: { note_op: chessRec({ id: 'note_op', skill: null }) } } });
+    battle.step();
+    assert.equal(battle.unit(1).removed, true, 'a real grant reaches the next battle and triggers its effect');
+    assert.equal(battle.b.redeploy(battle.unit(1)), false);
+    assert.deepEqual(battle.b.errors, []);
+  } finally { h.m.dispose(); }
+});
 
 test('热水壶：仅补足合格候选缺位，数量、回合和模式条件不变', () => {
   const owned = RELICS.filter((r) => !['relic_003', 'relic_004'].includes(r.id));
@@ -369,7 +472,8 @@ test('死亡笔记：首领准备预览同时移除各阵地的领袖与同类�
 
 // Keep the consumable slot occupied when isolating an ordinary relic in an otherwise exhausted catalogue.
 function exhaustOtherRelics(ps, id) {
-  ps.relics = RELICS.filter((r) => r.id !== id).map((r) => ({ id: r.id, round: 1 }));
+  // Exhaust only ordinary qualities; a negative collectible would change the battle being tested.
+  ps.relics = RELICS.filter((r) => r.id !== id && r.tier !== 6).map((r) => ({ id: r.id, round: 1 }));
   grantRelic(ps, 'relic_235');
 }
 
@@ -665,7 +769,7 @@ test('collection: weaker same-tier duplicates cannot be drawn or granted', () =>
 });
 
 test('collection: every tier is populated, early pools cannot run out during ordinary play, definitions are immutable', () => {
-  assert.equal(RELICS.length, 66);
+  assert.equal(RELICS.length, 75);
   assert.equal(new Set(RELICS.map((r) => r.id)).size, RELICS.length);
   assert.ok(RELICS.filter((r) => r.tier === 1).length >= 9);
   for (const { tier } of RELIC_TIERS.filter((t) => t.normalDrop !== false)) assert.ok(RELICS.some((r) => r.tier === tier));

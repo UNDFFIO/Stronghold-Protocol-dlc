@@ -47,7 +47,8 @@ test('收藏品图鉴：局内入口、完整效果、跨局与刷新持久化�
       });
       await page.goto(`${base}/dev/game-mock.html?shot=1&phase=PREP&render=fallback`, { waitUntil: 'domcontentloaded' });
       await page.waitForSelector('.gm__guide');
-      await page.click('.gm__guide');
+      for (const selector of ['.tbanner', '.mpop--phase', '.pbanner--overlay']) await page.waitForSelector(selector, { hidden: true });
+      await page.$eval('.gm__guide', (el) => el.click());
       await page.waitForSelector('.guide');
       await page.click('.guide__chapter:last-child');
       await page.waitForSelector('.guide__journal');
@@ -55,12 +56,18 @@ test('收藏品图鉴：局内入口、完整效果、跨局与刷新持久化�
       const chosen = await page.evaluate(async () => {
         const { RELICS } = await import('/shared/relics.js');
         const { store } = await import('/js/store.js');
-        store.patch('match', { private: { ...store.get().match.private, relics: RELICS.map((r) => ({ id: r.id, round: 1 })) } });
+        // Full-catalog fixture includes Death Note: its enemy-name mask also matches “复仇者”.
+        // Eyes keep this content/persistence test readable; masking has separate coverage.
+        store.patch('match', { private: { ...store.get().match.private, shinigamiEyes: true,
+          relics: RELICS.map((r) => ({ id: r.id, round: 1 })) } });
         return RELICS.map(({ name, desc }) => ({ name, desc }));
       });
       await page.waitForFunction((count) => document.querySelectorAll('.guide__journal .relic-card').length === count, {}, chosen.length);
       const cards = await page.$$eval('.guide__journal .relic-card', (els) => els.map((e) => e.textContent));
-      chosen.forEach((r, i) => { assert.ok(cards[i].includes(r.name)); assert.ok(cards[i].includes(r.desc)); });
+      chosen.forEach((r, i) => {
+        assert.ok(cards[i].includes(r.name), `card ${i}: expected ${r.name}, got ${cards[i]}`);
+        assert.ok(cards[i].includes(r.desc), `card ${i}: missing effect for ${r.name}`);
+      });
       assert.equal(await page.$('.guide__journal .relic-card__round'), null);
       const bounds = await page.$eval('.guide__box', (e) => { const r = e.getBoundingClientRect(); return { left: r.left, right: r.right, top: r.top, bottom: r.bottom, overflow: e.scrollWidth > e.clientWidth + 1 }; });
       assert.ok(bounds.left >= 0 && bounds.right <= width && bounds.top >= 0 && bounds.bottom <= height, JSON.stringify(bounds));
@@ -85,7 +92,8 @@ test('收藏品图鉴：局内入口、完整效果、跨局与刷新持久化�
       });
       await page.reload({ waitUntil: 'domcontentloaded' });
       await page.waitForSelector('.gm__guide');
-      await page.click('.gm__guide');
+      for (const selector of ['.tbanner', '.mpop--phase', '.pbanner--overlay']) await page.waitForSelector(selector, { hidden: true });
+      await page.$eval('.gm__guide', (el) => el.click());
       await page.waitForSelector('.guide');
       await page.click('.guide__chapter:last-child');
       await page.waitForFunction((count) => document.querySelectorAll('.guide__journal .relic-card').length === count, {}, chosen.length);

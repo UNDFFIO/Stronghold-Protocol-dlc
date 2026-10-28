@@ -15,7 +15,7 @@ export class BattleDeploy {
    * `airborne` lets a flying token share that tile without claiming its ground occupancy (天师锦囊).
    */
   _deploy(u, { initial = false, carry = null, tile = null, keepSp = null, preBattleAggroSeq = null, airborne = false } = {}) {
-    if ((u.alive && u.deployed) || u._removing) return false;
+    if (u.removed || (u.alive && u.deployed) || u._removing) return false;
     const R0 = tile ? tile[0] : u.homeR, C0 = tile ? tile[1] : u.homeC;
     if (!this.grid.inRect(R0, C0)) {
       this.log(`${u} at ${R0},${C0} is outside the field rect; not deployed`);
@@ -133,8 +133,8 @@ export class BattleDeploy {
       }
       unit.buffs = kept;
       unit.markDirty();
+      if (unit.kind === 'op' && reason === 'killed') { const pp = this._pp(unit.ownerId); if (pp) pp.deaths++; }
       if (unit.kind === 'op' && !permanent) {
-        if (reason === 'killed') { const pp = this._pp(unit.ownerId); if (pp) pp.deaths++; }
         const mul = unit.persist.redeployMul * unit.s.redeployMul;
         unit.respawnAt = this.time + Math.max(0, unit.base.respawnTime * mul);
         if (this.isDown(unit)) this._layBody(unit); // before `die` / `death`: the body's tile is final for them

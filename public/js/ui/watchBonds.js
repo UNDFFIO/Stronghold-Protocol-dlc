@@ -124,18 +124,18 @@ export function ownerBonds({ pub, priv = null, myId, ownerId }) {
  * list (no members, not active). Returns the list itself when there is nothing to lay over.
  * @param {any[]} bonds @param {Record<string, number>|null|undefined} live
  */
-export function withLiveLayers(bonds, live) {
+export function withLiveLayers(bonds, live, { allowLoss = false } = {}) {
   const list = Array.isArray(bonds) ? bonds : [];
   if (!isObj(live)) return list;
   const cap = BOND_LAYER_CAP > 0 ? BOND_LAYER_CAP : Infinity;
-  const ids = Object.keys(live).filter((id) => Number.isFinite(live[id]) && live[id] > 0);
+  const ids = Object.keys(live).filter((id) => Number.isFinite(live[id]) && live[id] >= (allowLoss ? 0 : 1));
   if (!ids.length) return list;
   let changed = false;
   const out = list.map((b) => {
     const n = isObj(b) && typeof b.bondId === 'string' ? live[b.bondId] : undefined;
     if (!Number.isFinite(n)) return b;
-    const v = Math.min(cap, n);
-    if (!(v > (Number(b.layers) || 0))) return b;
+    const v = Math.max(0, Math.min(cap, n));
+    if (allowLoss ? v === (Number(b.layers) || 0) : !(v > (Number(b.layers) || 0))) return b;
     changed = true;
     return { ...b, layers: v };
   });
@@ -187,7 +187,7 @@ export function ownerBoard(field, ownerId, extra = null) {
 export function stripView({ pub, priv = null, myId, fieldId = null, field = null, layer = 'ALL', halves = false, watched = null, live = null }) {
   const ownerId = bondOwnerId({ pub, myId, fieldId, field, layer, halves, watched });
   const self = ownerId === myId;
-  const bonds = withLiveLayers(ownerBonds({ pub, priv, myId, ownerId }), isObj(live) ? live[ownerId] : null);
+  const bonds = playerBonds({ pub, priv, myId, ownerId, live });
   return { ownerId, self, name: self ? null : nameOf(pub, ownerId), bonds };
 }
 
@@ -215,7 +215,9 @@ export function screenStrip({ pub, priv = null, myId, combat = false, settle = f
  * @param {{ pub: any, priv?: any, myId: string, ownerId: string, live?: Record<string, Record<string, number>>|null }} o
  */
 export function playerBonds({ pub, priv = null, myId, ownerId, live = null }) {
-  return withLiveLayers(ownerBonds({ pub, priv, myId, ownerId }), isObj(live) ? live[ownerId] : null);
+  const relics = ownerId === myId ? priv?.relics : playersOf(pub).find((p) => p.playerId === ownerId)?.relics;
+  return withLiveLayers(ownerBonds({ pub, priv, myId, ownerId }), isObj(live) ? live[ownerId] : null,
+    { allowLoss: (relics || []).some((r) => r.id === 'relic_220') });
 }
 
 /**

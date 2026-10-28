@@ -230,6 +230,7 @@ export class PlayerState {
     this.relicOffer = null;
     this.relicShield = 0;
     this.relicShieldRound = 0;
+    this.relicRoundStarted = 0;
     this.relicNextShieldRound = 0;
     this.relicReward = null;
     this.ascensionLottery = null;

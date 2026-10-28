@@ -4,6 +4,7 @@
 // Installed on Match.prototype by server/match/Match.js (a method container: never instantiated; `this` is the match).
 
 import { redistributeRelicWaves } from '../relicWaves.js';
+import { withRoadEnemies } from '../relicRoad.js';
 import { deathNoteKeys } from '../deathNote.js';
 import { PHASE, GEO } from '../../../shared/constants.js';
 import { deriveSeed } from '../../sim/rng.js';
@@ -51,7 +52,9 @@ export class MatchCombat {
       ps, routes: wave.routes,
       spawns: withBounties(this.gd, this.round, wave, ps.bounties, ps.playerId).map((s) => ({ ...s, ownerPlayerId: ps.playerId })),
     }));
-    return redistributeRelicWaves(plans, { solo: this.isSolo, round: this.round, seed: this.seed });
+    const out = redistributeRelicWaves(plans, { solo: this.isSolo, round: this.round, seed: this.seed });
+    for (const { ps } of plans) out.set(ps.playerId, withRoadEnemies(this, ps, out.get(ps.playerId), wave.routes, { baseSpawns: wave.spawns }));
+    return out;
   }
 
   /** Battle options of a player's normal field (after the onBattleStart handlers). */

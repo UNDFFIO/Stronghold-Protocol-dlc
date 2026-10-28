@@ -6,10 +6,10 @@
 // Installed on PlayerState.prototype by server/match/PlayerState.js (a method container: never instantiated; `this` is
 // the player state).
 
-import { relicIncome } from '../../../shared/relics.js';
+import { relicIncome, relicRoundIncome, relicDeployPenalty } from '../../../shared/relics.js';
 import { startRelicRound, relicsView } from '../relics.js';
 import { retainBestScratchTicket } from '../scratchTickets.js';
-import { boardOrder, pieceDir } from '../board.js';
+import { boardOrder, pieceDir, tileKey } from '../board.js';
 import { computeBonds, bondSnapshot, activatedLayers, bondsWithGains } from '../bondsMeta.js';
 
 export class PlayerRound {
@@ -23,7 +23,7 @@ export class PlayerRound {
     this.pendingFunds = 0;
     this.m.dispatch(this, 'onIncome', ev);
     const nonNeg = (v) => (Number.isFinite(v) && v > 0 ? Math.trunc(v) : 0);
-    this.addFunds(nonNeg(ev.income) + nonNeg(ev.pending) + relicIncome(this.relics), { reason: 'income' });
+    this.addFunds(relicRoundIncome(this.relics, nonNeg(ev.income) + nonNeg(ev.pending) + relicIncome(this.relics)), { reason: 'income' });
     // temp is NOT wiped here: the last prep's deadline resolved what the player could act on (endPrep); what overflowed
     // after it (battle-result grants, SETTLE merges, returned equipment) is shown and usable in this prep (tempDue).
     // Queued reward offers (a promotion's pick, a strategy's special refresh, an item offer) are kept until picked —
@@ -92,6 +92,14 @@ export class PlayerRound {
 
   recompute() {
     this.drainRelicChess();
+    // [ASSUMED] A reduced cap returns excess operators in reverse board order, preserving every piece.
+    if (relicDeployPenalty(this.relics)) for (const { r, c, piece } of boardOrder(this.board).reverse()) {
+      if (this.deployCount <= this.deployCap) break;
+      if (piece.kind !== 'chess') continue;
+      this.board.delete(tileKey(r, c));
+      this.stow(piece, { allowTemp: true });
+      this.removeTokensOf(piece.uid);
+    }
     this.deployMap(); // a change of the deploy field (a boss round's prep) marks the legality stale
     if (this._legalityStale) this._evictIllegal();
     this._liftOutOfRange();

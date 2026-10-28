@@ -55,6 +55,9 @@ export function applyHpDecrease(battle, ctx, amount, mark) {
   const hs = source; // the source hooks see (无来源: none; `credit` keeps it)
   if (target.bossPool) {
     const pool = target.bossPool;
+    // The pool uses unmodified HP units; a field's curse increases the leader's effective HP.
+    // Convert once here so client credit and authoritative shared-pool damage stay in the same units.
+    hpAmount /= target.findBuff('relic:enemy-stats')?.mods?.hpMul ?? 1;
     const before = pool.hp;
     const pid = credit && credit.side === 'ally' ? credit.ownerId : null;
     if (hpAmount > 0) {

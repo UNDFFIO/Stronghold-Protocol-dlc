@@ -3,7 +3,7 @@
 // view carries) and RESULT (finish: m.result to every human still here, onEnd).
 // Installed on Match.prototype by server/match/Match.js (a method container: never instantiated; `this` is the match).
 
-import { consumeRelicLpLoss, reviveSelf, settleRelics } from '../relics.js';
+import { consumeRelicLpLoss, reviveSelf, settleRelics, settleRelicLayerLosses } from '../relics.js';
 import { damageRanking } from '../../../shared/damageRanking.js';
 import { PHASE, layerGainRoom } from '../../../shared/constants.js';
 import { uniteSurvivors } from '../unite.js';
@@ -71,6 +71,7 @@ export class MatchSettle {
       // IN_BATTLE layer gains (normal battles only), at most the room left under BOND_LAYER_CAP (999, as the battle's
       // live copy: Battle.addLayers); a bond at the cap gains nothing and dispatches nothing
       for (const [bondId, n] of Object.entries(r.layerGains || {})) {
+        if (n < 0) continue; // Curse losses are settled below; ordinary positive gains keep their existing cap.
         if (!this.gd.bond(bondId) || !(n > 0)) continue;
         const before = ps.layers[bondId] || 0;
         const add = layerGainRoom(before, Math.floor(n));
@@ -78,6 +79,8 @@ export class MatchSettle {
         ps.layers[bondId] = before + add;
         this.dispatch(ps, 'onLayers', { bondId, from: before, to: ps.layers[bondId], reason: 'battle' });
       }
+      settleRelicLayerLosses(ps, r);
+      if (uniteRan && up) settleRelicLayerLosses(ps, up);
       this._charDamageTickers(ps, r);
       this.dispatch(ps, 'onBattleResult', { result: r, lpLoss: loss, perfect: counted === 0 && r.perfect !== false, unite: uniteResult || null });
       ps.relicShield = 0;

@@ -14,6 +14,49 @@ const riverPrayerInstalled = new WeakSet();
 const killRelicsInstalled = new WeakSet();
 const sachetInstalled = new WeakSet();
 const iceFireInstalled = new WeakSet();
+const cursedNoteInstalled = new WeakSet();
+const grinderInstalled = new WeakSet();
+
+function installGrinder(battle, byPlayer) {
+  if (grinderInstalled.has(battle)) return;
+  grinderInstalled.add(battle);
+  let nextAt = 1;
+  // [ASSUMED] At each whole combat second choose one active, nonempty bond; persist actual loss, floored at zero.
+  battle.on('tick', () => {
+    if (battle.time + 1e-9 < nextAt) return;
+    nextAt += 1;
+    for (const [pid, ids] of byPlayer) {
+      const amount = ids.reduce((n, id) => n + (getRelic(id)?.bondLayerLossPerSecond || 0), 0);
+      if (!amount) continue;
+      const ps = battle.getPlayer(pid);
+      const candidates = Object.keys(ps.bonds).filter((id) => ps.bonds[id].active && ps.bonds[id].layers > 0).sort();
+      if (!candidates.length) continue;
+      const id = candidates[Math.floor(battle.rng() * candidates.length)];
+      const lost = Math.min(amount, ps.bonds[id].layers);
+      ps.bonds[id].layers -= lost;
+      const deltas = battle._pp(pid).layerGains;
+      deltas[id] = (deltas[id] || 0) - lost;
+      battle._ev(['layer', pid, id, -lost]);
+    }
+  });
+}
+
+function installCursedNote(battle, byPlayer) {
+  if (cursedNoteInstalled.has(battle)) return;
+  cursedNoteInstalled.add(battle);
+  battle.on('battleStart', () => {
+    for (const [pid, ids] of byPlayer) {
+      if (!ids.includes('relic_242')) continue;
+      // [ASSUMED] Select from living, deployed operators at the opening, excluding summons and teammates.
+      const candidates = playerOps(battle, pid, { fieldOnly: true }).filter((u) => !u.removed);
+      if (!candidates.length) continue;
+      const target = candidates[Math.floor(battle.rng() * candidates.length)];
+      target.hp = 0;
+      // A permanent forced death bypasses kill-hook survival; removal precedes death-hook revivals.
+      battle.retreat(target, { reason: 'killed', permanent: true, dying: true });
+    }
+  }, { priority: -100, once: true });
+}
 
 function installSachet(battle, byPlayer) {
   if (sachetInstalled.has(battle)) return;
@@ -205,6 +248,8 @@ export function install(battle) {
     if (ids.length) byPlayer.set(ps.playerId, ids);
   }
   if (!byPlayer.size) return;
+  if ([...byPlayer.values()].some((ids) => ids.some((id) => getRelic(id)?.bondLayerLossPerSecond))) installGrinder(battle, byPlayer);
+  if ([...byPlayer.values()].some((ids) => ids.includes('relic_242'))) installCursedNote(battle, byPlayer);
   if ([...byPlayer.values()].some((ids) => ids.includes('relic_133'))) installIceFire(battle);
   installSachet(battle, byPlayer);
   if ([...byPlayer.values()].some((ids) => ids.includes('relic_134'))) installRiverPrayer(battle);
