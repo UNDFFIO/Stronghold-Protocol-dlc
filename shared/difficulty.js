@@ -45,7 +45,7 @@ export const DIFFICULTY_RULES = Object.freeze([
   rule(19, 'goalStealth', N_('潜行冲线'), { distance: 2 },
     p => t('所有普通地面敌人距离目标点不足{distance}格时获得【隐匿】', { distance: p.distance }), N_('在目标点前保留近战阻挡。'), N_('对不可被阻挡的敌人不生效；被我方单位阻挡时【隐匿】效果解除')),
   rule(20, 'controlArmor', N_('终极协同'), { increase: 0.1, maxIncrease: 3 },
-    p => t('所有敌方单位在受到控制效果时防御力和法抗每秒提升{percent}%,最高提升{maxPercent}%', { percent: p.increase * 100, maxPercent: p.maxIncrease * 100 }), N_('避免长时间控制，优先集中输出。')),
+    p => t('非领袖敌人受控期间，每累计1秒防御力和法抗提升{percent}%，最高提升{maxPercent}%；控制结束后保留增幅。', { percent: p.increase * 100, maxPercent: p.maxIncrease * 100 }), N_('避免长时间控制，优先集中输出。')),
 ]);
 
 export function difficultyEffects(level = 0) {

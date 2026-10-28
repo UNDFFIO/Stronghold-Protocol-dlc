@@ -28,7 +28,7 @@ once blockable. Level 20 inherits this exclusion. The main effect text stays unc
 explains the exclusion and that blocking removes Invisibility (maintainer-requested DLC adjustment, §29.21).
 Level 20, Ultimate Synergy, replaces damage-triggered debuff shortening with DEF and RES growth while an
 enemy is controlled: +10% per accumulated second, capped at +300% (4x), with final RES capped at 100.
-Leaders (`isBoss`, `bossPool` or `BOSS` rank) are exempt; this exemption is omitted from player-facing text.
+Leaders (`isBoss`, `bossPool` or `BOSS` rank) are exempt; player-facing text explicitly states this exemption.
 [ASSUMED] Control follows `RESIST_STATUSES` plus 麻痹, consistent with the cleanse/immunity protocols.
 Only successful, active controls count; overlaps count once. Full seconds grant additive 10-percentage-point
 steps, partial seconds and gains remain across control gaps, and idle time never increases stats. Ordinary
@@ -419,7 +419,7 @@ These do not alter the default rules above. See
 
 **DLC 收藏品掉落（维护者决定，2026-10-24）：** 完成单次作战后，存活且未离场玩家实际损失生命值不超过 5（含 0 和 5）即获得藏品三选一，超过 5 不发奖。普通回合按扣血上限、联防救援与生命效果处理后的实际扣血判定，回血按零损失处理；首领回合按共享血池结算后的个人分摊生命损失判定，仍仅在最终攻势胜利并解锁隐秘核心时提供下一关补给。移除连续漏怪／连败补偿、品质提升和下回合护盾发放；无漏怪概率、解锁回合、排重及选择流程保持不变。缺失、替代、未完成与重复结算不额外发奖。
 
-**DLC 漏怪收藏品降级（维护者决定，2026-10-24）：** 本人出现计数漏怪时，每个候选按无漏怪概率降低一个品质档，最低为 I 普通；即使联防救回且实际零扣血仍适用，不计数对象不触发。将原 I 与 II 权重合并到 I，III→II、IV→III、V→IV，因此漏怪奖励不出现 V 传说。先降级合并权重，再排除耗尽档位并归一化；不回退到更高档，全部合格池耗尽则不发放。无漏怪概率及超限补给等独立奖池不变。
+**DLC 漏怪收藏品降级（维护者决定，2026-10-24）：** 本人出现计数漏怪时，每个候选按无漏怪概率降低一个品质档，最低为 I 普通；即使联防救回且实际零扣血仍适用，不计数对象不触发。将原 I 与 II 权重合并到 I，III→II、IV→III、V→IV，因此漏怪奖励不出现 V 传说。先降级合并权重，再排除耗尽档位并归一化；不回退到更高档，合格候选不足时由热水壶补足。无漏怪概率及超限补给等独立奖池不变。
 ### Opt-in adaptive strategies
 
 [ASSUMED] The registered `adaptive` strategy keeps legacy band picking and procurement and adds map-independent
