@@ -165,7 +165,8 @@ export function RelicCollection({ relics, reward, owner = null, round = 1, shiel
       <${RelicList} relics=${relics} reward=${reward} illustrated=${true} revival=${revival} onScratch=${onScratch} onDeathNote=${showDeathNote} />
       <details class="relic-panel__rules relic-panel__caps">
         <summary>${tr('掉落规则')}</summary>
-        <p class="relic-panel__rule">${tr('单次作战损失生命值不超过 5，弹出藏品三选一；本人漏怪时品质降低一级，最低普通，联防救回也适用。每次只获得所选的一件，永久藏品同名不重复，刮刮票兑奖后可再次获得，效果仅在本局有效。')}</p>
+        <p class="relic-panel__rule">${tr('热水壶仅在候选不足时补位，可重复获得，每次恢复2点目标生命值。')}</p>
+        <p class="relic-panel__rule">${tr('单次作战损失生命值不超过 5，弹出藏品三选一；本人漏怪时品质降低一级，最低普通，联防救回也适用。每次只获得所选的一件，除热水壶外，永久藏品同名不重复，刮刮票兑奖后可再次获得，效果仅在本局有效。')}</p>
         <p class="relic-panel__balance">${tr('强度分 I–V 五档。无漏怪奖励中 I／II 从 R1 开始出现，III 从 R4 开始，IV／V 从 R7 开始。')}</p>
         <p class="relic-panel__note">${tr('基础概率：无漏怪／漏怪')}</p>
         <div class="relic-odds" aria-label=${tr('第 {round} 回合基础掉落概率', { round })}>
@@ -200,7 +201,7 @@ export function RelicChoice({ offer, deadline = 0, onChoose }) {
     micro="RELIC CHOICE" width=${cards.length === 4 ? 'min(12rem, 94vw)' : 'min(9rem, 94vw)'} tone="mint" class="relic-choice" closeOnBackdrop=${false}>
     <p class="relic-choice__rule">${offer.leaked ? tr('本次作战有漏怪，候选品质已降低一级（最低普通）。') : tr('本次作战损失生命值 ≤ 5')}</p>
     <div class=${`relic-choice__cards${cards.length === 4 ? ' relic-choice__cards--four' : ''}`}>
-      ${cards.map((r, idx) => r ? html`<button key=${r.id} type="button" class=${`relic-choice__card relic-tier-${r.tier}`}
+      ${cards.map((r, idx) => r ? html`<button key=${idx} type="button" class=${`relic-choice__card relic-tier-${r.tier}`}
         disabled=${busy != null} aria-label=${tr('选择{name}，{1}，{2}', { name: tr(r.name), 1: tierName(r.tier), 2: tr(r.previewDesc || r.desc) })} data-relic-id=${r.id} onClick=${() => pick(idx)}>
         <span class="relic-choice__art"><${Img} src=${relicIconUrl(data.get('assets'), r.id)} fallback=${html`<${Icon} name="key" />`} /></span>
         <span class="relic-choice__tier">${tierName(r.tier)}</span><b>${tr(r.name)}</b><p>${tr(r.previewDesc || r.desc)}</p>

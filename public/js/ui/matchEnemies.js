@@ -63,7 +63,8 @@ function factionCell({ type, info, m, scope }) {
 export function MatchEnemies({ pub, gd, idScope = 'brief' }) {
   if (!pub) return null;
   const mode = gd.config?.modes?.[pub.modeId];
-  const bossId = pub.extraBossRound ? pub.extraBossId : pub.bossId;
+  const extraBossRound = pub.extraRound > 0 ? Math.ceil(pub.extraRound / 6) * 6 : 0;
+  const bossId = extraBossRound ? (pub.extraBossRound ? pub.extraBossId : null) : pub.bossId;
   const boss = bossId ? gd.boss(bossId) : null;
   const bossEnemy = boss ? gd.enemy(boss.enemyKey) : null;
   const stage = pub.stageId ? gd.stage(pub.stageId) : null;
@@ -86,7 +87,7 @@ export function MatchEnemies({ pub, gd, idScope = 'brief' }) {
       </div>
       <div class="brief-boss__text">
         <h2 class="brief-boss__name">${boss?.name || bossEnemy?.name || t('未知领袖')}</h2>
-        <span class="brief-boss__when">${pub.extraBossRound ? t('额外第 {n} 回合 · 领袖战', { n: pub.extraRound }) : tParts('第 {r} 回合 · 最终攻势', { r: html`<b class="num">${mode?.bossRound ?? pub.lastRound ?? 14}</b>` })}</span>
+        <span class="brief-boss__when">${extraBossRound ? t('额外第 {n} 回合 · 领袖战', { n: extraBossRound }) : tParts('第 {r} 回合 · 最终攻势', { r: html`<b class="num">${mode?.bossRound ?? pub.lastRound ?? 14}</b>` })}</span>
         ${Array.isArray(boss?.abilities) && boss.abilities.length ? html`<ul class="brief-boss__abil">
           ${boss.abilities.slice(0, 3).map((a, i) => html`<li key=${i}><${RichText} text=${a} /></li>`)}
         </ul>` : null}

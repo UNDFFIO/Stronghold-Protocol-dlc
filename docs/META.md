@@ -60,7 +60,8 @@ original winners and starts the next round without invoking `finish` or publishi
 
 `GameData.endlessRound`, `waveRound` and `isBossRound` extend the round configuration without changing generated
 data. Normal waves reuse the last normal template and redraw faction entries; every sixth extra round redraws the
-weighted regular boss pool. `flags.endlessEnemyScale = 1 + 0.05 * N` travels through real, client, rehearsal and Unite
+weighted regular boss pool. `flags.endlessEnemyScale` uses `shared/endless.js`: `1 + 0.1 * N` for extra rounds 1–10, then
+`2 * 1.15 ** (N - 10)` from round 11. The same helper drives the client bonus display (rounded to two decimal places). The multiplier travels through real, client, rehearsal and Unite
 BattleSpecs; spawn base HP/ATK scale once, outside inherited spawn mods, and shared boss HP scales independently.
 The public view carries `extraRound`, `extraRounds`, `extraBossRound` and `extraBossId`. The client shows `extraRound`
 in the top round slot and the HP/ATK bonus in 敌方情报 (see [client contract](design/client.md#9-client-rendering-contract-publicjsrender)). Extra boss victories return
@@ -75,7 +76,7 @@ Completed battles offer one collectible from three choices when the surviving, p
 
 ### DLC: Four-Leaf Clover Fossil
 
-四叶草化石（No.195，II 精良）合法领取后，持有者战后收藏品奖励（单次作战实际损血不超过 5）增加一个候选，三选一变为四选一，仍只领取一件。相同 ID 不重复叠加，候选不足时展示剩余合格项；超限补给的直接发放数量不变。官方图标及来源见 [COLLECTIBLES.md](COLLECTIBLES.md)。
+四叶草化石（No.195，II 精良）合法领取后，持有者战后收藏品奖励（单次作战实际损血不超过 5）增加一个候选，三选一变为四选一，仍只领取一件。相同 ID 不重复叠加，候选不足时用热水壶补满；超限补给的直接发放数量不变。官方图标及来源见 [COLLECTIBLES.md](COLLECTIBLES.md)。
 
 ### DLC: Ascension supplies
 
@@ -1333,4 +1334,6 @@ The host’s pre-match `room.setAiTakeover {on}` opts a co-op room in; default o
 
 `Match.nextEnemiesFor` 在生成普通及首领波次预览时排除本回合 `deathNoteKeys` 中的全部敌方类型（含悬赏）。成功书写后标记全队存活玩家的私有状态，以同次请求推送更新后的敌方单位预览，并通过既有整备观战通知同步刷新队友与观众；写错不改变预览，回合切换后恢复正常生成。
 
-传说藏品 `relic_241` 不进入随机奖池，本人本局干员累计死亡50次后自动获得，多人同局唯一。`g.deathNote { name, round }` 仅准备阶段未准备的持有者可调用，每回合一次，基础花费8金币，拼写错误照常扣费。`g.shinigamiEyes { round }` 由同一整备校验保护，一局一次，以本人当前生命的一半获得死神之眼，剩余生命向上取整 [ASSUMED]；已有共享池时仅扣本人份额并重设同步权重。`m.private.shinigamiEyes` 表示交易结果，`m.private.deathNote` 返回本回合是否已书写与实际花费 `cost`（8或4）。交易不重置书写次数，实际扣费采用服务端状态，重复、过期和非持有者请求无效。服务端解析名字，将本回合全队的移除类型写入各阵地BattleSpec的 `flags.deathNoteEnemyKeys`，共享模拟器在排队和即时生成入口移除匹配敌人；命中领袖时同步完成共享生命池目标。获得、跨局清零、隐藏敌名负面及完整结算边界见 [收藏品规则](COLLECTIBLES.md)。
+传说藏品 `relic_241` 不进入随机奖池，本人本局干员累计死亡至少30次且累计实际损失至少10点生命值后自动获得，多人同局唯一。`g.deathNote { name, round }` 仅准备阶段未准备的持有者可调用，每回合一次，基础花费8金币，拼写错误照常扣费。`g.shinigamiEyes { round }` 由同一整备校验保护，一局一次，以本人当前生命的一半获得死神之眼，剩余生命向上取整 [ASSUMED]；已有共享池时仅扣本人份额并重设同步权重。`m.private.shinigamiEyes` 表示交易结果，`m.private.deathNote` 返回本回合是否已书写与实际花费 `cost`（8或4）。交易不重置书写次数，实际扣费采用服务端状态，重复、过期和非持有者请求无效。服务端解析名字，将本回合全队的移除类型写入各阵地BattleSpec的 `flags.deathNoteEnemyKeys`，共享模拟器在排队和即时生成入口移除匹配敌人；命中领袖时同步完成共享生命池目标。获得、跨局清零、隐藏敌名负面及完整结算边界见 [收藏品规则](COLLECTIBLES.md)。
+
+**DLC 热水壶（2026-10-28）：** `pickRelicChoices()` 在合格池耗尽后用 `relic_014` 逐项补位，超限补给复用相同兜底。`grantRelic()` 每次合法领取立即回复本人2点目标生命值，并保留首领共享生命中的本人份额；`selectRelic()` 仍校验服务端 offer 和索引，重复请求无效。完整规则见 [COLLECTIBLES.md](COLLECTIBLES.md)。

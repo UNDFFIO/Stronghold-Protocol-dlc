@@ -49,7 +49,7 @@ export function drawAscensionLottery(ps) {
     const tierWeights = legendary ? LOTTERY_LEGENDARY_WEIGHTS : LOTTERY_RELIC_WEIGHTS;
     for (let i = 0; i < (legendary ? 1 : 3); i++) {
       const r = pickRelic(4, ps.relics, rng, { multiplayer: !m.isSolo, tierWeights,
-        hasScratchTicket: ps.scratchTickets.length > 0, bonds: ps.bonds, excludeIds: reward.ids });
+        hasScratchTicket: ps.scratchTickets.length > 0, bonds: ps.bonds, excludeIds: reward.ids }) ?? getRelic('relic_014');
       if (r && grantRelic(ps, r.id, { round: 4, battleRound: 4 })) reward.ids.push(r.id);
     }
     const params = { 0: reward.ids.length ? reward.ids.map((id) => dn(getRelic(id).name)) : dn('可用收藏品已全部持有') };

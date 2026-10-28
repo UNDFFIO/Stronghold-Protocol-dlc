@@ -120,7 +120,7 @@ test('lottery acquisition keeps special collectible effects: phone reduction and
     ps.relics = RELICS.filter((r) => !['relic_157', 'relic_158'].includes(r.id)).map((r) => ({ id: r.id, round: 1 }));
     grantRelic(ps, 'relic_235'); // Occupied ticket slot keeps this test focused on the phone and time machine.
     h.m.startRound(4);
-    assert.deepEqual([...ps.ascensionLottery.ids].sort(), ['relic_157', 'relic_158']);
+    assert.deepEqual([...ps.ascensionLottery.ids].sort(), ['relic_014', 'relic_157', 'relic_158']);
     assert.equal(h.m.difficultyLevel, 6);
     assert.equal(activeReverseLp(ps), true);
     assert.equal(grantRelic(ps, 'relic_157'), null, 'duplicate grants do not reduce difficulty again');
@@ -184,7 +184,7 @@ test('supply-specific tier weights are exactly 5/65/30 and legendary-only; ordin
   assert.equal(pickRelic(4, [], () => 0, { tierWeights: LOTTERY_LEGENDARY_WEIGHTS }).tier, 5);
 });
 
-test('supply pools exclude owned collectibles and never substitute a disallowed tier when exhausted', () => {
+test('supply pools exclude owned collectibles and use kettles only for exhausted slots', () => {
   for (const kind of ['relics', 'legendary']) {
     const h = setup(seeds[kind]);
     try {
@@ -192,10 +192,15 @@ test('supply pools exclude owned collectibles and never substitute a disallowed 
       ps.relics = RELICS.filter((r) => kind === 'relics' ? r.tier <= 3 : r.tier === 5).map((r) => ({ id: r.id, round: 1 }));
       if (kind === 'relics') grantRelic(ps, 'relic_235');
       const count = ps.relics.length;
+      const lp = ps.lp;
       h.m.startRound(4);
       assert.equal(ps.ascensionLottery.kind, kind);
-      assert.deepEqual(ps.ascensionLottery.ids, []);
-      assert.equal(ps.relics.length, count);
+      const missing = kind === 'relics' ? 3 : 1;
+      assert.deepEqual(ps.ascensionLottery.ids, Array(missing).fill('relic_014'));
+      assert.equal(ps.lp, lp + missing * 2);
+      assert.equal(ps.relics.length, count + (kind === 'legendary' ? 1 : 0));
+      assert.equal(drawAscensionLottery(ps), null);
+      assert.equal(ps.lp, lp + missing * 2, 'retries cannot heal again');
     } finally { h.m.dispose(); }
   }
   const h = setup(seeds.legendary);

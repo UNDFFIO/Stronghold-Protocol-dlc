@@ -222,6 +222,7 @@ export class PlayerState {
     this.relics = [];
     this.relicSettledRounds = new Set();
     this.deathNoteDeaths = 0;
+    this.deathNoteLpLost = 0;
     this.deathNoteSettled = new Set();
     this.deathNoteAwarded = false;
     this.deathNoteEntry = null;

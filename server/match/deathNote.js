@@ -5,7 +5,8 @@ import { grantRelic } from './relics.js';
 export const DEATH_NOTE_ID = 'relic_241';
 export const DEATH_NOTE_COST = 8;
 export const deathNoteCost = (ps) => ps.shinigamiEyes ? 4 : DEATH_NOTE_COST;
-export const DEATH_NOTE_DEATHS = 50;
+export const DEATH_NOTE_DEATHS = 30;
+export const DEATH_NOTE_LP_LOST = 10;
 const normalize = (name) => String(name).normalize('NFKC').trim();
 
 // Accept the shipped localized names too. Canonical names key these aliases, including other versions/content sets.
@@ -34,13 +35,17 @@ export function deathNoteKeys(m) {
 }
 
 /** Normal, Unite and boss reports each count once. No synthetic results, teammates, tokens or retreats. */
-export function settleDeathNote(ps, result, field) {
+export function settleDeathNote(ps, result, field, lpLoss = 0) {
   const key = `${ps.m.round}:${field}`;
   if (!result || result.synthetic || ps.deathNoteSettled.has(key)
     || !Number.isSafeInteger(result.deaths) || result.deaths < 0) return;
   ps.deathNoteSettled.add(key);
   ps.deathNoteDeaths += result.deaths;
-  if (!ps.deathNoteAwarded && ps.deathNoteDeaths >= DEATH_NOTE_DEATHS && ps.lp > 0
+  // Settlement passes the actual personal loss after caps, rescue and shields (bosses: the shared-pool allocation).
+  // Healing never erases earlier losses; Unite deaths count separately, but its LP charge is already in normal.
+  if (Number.isFinite(lpLoss)) ps.deathNoteLpLost += Math.max(0, lpLoss);
+  if (!ps.deathNoteAwarded && ps.deathNoteDeaths >= DEATH_NOTE_DEATHS
+    && ps.deathNoteLpLost >= DEATH_NOTE_LP_LOST && ps.lp > 0
     && grantRelic(ps, DEATH_NOTE_ID)) ps.deathNoteAwarded = true;
   ps.dirty();
 }

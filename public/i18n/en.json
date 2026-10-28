@@ -2855,7 +2855,7 @@
   "强度分 I–V 五档。普通奖励中 I／II 从 R1 开始出现，III 从 R4 开始，IV／V 从 R7 开始。": "Strength has five tiers, I–V. Normal rewards unlock I/II from R1, III from R4, and IV/V from R7.",
   "藏品三选一": "Choose a Collectible",
   "本次作战损失生命值不超过 5：从以下收藏品中选择一件。": "You lost no more than 5 LP in this battle. Choose one of the following collectibles.",
-  "单次作战损失生命值不超过 5，弹出藏品三选一；本人漏怪时品质降低一级，最低普通，联防救回也适用。每次只获得所选的一件，永久藏品同名不重复，刮刮票兑奖后可再次获得，效果仅在本局有效。": "Lose no more than 5 LP in a battle to choose one of three collectibles. Personal leaks lower quality by one tier, down to Common, even if allies catch them. Only the selected item is awarded. Permanent collectibles cannot repeat; scratch tickets can be obtained again after redemption. Effects last for this match only.",
+  "单次作战损失生命值不超过 5，弹出藏品三选一；本人漏怪时品质降低一级，最低普通，联防救回也适用。每次只获得所选的一件，除热水壶外，永久藏品同名不重复，刮刮票兑奖后可再次获得，效果仅在本局有效。": "Lose no more than 5 LP in a battle to choose one of three collectibles. Personal leaks lower quality by one tier, down to Common, even if allies catch them. Only the selected item is awarded. Permanent collectibles other than Hot Water Kettle cannot repeat; scratch tickets can be obtained again after redemption. Effects last for this match only.",
   "基础概率：无漏怪／漏怪": "Base odds: no leaks / leaks",
   "本次作战有漏怪，候选品质已降低一级（最低普通）：请选择一件。": "You leaked enemies in this battle. Candidate quality has been lowered by one tier (minimum Common). Choose one collectible.",
   "强度分 I–V 五档。无漏怪奖励中 I／II 从 R1 开始出现，III 从 R4 开始，IV／V 从 R7 开始。": "Strength has five tiers, I–V. Rewards without personal leaks unlock I/II from R1, III from R4, and IV/V from R7.",
@@ -2873,7 +2873,7 @@
   "掉落规则": "Drop rules",
   "继续挑战投票": "Continue challenge vote",
   "隐秘核心已击败。全员同意后继续挑战；任一人选择结算则结束本局。": "Hidden Core defeated. Continue if everyone agrees; choosing settlement ends the run.",
-  "每个额外回合敌方生命值与攻击力增加基础值的 5%；每 6 回合挑战随机领袖。": "Each extra round adds 5% of base enemy HP and ATK; fight a random leader every 6 extra rounds.",
+  "额外前 10 回合，敌方生命值与攻击力每回合增加基础值的 10%；之后每回合在上一回合基础上增加 15%。每 6 回合挑战随机领袖。": "For the first 10 extra rounds, enemy HP and ATK gain 10% of base per round; afterward, they increase by 15% of the previous round per round. Fight a random leader every 6 extra rounds.",
   "后续失败仍算成功，结算记录额外通过回合数。": "Later defeat still counts as success. Settlement records extra rounds cleared.",
   "剩余 {n} 秒；超时结算本局。": "{n} seconds left; the run settles when time expires.",
   "继续挑战": "Continue challenge",
@@ -2899,5 +2899,10 @@
   "已获得": "Acquired",
   "以一半生命值交换": "Trade half your HP",
   "交换失败，请重试": "Trade failed. Please try again.",
-  "敌方名字不再遮挡，自身生命值不可见，书写名字花费降为4金币": "Enemy names are revealed, your own HP is hidden, and writing costs 4 coins."
+  "敌方名字不再遮挡，自身生命值不可见，书写名字花费降为4金币": "Enemy names are revealed, your own HP is hidden, and writing costs 4 coins.",
+  "热水壶": "Hot Water Kettle",
+  "获得时恢复2点目标生命值": "Restore 2 objective HP on acquisition",
+  "目标生命上限+2，希望+2。": "Maximum objective HP +2, Hope +2.",
+  "热水壶仅在候选不足时补位，可重复获得，每次恢复2点目标生命值。": "Hot Water Kettle only fills missing candidates; it can be acquired repeatedly, restoring 2 objective HP each time.",
+  "挑战规则": "Challenge rules"
 }

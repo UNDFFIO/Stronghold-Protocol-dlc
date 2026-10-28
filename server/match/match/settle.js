@@ -82,7 +82,7 @@ export class MatchSettle {
       this.dispatch(ps, 'onBattleResult', { result: r, lpLoss: loss, perfect: counted === 0 && r.perfect !== false, unite: uniteResult || null });
       ps.relicShield = 0;
       reviveSelf(ps);
-      settleDeathNote(ps, r, 'normal');
+      settleDeathNote(ps, r, 'normal', loss);
       if (uniteRan && up) settleDeathNote(ps, up, 'unite');
       if (ps.lp > 0) settleRelics(ps, r, { completed: r.relicCompleted === true, lpLoss: loss });
       ps.recompute();

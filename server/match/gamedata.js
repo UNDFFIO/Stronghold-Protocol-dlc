@@ -15,6 +15,7 @@ import { getConfig, getMode } from '../data.js';
 import { isShopItem } from '../sim/simdata.js';
 import { mergeData } from '../../shared/plugins/dataUtils.js';
 import { standInRecord } from '../../shared/standIn.js';
+import { endlessEnemyScale } from '../../shared/endless.js';
 import { MAX_OFFER_SLOTS } from './player/common.js';
 
 const own = (map, id) => (map && typeof map === 'object' && typeof id === 'string' && Object.hasOwn(map, id) && map[id] && typeof map[id] === 'object' ? map[id] : null);
@@ -370,7 +371,7 @@ export class GameData {
   spRounds() { return Array.isArray(this.mode.spRounds) ? this.mode.spRounds.filter((n) => Number.isInteger(n)) : []; }
 
   endlessRound(r) { return this.endlessStartRound > 0 && r >= this.endlessStartRound ? r - this.endlessStartRound + 1 : 0; }
-  endlessScale(r) { return 1 + this.endlessRound(r) * 0.05; }
+  endlessScale(r) { return endlessEnemyScale(this.endlessRound(r)); }
   isBossRound(r) { return this.endlessRound(r) > 0 ? this.endlessRound(r) % 6 === 0 : r === this.bossRound || r === this.hiddenRound; }
   // [ASSUMED] Extra waves reuse the final normal-wave template and the normal boss pool, drawing enemies afresh.
   waveRound(r) { return this.endlessRound(r) ? (this.isBossRound(r) ? this.bossRound : this.bossRound - 1) : r; }

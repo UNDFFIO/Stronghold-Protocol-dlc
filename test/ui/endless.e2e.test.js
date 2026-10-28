@@ -33,9 +33,12 @@ test('extra challenge vote and successful settlement fit desktop and mobile; con
         M.setPhase('CONTINUE_VOTE');
         M.mutate(s => {
           const id = M.store.get().me.playerId;
+          const peer = s.pub.players.find(p => p.playerId !== id && !p.isBot);
+          s.pub.players.push({ ...peer, playerId: 'vote_peer_3', name: '一位名字很长的博士', seat: 2 },
+            { ...peer, playerId: 'vote_peer_4', name: '博士四', seat: 3 });
           s.pub.round = 15;
           s.pub.deadline = 0;
-          s.pub.endlessVote = { voters: [id, s.pub.players.find(p => p.playerId !== id && !p.isBot).playerId], agreed: [] };
+          s.pub.endlessVote = { voters: [id, peer.playerId, 'vote_peer_3', 'vote_peer_4'], agreed: [] };
         });
         M.pushPublic();
         // UI transport stub; authoritative consent/phase validation is covered by test/match/endless.test.js.
@@ -48,6 +51,9 @@ test('extra challenge vote and successful settlement fit desktop and mobile; con
       await page.waitForSelector('.endless-vote-actions');
       const text = await page.$eval('.modal', el => el.textContent);
       assert.match(text, /继续挑战投票/);
+      assert.equal(await page.$$eval('.endless-vote__face .pavatar', els => els.length), 4);
+      assert.equal(await page.$$eval('.endless-vote__player.is-agreed', els => els.length), 0);
+      assert.equal(await page.$eval('.endless-vote__rules', el => el.open), false);
       const buttons = await page.$$('.endless-vote-actions button');
       for (const button of buttons) {
         await button.evaluate(el => el.scrollIntoView({ block: 'center' }));
@@ -57,12 +63,16 @@ test('extra challenge vote and successful settlement fit desktop and mobile; con
       await buttons[0].click();
       await page.waitForFunction(() => document.querySelector('.endless-vote-actions button')?.disabled);
       assert.ok(await page.$('.endless-vote-actions'), 'one vote does not dismiss the dialog');
+      assert.equal(await page.$$eval('.endless-vote__player.is-agreed', els => els.length), 1);
+      assert.ok(await page.$('.endless-vote__player.is-agreed .team__spmark.is-done'), 'confirmed avatar uses the strategy check mark');
+      assert.notEqual(await page.$eval('.endless-vote__player.is-agreed .pavatar', el => getComputedStyle(el).borderColor),
+        await page.$eval('.endless-vote__player:not(.is-agreed) .pavatar', el => getComputedStyle(el).borderColor));
       await page.screenshot({ path: `.cache/endless-ui/vote-${width}.png` });
       await page.evaluate(() => {
         const M = globalThis.__MOCK__;
         M.mutate(s => { delete s.pub.endlessVote; });
         M.setPhase('PREP');
-        M.mutate(s => { s.pub.round = 21; s.pub.extraRound = 6; s.pub.extraRounds = 5; s.pub.extraBossRound = true; });
+        M.mutate(s => { s.pub.round = 21; s.pub.extraRound = 6; s.pub.extraRounds = 5; s.pub.extraBossRound = true; s.pub.extraBossId = s.pub.bossId; });
         M.pushPublic();
       });
       await page.waitForFunction(() => document.querySelector('.roundbox__num')?.textContent === '6');
@@ -72,7 +82,8 @@ test('extra challenge vote and successful settlement fit desktop and mobile; con
       await page.waitForSelector('.edrawer');
       await page.click('.edrawer .tabs__tab:nth-child(2)');
       await page.waitForSelector('.edrawer__extra');
-      assert.equal(await page.$eval('.edrawer__extra', el => el.textContent), '敌方生命与攻击 +30%');
+      assert.equal(await page.$eval('.edrawer__extra', el => el.textContent), '敌方生命与攻击 +60%');
+      assert.equal(await page.$eval('.eboss .t-lo', el => el.textContent), '额外第 6 回合 · 领袖战');
       await page.screenshot({ path: `.cache/endless-ui/intel-${width}.png` });
       // The screenshot's ordinary extra round must use the extra index, rather than total round 37 or hidden ??.
       await page.evaluate(() => {
@@ -81,7 +92,9 @@ test('extra challenge vote and successful settlement fit desktop and mobile; con
         M.pushPublic();
       });
       await page.waitForFunction(() => document.querySelector('.roundbox__num')?.textContent === '22');
-      assert.equal(await page.$eval('.edrawer__extra', el => el.textContent), '敌方生命与攻击 +110%');
+      assert.equal(await page.$eval('.edrawer__extra', el => el.textContent), '敌方生命与攻击 +970.05%');
+      assert.equal(await page.$eval('.eboss .t-lo', el => el.textContent), '额外第 24 回合 · 领袖战');
+      assert.equal(await page.$eval('.eboss b', el => el.textContent), '未知领袖');
       const round = await page.$eval('.roundbox', el => {
         const box = el.getBoundingClientRect();
         return { left: box.left, right: box.right, top: box.top, bottom: box.bottom, width: el.clientWidth, scroll: el.scrollWidth };

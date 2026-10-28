@@ -46,6 +46,13 @@ export function grantRelic(ps, id, { round = ps.m.round, battleRound = round + 1
   const reward = { id: r.id, round };
   if (!ps.relics.some((o) => o.id === id)) ps.relics.push(reward);
   if (r.scratchTicket) issueScratchTicket(ps, r, round);
+  if (r.healLpOnAcquire) {
+    // Keep the owner's healed share through later boss-pool synchronization.
+    if (ps.m.teamLp != null) ps.m._syncTeamLp();
+    ps.lp += r.healLpOnAcquire;
+    if (ps.m.teamLp != null) ps.m._openTeamLp();
+    ps.m.markPublic();
+  }
   // 合法领取时一次性降低全队等级；既有战斗保留原规则，后续所有阵地共用新等级。
   if (r.difficultyReduction) {
     const reduction = ps.m.isSolo ? (r.soloDifficultyReduction ?? r.difficultyReduction) : r.difficultyReduction;

@@ -20,8 +20,17 @@ get ordinary scrolling without snap animation. No wheel interception or fixed-du
 
 **DLC extra-round HUD (maintainer request, 2026-10-27).** During extra challenges, the top bar's round slot
 shows 额外回合 and `m.public.extraRound`, taking priority over the hidden-round `??` display. The enemy HP/ATK
-bonus (`extraRound × 5%`) appears in the 敌方情报 summary. There is no separate floating extra-round status.
+bonus (`(endlessEnemyScale(extraRound) - 1) × 100%`, rounded to two decimal places) appears in the 敌方情报 summary.
+The shared helper preserves linear growth through extra round 10 and compounds by 15% per round afterward (maintainer request, 2026-10-28). There is no separate floating extra-round status.
 Ordinary rounds and Hidden Core retain their existing round display; voting and gameplay rules are unchanged.
+During extra challenges, enemy leader previews show the current or next extra boss round (`ceil(extraRound / 6) × 6`)
+instead of the base final-assault round. Only the current extra boss round reveals `extraBossId`; upcoming randomly
+drawn leaders display as unknown, without reusing the original boss or the previous extra boss.
+
+The extra-challenge vote uses a centered title, a horizontal row of voter portraits with names and vote status,
+and centered action buttons (maintainer sketch, 2026-10-28). Confirmed portraits gain a mint tint/frame and reuse
+the strategy-selection `team__spmark.is-done` check mark. Only server-confirmed consent changes the portrait.
+The timeout remains visible; detailed challenge rules are collapsed below the actions and can be expanded.
 
 **Operator skins (§34.23, [SKINS.md](../SKINS.md)).** [ASSUMED] Retain received skin IDs separately from displayed
 skins so the other-player switch restores loaded units when re-enabled, including boss prep partners. Any-phase

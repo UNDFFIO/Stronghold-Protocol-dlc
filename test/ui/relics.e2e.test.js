@@ -28,6 +28,33 @@ async function closed(page) {
   await page.waitForSelector('.relic-panel', { hidden: true });
 }
 
+test('热水壶：重复补位卡片更新后仍可选择最后一项', {
+  skip: !ENABLED && 'set SP_E2E=1 and provide system Chrome', timeout: 120000,
+}, async () => {
+  const page = await browser.newPage();
+  try {
+    await page.goto(`${base}/dev/game-mock.html?shot=1&phase=PREP`, { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('.relic-icons__heading');
+    await page.evaluate(() => {
+      globalThis.__MOCK__.setPhase('SETTLE');
+      globalThis.__MOCK__.mutate((s) => {
+        s.priv.relics = [];
+        s.priv.relicOffer = { id: 'ui:kettles', round: 4, reason: 'lowLoss', options: ['relic_003', 'relic_014', 'relic_014'] };
+        s.pub.relicChoosing = true; s.pub.deadline = 0;
+      });
+    });
+    await page.waitForFunction(() => document.querySelectorAll('.relic-choice__card').length === 3);
+    await page.evaluate(() => globalThis.__MOCK__.mutate((s) => {
+      s.priv.relicOffer.options = Array(4).fill('relic_014');
+    }));
+    await page.waitForFunction(() => document.querySelectorAll('.relic-choice__card[data-relic-id="relic_014"]').length === 4);
+    await page.waitForFunction(() => [...document.querySelectorAll('.relic-choice__card img')].every((img) => img.complete && img.naturalWidth > 0));
+    await page.click('.relic-choice__card:nth-child(4)');
+    await page.waitForSelector('.relic-choice', { hidden: true });
+    assert.equal(await page.evaluate(() => globalThis.__MOCK__.S().priv.relics.at(-1).id), 'relic_014');
+  } finally { await page.close(); }
+});
+
 test('死亡笔记窗口：桌面放大，缩小界面、特大字号与短横屏仍完整显示图案、按钮和页脚', {
   skip: !ENABLED && 'set SP_E2E=1 and provide system Chrome', timeout: 120000,
 }, async () => {
@@ -392,6 +419,7 @@ for (const item of [
   { id: 'relic_134', name: '河谷祭祈', tier: '史诗', phrases: ['凋亡', '灼燃', '神经', '侵蚀', '爆发效果增强'], shot: 'river-prayer' },
   { id: 'relic_240', name: '淬毒匕首', tier: '稀有', phrases: ['110%', '防御结算前', '5次', '每秒1次', '独立叠加'], shot: 'poison-dagger' },
   { id: 'relic_139', name: '黄金平原', tier: '稀有', phrases: ['技能结束时', '2点技力'], shot: 'golden-plains' },
+  { id: 'relic_014', name: '热水壶', tier: '普通', phrases: ['获得时', '2点目标生命值'], shot: 'kettle' },
   { id: 'relic_140', name: '第一法则', tier: '史诗', phrases: ['技能结束时', '4点技力'], shot: 'first-law' },
   { id: 'relic_125', name: '液体化肥', tier: '精良', phrases: ['50点生命', '100点屏障', '140%'], shot: 'fertilizer' },
   { id: 'relic_126', name: '热辣可可', tier: '稀有', phrases: ['30%', '+150%', '最大加成'], shot: 'cocoa' },

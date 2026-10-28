@@ -552,6 +552,7 @@ export class MatchBoss {
     // the end condition the server registered first decides (client-side combat: _endFinal — pool 0 → victory, team LP 0
     // → defeat); a boss field's final result may never turn a defeat into a victory (user playtest #6 item 5)
     const victory = this._finalEnding ? this._finalEnding === 'cleared' : this.bossPool.hp <= 0;
+    this._syncTeamLp();
     for (const f of this.fields) {
       const res = resultOf(f);
       this._collectSimErrors(f, res);
@@ -564,7 +565,7 @@ export class MatchBoss {
           this.lastDamageResults.set(pid, damageRanking(pp.unitStats || []));
         }
         if (pp && ps) {
-          settleDeathNote(ps, { ...pp, synthetic: res.synthetic }, 'boss');
+          settleDeathNote(ps, { ...pp, synthetic: res.synthetic }, 'boss', Math.max(0, ps.lpAtFinal - ps.lp));
           ps.stats.dmgDealt += Number(pp.damageDealt) || 0;
           ps.stats.kills += Number(pp.killed) || 0;
           ps.creditedKills += creditedKillsOf(pp);

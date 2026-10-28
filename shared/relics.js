@@ -26,6 +26,8 @@ export const RELIC_TIERS = Object.freeze([
  * @property {boolean} [hideEnemyNames]
  * @property {boolean} [deathNote]
  * @property {boolean} [normalDrop]
+ * @property {boolean} [fallbackOnly]
+ * @property {number} [healLpOnAcquire]
  * @property {string} [previewDesc]
  * @property {number} [difficultyReduction]
  * @property {number} [soloDifficultyReduction]
@@ -50,6 +52,8 @@ const relic = (number, name, tier, desc, sourceEffect, mods, extra = {}) => Obje
 
 // Tiers describe the adapted strength, rather than the original rarity. "All" means the owner's operators only.
 export const RELICS = Object.freeze([
+  relic('014', N_('热水壶'), 1, N_('获得时恢复2点目标生命值'),
+    N_('目标生命上限+2，希望+2。'), {}, { fallbackOnly: true, healLpOnAcquire: 2 }),
   relic('241', N_('死亡笔记'), 5, N_('准备阶段可花费8金币书写一个敌方名字，书写正确则移除本回合全队遭遇的该类型敌人，书写错误不生效（每回合限1次）'),
     N_('同人改编：《死亡笔记》中的笔记本；本游戏机制由维护者指定。'), {},
     { deathNote: true, hideEnemyNames: true, normalDrop: false }),
@@ -192,13 +196,13 @@ export function dropWeights(round, { leaked = false } = {}) {
 export function canReceiveRelic(r, owned, { hasScratchTicket = false, bonds = {}, extraRound = 0 } = {}) {
   const ids = idsOf(owned);
   return !!r && !(r.normalRoundsOnly && extraRound > 0) && (!r.requiredBond || bonds[r.requiredBond]?.active === true)
-    && (r.scratchTicket ? ids.has('relic_234') && !hasScratchTicket : !ids.has(r.id));
+    && (r.fallbackOnly || (r.scratchTicket ? ids.has('relic_234') && !hasScratchTicket : !ids.has(r.id)));
 }
 
 export function pickRelic(round, owned, rng, { multiplayer = false, tierWeights = null, hasScratchTicket = false, excludeIds = [], bonds = {}, extraRound = 0 } = {}) {
   const excluded = new Set(excludeIds);
   const weights = tierWeights ?? dropWeights(round);
-  const pools = RELIC_TIERS.map(({ tier, normalDrop }) => normalDrop === false ? [] : RELICS.filter((r) => r.normalDrop !== false && r.tier === tier && !excluded.has(r.id)
+  const pools = RELIC_TIERS.map(({ tier, normalDrop }) => normalDrop === false ? [] : RELICS.filter((r) => !r.fallbackOnly && r.normalDrop !== false && r.tier === tier && !excluded.has(r.id)
     && canReceiveRelic(r, owned, { hasScratchTicket, bonds, extraRound }) && (!r.multiplayerOnly || multiplayer)));
   const total = weights.reduce((sum, w, i) => sum + (pools[i].length ? w : 0), 0);
   if (!total) return null;
@@ -211,16 +215,16 @@ export function pickRelic(round, owned, rng, { multiplayer = false, tierWeights 
   return null;
 }
 
-/** Distinct, unowned candidates (three by default). A nearly exhausted eligible pool may offer fewer. */
+/** Distinct eligible candidates first; each missing slot is filled with the repeatable kettle. */
 export function pickRelicChoices(round, owned, rng, { leaked = false, multiplayer = false, hasScratchTicket = false, bonds = {}, count = 3, extraRound = 0 } = {}) {
   const excluded = [];
   const choices = [];
   for (let i = 0; i < count; i++) {
     const opts = { multiplayer, hasScratchTicket, bonds, extraRound, excludeIds: excluded, tierWeights: dropWeights(round, { leaked }) };
     const r = pickRelic(round, owned, rng, opts);
-    if (!r) break;
-    choices.push(r.id);
-    excluded.push(r.id);
+    if (!r && !dropWeights(round).some((w) => w > 0)) break;
+    choices.push(r?.id ?? 'relic_014');
+    if (r) excluded.push(r.id);
   }
   return choices;
 }

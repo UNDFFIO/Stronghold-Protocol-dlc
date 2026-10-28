@@ -14,6 +14,7 @@ import { matchInfoModel, DiyBannedLine } from './matchInfo.js';
 import { factionIconUrl } from './assetUrls.js';
 import { data } from '../data.js';
 import { t, tParts, N_ } from '../../../shared/i18n.js';
+import { endlessEnemyScale } from '../../../shared/endless.js';
 
 const cx = (...p) => p.flat().filter(Boolean).join(' ');
 const TAG = { boss: N_('领袖'), bounty: N_('悬赏'), escort: N_('护卫') };
@@ -30,12 +31,13 @@ function EnemiesTab({ pub, priv, onEnemy }) {
   const types = factionTypes(pub?.factions);
   const f = data.get('factions')?.types || {};
   const total = rows.reduce((s, r) => s + r.count, 0);
-  const bossId = pub?.extraBossRound ? pub.extraBossId : pub?.bossId;
+  const extraBossRound = pub?.extraRound > 0 ? Math.ceil(pub.extraRound / 6) * 6 : 0;
+  const bossId = extraBossRound ? (pub.extraBossRound ? pub.extraBossId : null) : pub?.bossId;
   const boss = bossId ? data.lookup('bosses', bossId) : null;
   return html`<div class="edrawer__body">
     <div class="edrawer__sum">
       <span>${tParts('第 {r} 回合 · 即将迎击 {n} 名敌人', { r: html`<b class="num">${pub?.round ?? '-'}</b>`, n: html`<b class="num t-orange">${total}</b>`, count: total })}</span>
-      ${pub?.extraRound > 0 ? html`<span class="edrawer__extra">${t('敌方生命与攻击 +{percent}%', { percent: pub.extraRound * 5 })}</span>` : null}
+      ${pub?.extraRound > 0 ? html`<span class="edrawer__extra">${t('敌方生命与攻击 +{percent}%', { percent: Number(((endlessEnemyScale(pub.extraRound) - 1) * 100).toFixed(2)) })}</span>` : null}
       ${types.length ? html`<${FactionChips} types=${types} />` : null}
     </div>
     ${rows.length ? html`<div class="elist">
@@ -54,10 +56,10 @@ function EnemiesTab({ pub, priv, onEnemy }) {
         <b class="erow__count num">×${r.count}</b>
       </button>`)}
     </div>` : html`<p class="edrawer__empty"><${GIcon} name="target" />${t('暂无敌方情报')}</p>`}
-    ${boss ? html`<div class="eboss">
-      <${UnitThumb} kind="enemy" id=${boss.enemyKey} size="md" />
-      <div><${MicroLabel} tone="gold">${t('ENEMY LEADER // 敌方领袖')}</${MicroLabel}><b>${boss.name}</b>
-        <span class="t-lo">${pub.extraBossRound ? t('额外第 {n} 回合 · 领袖战', { n: pub.extraRound }) : t('第 {r} 回合 · 最终攻势', { r: data.get('config')?.modes?.[pub.modeId]?.bossRound ?? pub.lastRound ?? 14 })}</span></div>
+    ${boss || extraBossRound ? html`<div class="eboss">
+      ${boss ? html`<${UnitThumb} kind="enemy" id=${boss.enemyKey} size="md" />` : null}
+      <div><${MicroLabel} tone="gold">${t('ENEMY LEADER // 敌方领袖')}</${MicroLabel}><b>${boss?.name || t('未知领袖')}</b>
+        <span class="t-lo">${extraBossRound ? t('额外第 {n} 回合 · 领袖战', { n: extraBossRound }) : t('第 {r} 回合 · 最终攻势', { r: data.get('config')?.modes?.[pub.modeId]?.bossRound ?? pub.lastRound ?? 14 })}</span></div>
     </div>` : null}
   </div>`;
 }

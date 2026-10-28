@@ -167,7 +167,7 @@ for (const action of ['decline', 'timeout', 'leave']) test(`${action} settles th
   assert.equal(h.ended.extraRounds, undefined);
 });
 
-test('solo voting has no timeout and acceptance preserves LP, inventory and starts a populated +5% wave', t => {
+test('solo voting has no timeout and acceptance preserves LP, inventory and starts a populated +10% wave', t => {
   const h = atVote(t, { mode: 'solo' });
   const p = h.ps('p_0');
   p.layers.yanShip = 400;
@@ -177,12 +177,16 @@ test('solo voting has no timeout and acceptance preserves LP, inventory and star
   assert.equal(p.layers.yanShip, 400);
   assert.ok(h.m.wave.spawns.length > 0);
   assert.ok(h.m.wave.pick);
-  assert.equal(h.m.gd.endlessScale(16), 1.05);
-  assert.equal(h.m.gd.endlessScale(17), 1.1);
-  assert.equal(h.m.gd.endlessScale(35), 2);
+  assert.equal(h.m.gd.endlessScale(16), 1.1);
+  assert.equal(h.m.gd.endlessScale(17), 1.2);
+  assert.equal(h.m.gd.endlessScale(15), 1);
+  for (let n = 1; n <= 10; n++) assert.equal(h.m.gd.endlessScale(15 + n), 1 + n * 0.1);
+  assert.ok(Math.abs(h.m.gd.endlessScale(26) - 2.3) < 1e-12, 'extra round 11 compounds from round 10');
+  assert.ok(Math.abs(h.m.gd.endlessScale(27) - 2.645) < 1e-12, 'extra boss round 12 keeps compound growth');
+  assert.ok(Math.abs(h.m.gd.endlessScale(35) - 8.091115471416) < 1e-12, 'extra round 20');
   const opts = h.m._normalOpts(p);
-  assert.equal(opts.flags.endlessEnemyScale, 1.05);
-  assert.equal(buildBattleSpec(opts).flags.endlessEnemyScale, 1.05);
+  assert.equal(opts.flags.endlessEnemyScale, 1.1);
+  assert.equal(buildBattleSpec(opts).flags.endlessEnemyScale, 1.1);
   assert.equal(h.m.teamLp, null, 'normal rounds resume personal LP accounting');
 });
 
@@ -212,14 +216,16 @@ test('every sixth extra round draws a valid boss; real templates and the increas
     assert.equal(h.m.publicView().extraBossRound, true);
   }
   assert.ok(seen.size > 1, 'bosses are drawn anew rather than repeating the opening boss');
-  h.m.startRound(21);
-  const id = h.m.endless.bossId;
-  h.m.setDeadline(0);
-  h.m.phase = PHASE.PREP;
-  h.m.endPrep();
-  assert.equal(h.m.phase, PHASE.FINAL_ASSAULT);
-  assert.equal(h.m.bossPool.maxHp, bossPoolHp(h.m.gd, id, 1) * 1.3);
-  assert.equal(FakeBattle.instances.at(-1).opts.flags.endlessEnemyScale, 1.3);
+  for (const [round, scale] of [[21, 1.6], [27, 2 * 1.15 ** 2]]) {
+    h.m.startRound(round);
+    const id = h.m.endless.bossId;
+    h.m.setDeadline(0);
+    h.m.phase = PHASE.PREP;
+    h.m.endPrep();
+    assert.equal(h.m.phase, PHASE.FINAL_ASSAULT);
+    assert.equal(h.m.bossPool.maxHp, bossPoolHp(h.m.gd, id, 1) * scale);
+    assert.equal(FakeBattle.instances.at(-1).opts.flags.endlessEnemyScale, scale);
+  }
 });
 
 for (const clientCombat of [false, true]) test(`hidden win opens the vote, extra boss win resumes and loss keeps success (${clientCombat ? 'client' : 'server'})`, t => {

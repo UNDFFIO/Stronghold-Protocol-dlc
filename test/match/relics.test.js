@@ -9,6 +9,47 @@ import { makeMatch } from './harness.js';
 import { makeBattle, chessRec, enemyRec } from '../helpers/battleHarness.js';
 import { settleDeathNote, deathNoteKeys, resolveDeathNoteName } from '../../server/match/deathNote.js';
 
+test('热水壶：仅补足合格候选缺位，数量、回合和模式条件不变', () => {
+  const owned = RELICS.filter((r) => !['relic_003', 'relic_004'].includes(r.id));
+  const opts = { hasScratchTicket: true };
+  const choices = pickRelicChoices(1, owned, createRng(3), opts);
+  assert.deepEqual([...choices].sort(), ['relic_003', 'relic_004', 'relic_014']);
+  assert.deepEqual(pickRelicChoices(1, RELICS, createRng(3), { ...opts, count: 4 }), Array(4).fill('relic_014'));
+  assert.deepEqual(pickRelicChoices(0, RELICS, createRng(3)), []);
+  for (let seed = 0; seed < 100; seed++) assert.ok(!pickRelicChoices(1, [], createRng(seed)).includes('relic_014'));
+  assert.deepEqual(relicModifiers(['relic_014', 'relic_014']), {});
+});
+
+test('热水壶：领取立即回复本人2点，反复领取生效，伪造及重复请求不回血', () => {
+  const h = makeMatch({ humans: 2, fake: true }).start();
+  try {
+    const ps = h.ps('p_0'), mate = h.ps('p_1');
+    h.toPrep(1);
+    ps.relics = RELICS.map((r) => ({ id: r.id, round: 1 }));
+    grantRelic(ps, 'relic_235');
+    ps.lp = 11; mate.lp = 9;
+    const loss = ps.stats.lpLost;
+    const offer = settleRelics(ps, { perfect: true, leaked: [] }, { completed: true });
+    assert.deepEqual(offer.options, Array(4).fill('relic_014'));
+    assert.equal(ps.lp, 11);
+    assert.equal(selectRelic(ps, 'forged', 0), null);
+    assert.equal(selectRelic(ps, offer.id, 4), null);
+    assert.equal(selectRelic(ps, offer.id, 2).id, 'relic_014');
+    assert.equal(ps.lp, 13);
+    assert.equal(selectRelic(ps, offer.id, 1), null);
+    assert.equal(ps.lp, 13);
+    h.m._openTeamLp();
+    grantRelic(ps, 'relic_014');
+    h.m._syncTeamLp(); h.m._syncTeamLp();
+    assert.equal(ps.lp, 15); assert.equal(mate.lp, 9); assert.equal(h.m.teamLp, 24);
+    assert.equal(ps.stats.lpLost, loss);
+    assert.equal(ps.relics.filter((r) => r.id === 'relic_014').length, 1);
+    ps.alive = false;
+    assert.equal(grantRelic(ps, 'relic_014'), null);
+    assert.equal(ps.lp, 15);
+  } finally { h.m.dispose(); }
+});
+
 test('死神之眼：准备阶段一次交易，扣本人当前一半生命，持久降价且不重置本回合书写次数', () => {
   const h = makeMatch({ humans: 2, fake: true }).start();
   try {
@@ -86,7 +127,7 @@ test('死神之眼：当前生命的一半向上保留，生命代价不触发�
   }
 });
 
-test('死亡笔记：不进入任何随机奖池；本人50次死亡解锁，同局唯一且结算不重复累计', () => {
+test('死亡笔记：不进入任何随机奖池；本人30次死亡且累计损血10点解锁，同局唯一且结算不重复累计', () => {
   const h = makeMatch({ humans: 2, fake: true }).start();
   try {
     const a = h.ps('p_0'), b = h.ps('p_1');
@@ -94,17 +135,18 @@ test('死亡笔记：不进入任何随机奖池；本人50次死亡解锁，同
     const others = RELICS.filter((r) => r.id !== 'relic_241').map((r) => r.id);
     assert.equal(pickRelic(15, others, createRng(1), { tierWeights: [0, 0, 0, 0, 1], hasScratchTicket: true }), null);
     h.toPrep(1);
-    settleDeathNote(a, { deaths: 49 }, 'normal');
-    settleDeathNote(a, { deaths: 49 }, 'normal');
-    settleDeathNote(a, { deaths: 100, synthetic: true }, 'unite');
-    assert.equal(a.deathNoteDeaths, 49);
+    settleDeathNote(a, { deaths: 29 }, 'normal', 9);
+    settleDeathNote(a, { deaths: 29 }, 'normal', 9);
+    settleDeathNote(a, { deaths: 100, synthetic: true }, 'unite', 100);
+    assert.equal(a.deathNoteDeaths, 29);
+    assert.equal(a.deathNoteLpLost, 9);
     assert.equal(a.relics.length, 0);
     h.toPrep(2);
-    settleDeathNote(a, { deaths: 1 }, 'normal');
+    settleDeathNote(a, { deaths: 1 }, 'normal', 1);
     assert.equal(a.relics.filter((r) => r.id === 'relic_241').length, 1);
     assert.equal(a.deathNoteAwarded, true);
     assert.equal(b.deathNoteDeaths, 0);
-    settleDeathNote(b, { deaths: 50 }, 'normal');
+    settleDeathNote(b, { deaths: 30 }, 'normal', 10);
     assert.equal(b.relics.some((r) => r.id === 'relic_241'), false);
     assert.equal(grantRelic(b, 'relic_241'), null);
     a.alive = false; a.left = true;
@@ -113,7 +155,74 @@ test('死亡笔记：不进入任何随机奖池；本人50次死亡解锁，同
     assert.ok(validateC2S({ t: 'g.deathNote', name: '', round: 2 }));
   } finally { h.m.dispose(); }
   const fresh = makeMatch({ mode: 'solo', fake: true }).start();
-  try { assert.equal(fresh.ps('p_0').deathNoteDeaths, 0); } finally { fresh.m.dispose(); }
+  try {
+    assert.equal(fresh.ps('p_0').deathNoteDeaths, 0);
+    assert.equal(fresh.ps('p_0').deathNoteLpLost, 0);
+  } finally { fresh.m.dispose(); }
+});
+
+for (const deathsFirst of [true, false]) test(`死亡笔记：两项门槛均需达到，先达成${deathsFirst ? '死亡' : '损血'}也能在后续零死亡结算解锁`, () => {
+  const h = makeMatch({ mode: 'solo', fake: true }).start();
+  try {
+    h.toPrep(1);
+    const ps = h.ps('p_0');
+    settleDeathNote(ps, { deaths: deathsFirst ? 30 : 29 }, 'normal', deathsFirst ? 9 : 10);
+    assert.equal(ps.relics.length, 0);
+    h.toPrep(2);
+    settleDeathNote(ps, { deaths: deathsFirst ? 0 : 1 }, 'normal', deathsFirst ? 1 : 0);
+    assert.equal(ps.deathNoteDeaths, 30);
+    assert.equal(ps.deathNoteLpLost, 10);
+    assert.equal(ps.relics.filter((r) => r.id === 'relic_241').length, 1);
+  } finally { h.m.dispose(); }
+});
+
+test('死亡笔记：真实结算累计实际损血，护盾、回血与队友不贡献进度，联防不重复扣血', () => {
+  const h = makeMatch({ humans: 2, fake: true }).start();
+  try {
+    h.toPrep(1);
+    const ps = h.ps('p_0'), mate = h.ps('p_1');
+    ps.deathNoteDeaths = 30;
+    const report = (leaks) => ({ deaths: 0, leaked: Array.from({ length: leaks }, () => ({})), perfect: leaks === 0, coins: 0 });
+    const settle = (round, ownLeaks, mateLeaks) => {
+      h.toPrep(round);
+      h.m.lastResults = new Map([[ps.playerId, report(ownLeaks)], [mate.playerId, report(mateLeaks)]]);
+      h.m.settle();
+    };
+    ps.relicShield = 2; ps.relicShieldRound = 1;
+    settle(1, 6, 6);
+    assert.equal(ps.deathNoteLpLost, 4);
+    assert.equal(mate.deathNoteLpLost, 6);
+    ps.relicReverseLpRound = 2;
+    settle(2, 6, 0);
+    assert.equal(ps.deathNoteLpLost, 4, 'healing neither adds progress nor subtracts prior losses');
+    assert.equal(ps.relics.length, 0);
+    settle(3, 6, 0);
+    assert.equal(ps.deathNoteLpLost, 10);
+    assert.ok(ps.relics.some((r) => r.id === 'relic_241'));
+  } finally { h.m.dispose(); }
+});
+
+test('死亡笔记：首领结算先同步共享血池，按本人分摊损血达成第二项条件', () => {
+  const h = makeMatch({ humans: 2, fake: true });
+  try {
+    const { m } = h;
+    const ps = h.ps('p_0'), mate = h.ps('p_1');
+    m.round = m.gd.bossRound; m.phase = PHASE.FINAL_ASSAULT;
+    m.hiddenBossId = null; m.bossPool = { hp: 0 };
+    ps.lp = ps.lpAtFinal = 20; mate.lp = mate.lpAtFinal = 10;
+    ps.deathNoteDeaths = 30; ps.deathNoteLpLost = 6;
+    mate.deathNoteDeaths = 30; mate.deathNoteLpLost = 6;
+    m.teamLp = 24;
+    m.fields = [{ fieldId: 'b1', players: [ps.playerId, mate.playerId], live: true }];
+    const report = { deaths: 0, perfect: true, leaked: [], killed: 0, damageDealt: 0 };
+    m._finishFinal(false, () => ({ perPlayer: { [ps.playerId]: report, [mate.playerId]: report } }));
+    assert.equal(ps.lp, 16); assert.equal(mate.lp, 8);
+    assert.equal(ps.deathNoteLpLost, 10); assert.equal(mate.deathNoteLpLost, 8);
+    assert.ok(ps.relics.some((r) => r.id === 'relic_241'));
+    assert.equal(mate.relics.length, 0);
+    settleDeathNote(ps, report, 'boss', 4);
+    assert.equal(ps.deathNoteLpLost, 10);
+  } finally { h.m.dispose(); }
 });
 
 for (const clientCombat of [false, true]) test(`死亡笔记：写中领袖直接完成多人共享目标（client=${clientCombat}）`, () => {
@@ -142,12 +251,14 @@ test('死亡笔记：普通作战和联防的本人死亡由真实结算入口�
   try {
     h.toPrep(1);
     const ps = h.ps('p_0'), helper = h.ps('p_1');
-    ps.deathNoteDeaths = 48;
+    ps.deathNoteDeaths = 28;
+    ps.deathNoteLpLost = 10;
     const result = { perfect: true, leaked: [], deaths: 1, coins: 0, layerGains: {}, relicCompleted: true };
     h.m.lastResults = new Map([[ps.playerId, result], [helper.playerId, { ...result, deaths: 0 }]]);
     const plan = { leakers: [], helpers: [ps, helper], notReentered: new Map() };
     h.m.settle(plan, { perPlayer: { [ps.playerId]: { ...result, deaths: 1 }, [helper.playerId]: { ...result, deaths: 0 } } });
-    assert.equal(ps.deathNoteDeaths, 50);
+    assert.equal(ps.deathNoteDeaths, 30);
+    assert.equal(ps.deathNoteLpLost, 10);
     assert.ok(ps.relics.some((r) => r.id === 'relic_241'));
     assert.equal(helper.deathNoteDeaths, 0);
   } finally { h.m.dispose(); }
@@ -271,7 +382,7 @@ test('四叶草化石：R1精良可领取，持有后战后四选一，第四项
     exhaustOtherRelics(ps, id);
     h.toPrep(1);
     const offer = settleRelics(ps, { perfect: true, leaked: [] }, { completed: true });
-    assert.deepEqual(offer.options, [id]);
+    assert.deepEqual(offer.options, [id, 'relic_014', 'relic_014']);
     assert.equal(ps.relics.some((r) => r.id === id), false);
     assert.equal(selectRelic(ps, 'forged', 0), null);
     assert.equal(selectRelic(ps, offer.id, 0).id, id);
@@ -312,7 +423,7 @@ test('四叶草化石：仅持有者增加候选，重复ID不叠加，漏怪降
     owner.relicOffer = null;
     exhaustOtherRelics(owner, 'relic_004');
     h.toPrep(5);
-    assert.deepEqual(settleRelics(owner, { perfect: true, leaked: [] }, { completed: true }).options, ['relic_004']);
+    assert.deepEqual(settleRelics(owner, { perfect: true, leaked: [] }, { completed: true }).options, ['relic_004', 'relic_014', 'relic_014', 'relic_014']);
   } finally { h.m.dispose(); }
 });
 
@@ -323,10 +434,10 @@ test('河谷祭祈：史诗R7解锁，候选不生效，合法领取后下场增
     const id = 'relic_134';
     exhaustOtherRelics(ps, id);
     assert.equal(getRelic(id).tier, 4);
-    assert.deepEqual(pickRelicChoices(6, ps.relics, createRng(19), { hasScratchTicket: true }), []);
+    assert.deepEqual(pickRelicChoices(6, ps.relics, createRng(19), { hasScratchTicket: true }), ['relic_014', 'relic_014', 'relic_014']);
     h.toPrep(7);
     const offer = settleRelics(ps, { perfect: true, leaked: [] }, { completed: true });
-    assert.deepEqual(offer.options, [id]);
+    assert.deepEqual(offer.options, [id, 'relic_014', 'relic_014', 'relic_014']);
     const damage = () => {
       const input = ps.battleInput();
       const f = makeBattle({ players: [{ ...input, relics: input.relics.filter((r) => r === id), units: [] }],
@@ -343,7 +454,7 @@ test('河谷祭祈：史诗R7解锁，候选不生效，合法领取后下场增
     assert.equal(selectRelic(ps, offer.id, 0).id, id);
     assert.equal(selectRelic(ps, offer.id, 0), null);
     assert.equal(damage(), 26600);
-    assert.deepEqual(pickRelicChoices(7, ps.relics, createRng(19), { hasScratchTicket: true }), []);
+    assert.deepEqual(pickRelicChoices(7, ps.relics, createRng(19), { hasScratchTicket: true }), ['relic_014', 'relic_014', 'relic_014']);
   } finally { h.m.dispose(); }
 });
 
@@ -356,7 +467,7 @@ test('四件击倒/部署藏品：普通R1候选，合法领取后下场生效�
       assert.equal(getRelic(id).tier, 1);
       h.toPrep(1);
       const offer = settleRelics(ps, { perfect: true, leaked: [] }, { completed: true });
-      assert.deepEqual(offer.options, [id]);
+      assert.deepEqual(offer.options, [id, 'relic_014', 'relic_014', 'relic_014']);
       assert.equal(ps.battleInput().relics.includes(id), false);
       const probe = () => {
         const input = ps.battleInput();
@@ -380,7 +491,7 @@ test('四件击倒/部署藏品：普通R1候选，合法领取后下场生效�
       assert.equal(selectRelic(ps, offer.id, 0), null);
       assert.deepEqual(probe(), { aspd: id === 'relic_116' ? 200 : 100, sp: id === 'relic_117' ? 2 : 0,
         hp: id === 'relic_118' ? 1200 : 1000, shield: id === 'relic_119' ? 2000 : 0 });
-      assert.deepEqual(pickRelicChoices(1, ps.relics, createRng(19), { hasScratchTicket: true }), []);
+      assert.deepEqual(pickRelicChoices(1, ps.relics, createRng(19), { hasScratchTicket: true }), ['relic_014', 'relic_014', 'relic_014']);
     } finally { h.m.dispose(); }
   }
 });
@@ -392,10 +503,10 @@ test('黄金平原、第一法则：按指定品质解锁，合法领取后下�
       const ps = h.ps('p_0');
       exhaustOtherRelics(ps, id);
       assert.equal(getRelic(id).tier, tier);
-      assert.deepEqual(pickRelicChoices(round - 1, ps.relics, createRng(19), { hasScratchTicket: true }), [], '正常掉落不提前解锁');
+      assert.deepEqual(pickRelicChoices(round - 1, ps.relics, createRng(19), { hasScratchTicket: true }), ['relic_014', 'relic_014', 'relic_014'], '正常掉落不提前解锁');
       h.toPrep(round);
       const offer = settleRelics(ps, { perfect: true, leaked: [] }, { completed: true });
-      assert.deepEqual(offer.options, [id]);
+      assert.deepEqual(offer.options, [id, 'relic_014', 'relic_014', 'relic_014']);
       const battle = (input) => makeBattle({ players: [{ ...input, units: [
         { uid: 1, kind: 'chess', chessId: 'refund_guard', row: 10, col: 4 },
       ] }], defs: { chess: { refund_guard: chessRec({ id: 'refund_guard', skill: {
@@ -414,7 +525,7 @@ test('黄金平原、第一法则：按指定品质解锁，合法领取后下�
       next.unit(1).skill.activate('manual', { free: true });
       assert.equal(next.unit(1).skill.sp, amount);
       assert.deepEqual(next.b.errors, []);
-      assert.deepEqual(pickRelicChoices(round, ps.relics, createRng(19), { hasScratchTicket: true }), [], '已领取不重复掉落');
+      assert.deepEqual(pickRelicChoices(round, ps.relics, createRng(19), { hasScratchTicket: true }), ['relic_014', 'relic_014', 'relic_014'], '已领取不重复掉落');
     } finally { h.m.dispose(); }
   }
 });
@@ -428,7 +539,7 @@ test('液体化肥、热辣可可、止痛片：按品质进入候选，合法�
       exhaustOtherRelics(ps, id);
       assert.equal(getRelic(id).tier, tier);
       const offer = settleRelics(ps, { perfect: true, leaked: [] }, { completed: true });
-      assert.deepEqual(offer.options, [id]);
+      assert.deepEqual(offer.options, [id, 'relic_014', 'relic_014', 'relic_014']);
       assert.equal(ps.battleInput().relics.includes(id), false);
       assert.equal(selectRelic(ps, offer.id, 0).id, id);
       assert.equal(selectRelic(ps, offer.id, 0), null);
@@ -459,7 +570,7 @@ test('护愈之手：史诗候选可合法领取，下场战斗生效且不重�
     exhaustOtherRelics(ps, 'relic_172');
     assert.equal(getRelic('relic_172').tier, 4);
     const offer = settleRelics(ps, { perfect: true, leaked: [] }, { completed: true });
-    assert.deepEqual(offer.options, ['relic_172']);
+    assert.deepEqual(offer.options, ['relic_172', 'relic_014', 'relic_014', 'relic_014']);
     assert.equal(ps.battleInput().relics.includes('relic_172'), false);
     assert.equal(selectRelic(ps, offer.id, 0).id, 'relic_172');
     assert.equal(selectRelic(ps, offer.id, 0), null);
@@ -485,7 +596,7 @@ test('原创收藏品：实际奖励池抽取与领取后下一场战斗生效',
       // 耗尽其他藏品，让真实服务端奖励池只剩待验证新品。
       exhaustOtherRelics(ps, id);
       const offer = settleRelics(ps, { perfect: true, leaked: [] }, { completed: true });
-      assert.deepEqual(offer.options, [id]);
+      assert.deepEqual(offer.options, [id, 'relic_014', 'relic_014', 'relic_014']);
       const before = relicModifiers(ps.battleInput().relics, 'WARRIOR', 'MELEE');
       assert.ok(before[id === 'relic_154' ? 'resToDef' : 'defToRes']);
       assert.equal(selectRelic(ps, offer.id, 0).id, id);
@@ -509,10 +620,10 @@ test('淬毒匕首：稀有候选合法领取，下场战斗自动转换，候�
     const ps = h.ps('p_0');
     exhaustOtherRelics(ps, 'relic_240');
     assert.equal(getRelic('relic_240').tier, 3);
-    assert.deepEqual(pickRelicChoices(3, ps.relics, createRng(1), { hasScratchTicket: true }), []);
+    assert.deepEqual(pickRelicChoices(3, ps.relics, createRng(1), { hasScratchTicket: true }), ['relic_014', 'relic_014', 'relic_014']);
     h.toPrep(4);
     const offer = settleRelics(ps, { perfect: true, leaked: [] }, { completed: true });
-    assert.deepEqual(offer.options, ['relic_240']);
+    assert.deepEqual(offer.options, ['relic_240', 'relic_014', 'relic_014', 'relic_014']);
     assert.equal(ps.battleInput().relics.includes('relic_240'), false);
     assert.equal(selectRelic(ps, 'forged', 0), null);
     assert.equal(selectRelic(ps, offer.id, 0).id, 'relic_240');
@@ -529,7 +640,7 @@ test('淬毒匕首：稀有候选合法领取，下场战斗自动转换，候�
     assert.ok(Math.abs(target.hp - 8900) < 1e-6);
     assert.equal(next.b.snapshot().poison, undefined);
     assert.deepEqual(next.b.errors, []);
-    assert.deepEqual(pickRelicChoices(4, ps.relics, createRng(1), { hasScratchTicket: true }), []);
+    assert.deepEqual(pickRelicChoices(4, ps.relics, createRng(1), { hasScratchTicket: true }), ['relic_014', 'relic_014', 'relic_014']);
   } finally { h.m.dispose(); }
 });
 
@@ -540,7 +651,7 @@ test('collection: weaker same-tier duplicates cannot be drawn or granted', () =>
   assert.deepEqual(RELICS.filter((r) => r.tier === 1 && r.mods.hpPct).map((r) => r.id), ['relic_010']);
   const owned = RELICS.filter((r) => !removed.includes(r.id)).map((r) => r.id);
   {
-    assert.deepEqual(pickRelicChoices(15, owned, createRng(7), { multiplayer: true, hasScratchTicket: true }), []);
+    assert.deepEqual(pickRelicChoices(15, owned, createRng(7), { multiplayer: true, hasScratchTicket: true }), ['relic_014', 'relic_014', 'relic_014']);
   }
   assert.deepEqual(relicModifiers(removed, 'WARRIOR', 'MELEE'), {});
   const h = makeMatch({ mode: 'solo', fake: true }).start();
@@ -554,7 +665,7 @@ test('collection: weaker same-tier duplicates cannot be drawn or granted', () =>
 });
 
 test('collection: every tier is populated, early pools cannot run out during ordinary play, definitions are immutable', () => {
-  assert.equal(RELICS.length, 65);
+  assert.equal(RELICS.length, 66);
   assert.equal(new Set(RELICS.map((r) => r.id)).size, RELICS.length);
   assert.ok(RELICS.filter((r) => r.tier === 1).length >= 9);
   for (const { tier } of RELIC_TIERS.filter((t) => t.normalDrop !== false)) assert.ok(RELICS.some((r) => r.tier === tier));
@@ -952,7 +1063,7 @@ test('漏怪掉落：品质概率下移一级，普通合并且不出现传说',
     assert.ok(choices.every((id) => getRelic(id).tier === tier));
   }
   const owned = RELICS.filter((r) => r.tier <= 4).map((r) => r.id);
-  assert.deepEqual(pickRelicChoices(15, owned, createRng(7), { leaked: true, hasScratchTicket: true }), [], 'exhausted lower tiers cannot restore legendary drops');
+  assert.deepEqual(pickRelicChoices(15, owned, createRng(7), { leaked: true, hasScratchTicket: true }), ['relic_014', 'relic_014', 'relic_014'], 'exhausted lower tiers cannot restore legendary drops');
 });
 
 test('漏怪降级以本人计数漏怪为准，联防救回不抹除，非计数对象不触发', () => {
