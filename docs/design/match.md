@@ -28,7 +28,7 @@ once blockable. Level 20 inherits this exclusion. The main effect text stays unc
 explains the exclusion and that blocking removes Invisibility (maintainer-requested DLC adjustment, §29.21).
 Level 20, Ultimate Synergy, replaces damage-triggered debuff shortening with DEF and RES growth while an
 enemy is controlled: +10% per accumulated second, capped at +300% (4x), with final RES capped at 100.
-Leaders (`isBoss`, `bossPool` or `BOSS` rank) are exempt; this exemption is omitted from player-facing text.
+Leaders (`isBoss`, `bossPool` or `BOSS` rank) are exempt; player-facing text explicitly states this exemption.
 [ASSUMED] Control follows `RESIST_STATUSES` plus 麻痹, consistent with the cleanse/immunity protocols.
 Only successful, active controls count; overlaps count once. Full seconds grant additive 10-percentage-point
 steps, partial seconds and gains remain across control gaps, and idle time never increases stats. Ordinary
@@ -132,7 +132,7 @@ Economy/shop/pool/merge/hand rules: exactly as research 00-INDEX §3–§4 (inco
 
 **DLC 负面收藏品品质（维护者决定）：** 新增独立于 I–V 强度的“负面”品质，内部编号为 6，`normalDrop: false`，没有解锁回合。普通作战、超限补给及共用随机抽取入口一律排除该品质，显式权重也不能解锁，常规概率及现有藏品不变；指定 ID 的直接发放仍受统一领取校验。界面以红色 `!`、红色品质文字和侧边线标识，不作为 VI 档展示，也不列入掉落概率表。见 [COLLECTIBLES.md](../COLLECTIBLES.md)。
 
-**DLC 超限补给（维护者决定，2026-10-15）：** 所有超限等级（含 0 级）在第 4 回合开始时，为每名存活且未离场玩家独立抽取并立即发放一次奖励，四类各 25%：15 金币、2 名累计层数最高盟约的随机干员、3 件不同收藏品、1 件「稀有藏品」。三件收藏品每件先按普通 5%、精良 65%、稀有 30% 抽品质，再在该品质可用藏品中均匀抽取；「稀有藏品」是奖励类别名称，优先发放 1 件传说品质收藏品；该品质耗尽时由热水壶补位并触发其回复效果。两类藏品均排除已持有与单人不适用项；某品质耗尽时按剩余合格品质归一化，除热水壶补位外，不补入指定范围外的品质；全部耗尽则用热水壶补足。三列滚轮在三件奖励时分别显示实际的三件藏品，在单件传说奖励时重复显示同一件，重复图案不增加发放数量或效果。普通作战掉落概率不变。
+**DLC 超限补给（维护者决定，2026-10-15）：** 所有超限等级（含 0 级）在第 4 回合开始时，为每名存活且未离场玩家独立抽取并立即发放一次奖励，四类各 25%：15 资金、2 名累计层数最高盟约的随机干员、3 件不同收藏品、1 件「收藏品补给（优先传说）」。三件收藏品每件先按普通 5%、精良 65%、稀有 30% 抽品质，再在该品质可用藏品中均匀抽取；「收藏品补给（优先传说）」是奖励类别名称，优先发放 1 件传说品质收藏品；该品质耗尽时由热水壶补位并触发其回复效果。两类藏品均排除已持有与单人不适用项；某品质耗尽时按剩余合格品质归一化，除热水壶补位外，不补入指定范围外的品质；全部耗尽则用热水壶补足。三列滚轮在三件奖励时分别显示实际的三件藏品，在单件传说奖励时重复显示同一件，重复图案不增加发放数量或效果。普通作战掉落概率不变。
 **Advisor economy (§35.13–§35.14).** With a nonempty advisor plan, `economy.level` is a minimum: complete
 merges, meet an affordable floor before fill purchases, then resume legacy leveling. `holdLevel:true` requires
 an explicit level and nonblank `economy.why`; it caps only this prep, including one-round deferrals. `keep`/`sell`
@@ -419,7 +419,7 @@ These do not alter the default rules above. See
 
 **DLC 收藏品掉落（维护者决定，2026-10-24）：** 完成单次作战后，存活且未离场玩家实际损失生命值不超过 5（含 0 和 5）即获得藏品三选一，超过 5 不发奖。普通回合按扣血上限、联防救援与生命效果处理后的实际扣血判定，回血按零损失处理；首领回合按共享血池结算后的个人分摊生命损失判定，仍仅在最终攻势胜利并解锁隐秘核心时提供下一关补给。移除连续漏怪／连败补偿、品质提升和下回合护盾发放；无漏怪概率、解锁回合、排重及选择流程保持不变。缺失、替代、未完成与重复结算不额外发奖。
 
-**DLC 漏怪收藏品降级（维护者决定，2026-10-24）：** 本人出现计数漏怪时，每个候选按无漏怪概率降低一个品质档，最低为 I 普通；即使联防救回且实际零扣血仍适用，不计数对象不触发。将原 I 与 II 权重合并到 I，III→II、IV→III、V→IV，因此漏怪奖励不出现 V 传说。先降级合并权重，再排除耗尽档位并归一化；不回退到更高档，全部合格池耗尽则不发放。无漏怪概率及超限补给等独立奖池不变。
+**DLC 漏怪收藏品降级（维护者决定，2026-10-24）：** 本人出现计数漏怪时，每个候选按无漏怪概率降低一个品质档，最低为 I 普通；即使联防救回且实际零扣血仍适用，不计数对象不触发。将原 I 与 II 权重合并到 I，III→II、IV→III、V→IV，因此漏怪奖励不出现 V 传说。先降级合并权重，再排除耗尽档位并归一化；不回退到更高档，合格候选不足时由热水壶补足。无漏怪概率及超限补给等独立奖池不变。
 ### Opt-in adaptive strategies
 
 [ASSUMED] The registered `adaptive` strategy keeps legacy band picking and procurement and adds map-independent

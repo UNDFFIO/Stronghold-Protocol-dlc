@@ -964,10 +964,10 @@ wins, and the old keys are not written back. [ASSUMED] that precedence, so turni
 
 The Ascension round-four result opens under the title 「超限补给」 with three vertical reels. They decelerate and stop
 from left to right over 2.5 seconds. Coins and operators show matching category symbols. The three-collectible reward
-shows each of the three actual awarded items with its original art, localized name and tier. The 「稀有藏品」 reward
+shows each of the three actual awarded items with its original art, localized name and tier. The 「收藏品补给（优先传说）」 reward
 repeats the same awarded Legendary item on all three reels, with its art and name, but grants / applies only one item.
 The localized result appears after the last reel stops. Both collectible categories show only the awarded names
-after 「本次抽中：」, without the 「收藏品：」 / 「稀有藏品：」 prefixes. There is no duplicate collectible details list
+after 「本次抽中：」, without the 「收藏品：」 / 「收藏品补给（优先传说）：」 prefixes. There is no duplicate collectible details list
 below the result. Probability cards and explanatory paragraphs are omitted. A skip action reveals
 the result immediately; confirmation, Escape or the backdrop dismisses it without reopening on private updates.
 System reduced-motion preference reveals the result immediately, including when enabled during the animation.

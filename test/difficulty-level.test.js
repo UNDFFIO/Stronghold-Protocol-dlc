@@ -83,12 +83,12 @@ test('level 19 keeps its effect description and explains unblockable exclusion o
   assert.equal(stealth.detail, '对不可被阻挡的敌人不生效；被我方单位阻挡时【隐匿】效果解除');
 });
 
-test('level 20 control armor grows by 10% per second up to +300%, without exposing leader exemption', () => {
+test('level 20 control armor grows by 10% per second up to +300%, with an explicit leader exemption', () => {
   const armor = DIFFICULTY_RULES.find(r => r.level === 20);
   assert.equal(armor.key, 'controlArmor');
   assert.deepEqual(armor.params, { increase: 0.1, maxIncrease: 3 });
-  assert.equal(armor.description, '所有敌方单位在受到控制效果时防御力和法抗每秒提升10%,最高提升300%');
-  assert.doesNotMatch([armor.description, armor.counter, armor.detail].join(''), /领袖/);
+  assert.equal(armor.description, '非领袖敌人处于控制状态期间，每累计1秒防御力和法术抗性提升10%，最高提升300%；控制结束后保留增幅。');
+  assert.match(armor.description, /^非领袖敌人/);
   assert.equal(difficultyEffects(19).controlArmor, false);
   assert.equal(difficultyEffects(20).controlArmor, true);
 });

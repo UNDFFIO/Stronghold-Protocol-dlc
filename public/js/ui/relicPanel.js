@@ -84,7 +84,7 @@ export function RelicList({ relics, reward = null, history = false, illustrated 
       ${!history && r.deathNote && onDeathNote ? html`<${Button} size="sm" onClick=${onDeathNote}>${tr('书写名字')}<//>` : null}
       ${!history && r.scratchTicket && onScratch ? html`<${Button} size="sm" data-relic-id=${r.id} onClick=${() => onScratch(r.id)}>${tr('开始刮奖')}<//>` : null}
       ${!history && r.reviveOnce ? (r.used ? html`<span class="relic-card__used">${tr('复活机会已消耗')}</span>`
-        : revival ? html`<${RelicReviveActions} relicId=${r.id} revival=${revival} />` : html`<span class="relic-card__used">${tr('未使用 · 剩余 1 次')}</span>`) : null}
+        : revival ? html`<${RelicReviveActions} relicId=${r.id} revival=${revival} />` : html`<span class="relic-card__used">${tr('剩余 1 次')}</span>`) : null}
       ${history ? null : html`<span class="relic-card__round">${r.round == null ? tr('本局获得') : tr('第 {round} 回合获得', { round: r.round })}</span>`}
     </li>`)}
   </ol>`;
@@ -107,7 +107,7 @@ function RelicReviveActions({ relicId, revival }) {
       disabled=${!enabled || !!busy} onClick=${() => pick(p.playerId)}>
       ${busy === p.playerId ? tr('复活中…') : tr('复活 {name}', { name: p.name })}<//>`)
       : html`<span class="relic-panel__note">${tr('暂无可复活的队友')}</span>`}
-    ${enabled ? null : html`<span class="relic-panel__note">${tr('整备阶段可复活队友；死亡时自动用于自救。')}</span>`}
+    ${enabled ? null : html`<span class="relic-panel__note">${tr('休整期可复活队友；自身受到致命伤害时自动用于自救。')}</span>`}
   </div>`;
 }
 

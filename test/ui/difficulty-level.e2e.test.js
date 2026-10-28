@@ -60,12 +60,12 @@ test('lobby shows tactical tips for ascension; room level controls render, synch
     assert.match(await c.page.$eval('.level-wheel__row.is-selected', el => el.textContent), /无附加协议.*第4回合开始时额外获得1次【超限补给】/s);
     await c.page.hover('.level-wheel__row.is-selected .level-rule__help');
     await c.page.waitForSelector('.tooltip.is-shown');
-    assert.match(await c.page.$eval('.tooltip', el => el.textContent), /等概率.*15金币.*最多3件不同收藏品.*1件传说品质藏品/s);
+    assert.match(await c.page.$eval('.tooltip', el => el.textContent), /等概率.*15资金.*3件收藏品.*1件优先传说品质的藏品.*热水壶补足/s);
     await c.page.focus('.level-wheel'); await c.page.keyboard.press('End');
     await sleep(350);
     assert.equal(await currentLevel(c), 20);
     assert.match(await c.page.$eval('.level-wheel__row.is-selected', (el) => el.textContent), /终极协同/);
-    assert.match(await c.page.$eval('.level-wheel__row.is-selected', (el) => el.textContent), /受到控制效果时.*防御力和法抗每秒提升10%,最高提升300%/);
+    assert.match(await c.page.$eval('.level-wheel__row.is-selected', (el) => el.textContent), /非领袖敌人处于控制状态期间.*每累计1秒防御力和法术抗性提升10%，最高提升300%/);
     assert.equal(await c.page.$eval('.level-effects__head', el => el.textContent.trim()), 'LEVEL 20');
     assert.equal(await c.page.$$eval('.level-wheel__row.is-active', (els) => els.length), 20);
     assert.equal(await c.page.$('.solo-brief .level-rule, .solo-brief .level-effects'), null, 'solo has no separate effect panel');
@@ -105,9 +105,9 @@ test('lobby shows tactical tips for ascension; room level controls render, synch
     await c.page.keyboard.press('PageUp'); await sleep(500);
     assert.equal(await currentLevel(c), 5);
     assert.equal(await c.page.$$eval('.level-wheel__row.is-active', (els) => els.length), 5);
-    assert.match(await c.page.$eval('.level-wheel__row.is-selected', (el) => el.textContent), /首击屏障/);
+    assert.match(await c.page.$eval('.level-wheel__row.is-selected', (el) => el.textContent), /首击护盾/);
     await c.page.hover('.level-wheel__row.is-selected .level-rule__help');
-    await c.page.waitForFunction(() => document.querySelector('.tooltip.is-shown')?.textContent.includes('元素损伤累积不消耗该屏障'));
+    await c.page.waitForFunction(() => document.querySelector('.tooltip.is-shown')?.textContent.includes('元素损伤累积不消耗该护盾'));
     assert.equal(await c.page.$$eval('.level-wheel__row', (els) => els.length), 21);
     const colors = await c.page.evaluate(() => {
       const rows = [...document.querySelectorAll('.level-wheel__row')];
@@ -149,7 +149,7 @@ test('lobby shows tactical tips for ascension; room level controls render, synch
     await c.page.focus('.level-wheel'); await c.page.keyboard.press('Home'); await sleep(400);
     await c.page.keyboard.press('PageUp'); await sleep(400);
     assert.equal(await currentLevel(c), 5);
-    assert.match(await c.page.$eval('.level-wheel__row.is-selected', el => el.textContent), /首击屏障/);
+    assert.match(await c.page.$eval('.level-wheel__row.is-selected', el => el.textContent), /首击护盾/);
     await assertCentered(c, 'co-op number and effect are centered at 1280x720');
     await peer.open(); await peer.enter('超限队友');
     await peer.click('.mode-card', '同盟模拟');

@@ -28,7 +28,7 @@ test('死亡笔记：仅持有者遮蔽敌名，保留数字，不在效果说�
   assert.equal(redactEnemyNames('敌人 测试怪 ×12，测试怪甲', ['测试怪', '测试怪甲']), '敌人 ■■■ ×12，■■■■');
   const entry = relicEntries([{ id: 'relic_241', round: 3 }])[0];
   assert.equal(entry.tier, 5);
-  assert.match(entry.desc, /8金币/);
+  assert.match(entry.desc, /8资金/);
   assert.doesNotMatch(entry.desc, /遮蔽|黑色|名字不可见/);
 });
 

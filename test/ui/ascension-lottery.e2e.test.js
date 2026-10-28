@@ -47,10 +47,10 @@ async function openLottery(page, reward) {
 }
 
 for (const reward of [
-  { kind: 'coins', amount: 15, ids: [], text: '15 金币' },
+  { kind: 'coins', amount: 15, ids: [], text: '15 资金' },
   { kind: 'operators', amount: 0, ids: [], text: '炎盟约干员：惊蛰、夕' },
   { kind: 'relics', amount: 0, ids: ['relic_003', 'relic_004', 'relic_139'], text: '收藏品：橙味风暴、尖叫樱桃、黄金平原' },
-  { kind: 'legendary', amount: 0, ids: ['relic_006'], text: '稀有藏品：皮特水果什锦' },
+  { kind: 'legendary', amount: 0, ids: ['relic_006'], text: '收藏品补给（优先传说）：皮特水果什锦' },
 ]) test(`fourth-round ${reward.kind} lottery result renders and dismisses without reappearing on private updates`, {
   skip: !ENABLED && 'set SP_E2E=1 and provide Chrome', timeout: 60000,
 }, async () => {

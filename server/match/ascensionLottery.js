@@ -20,8 +20,8 @@ export function drawAscensionLottery(ps) {
   if (kind === 'coins') {
     ps.addFunds(15, { reason: 'ascension-lottery' });
     reward.amount = 15;
-    message = msg('15 金币');
-    notice = msg('超限模拟 · 第 4 回合抽奖：15 金币');
+    message = msg('15 资金');
+    notice = msg('超限模拟 · 第 4 回合抽奖：15 资金');
   } else if (kind === 'operators') {
     // Persistent layers, not activation tier. Inactive bonds with accumulated layers remain eligible.
     // With no accumulated layers, prefer bonds represented in the player's current lineup.
@@ -53,8 +53,8 @@ export function drawAscensionLottery(ps) {
       if (r && grantRelic(ps, r.id, { round: 4, battleRound: 4 })) reward.ids.push(r.id);
     }
     const params = { 0: reward.ids.length ? reward.ids.map((id) => dn(getRelic(id).name)) : dn('可用收藏品已全部持有') };
-    message = legendary ? msg('稀有藏品：{0}', params) : msg('收藏品：{0}', params);
-    notice = legendary ? msg('超限模拟 · 第 4 回合抽奖：稀有藏品：{0}', params)
+    message = legendary ? msg('收藏品补给（优先传说）：{0}', params) : msg('收藏品：{0}', params);
+    notice = legendary ? msg('超限模拟 · 第 4 回合抽奖：收藏品补给（优先传说）：{0}', params)
       : msg('超限模拟 · 第 4 回合抽奖：收藏品：{0}', params);
   }
   Object.assign(reward, wireMessage(message));

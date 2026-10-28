@@ -81,9 +81,9 @@ Completed battles offer one collectible from three choices when the surviving, p
 ### DLC: Ascension supplies
 
 `server/match/ascensionLottery.js` grants once at the start of round 4 to each surviving, present Ascension player
-(including level 0). The four equally likely categories are 15 coins, two operators from the highest accumulated-layer
-bond, three distinct collectibles, and one 「稀有藏品」. The three-collectible pool uses tier weights `[5, 65, 30, 0, 0]`;
-the category named 「稀有藏品」 uses `[0, 0, 0, 0, 100]`, so its single item is always Legendary and it no longer heals LP.
+(including level 0). The four equally likely categories are 15 Funds, two operators from the highest accumulated-layer
+bond, three distinct collectibles, and one 「收藏品补给（优先传说）」. The three-collectible pool uses tier weights `[5, 65, 30, 0, 0]`;
+the category named 「收藏品补给（优先传说）」 uses `[0, 0, 0, 0, 100]`, preferring one Legendary collectible; if no eligible candidate remains, Hot-Water Kettle fills the slot and applies its LP recovery.
 `pickRelic` accepts the server's explicit `tierWeights`; ordinary draws retain their existing table. Owned and
 mode-ineligible items are excluded, exhausted tiers are removed and the remaining weights normalized, with no fallback
 outside the specified tiers. `grantRelic` applies every item exactly once, including acquisition hooks for the round-4

@@ -35,7 +35,7 @@ export function RelicDebugPanel({ relics, canEdit, onChange }) {
     </header>
     ${collapsed ? null : html`<div class="relic-debug__body">
       <p>${t('移除不会撤销已结算的一次性收益。')}</p>
-      ${!canEdit ? html`<p role="status">${t('当前不可调试，请等待整备阶段并取消准备。')}</p>` : null}
+      ${!canEdit ? html`<p role="status">${t('当前不可调试，请在休整期取消准备后操作。')}</p>` : null}
       <input type="search" aria-label=${t('搜索收藏品名称或 ID')} placeholder=${t('搜索收藏品名称或 ID')}
         value=${query} onInput=${(e) => setQuery(e.currentTarget.value)} />
       <div class="relic-debug__grid" role="group" aria-label=${t('选择收藏品')}>
