@@ -171,7 +171,7 @@ test('claimed ticket shows server win or loss on its face before closing', {
       await clickText(page, '.scratch-controls button', '全部刮开');
       await page.waitForSelector('.scratch-result');
       assert.equal(await page.$eval('.scratch-result', (el) => el.textContent.trim()),
-        amount ? '本次获得10金币' : '谢谢参与，下次好运');
+        amount ? '本次获得10资金' : '谢谢参与，下次好运');
       assert.equal((await page.$$('.scratch-cell')).length, 8, 'claimed face remains visible');
       await waitForClaimClose(page);
       assert.equal(await page.evaluate(() => globalThis.__MOCK__.S().requests.filter(([t]) => t === 'g.scratchClaim').length), 1);

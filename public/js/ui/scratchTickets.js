@@ -253,11 +253,11 @@ function ScratchFace({ ticket, context, busy, run, result }) {
       ${ticket.cells.map((cell, i) => html`<${ScratchCoating} key=${i} tier=${ticket.tier} region=${i + 2} progress=${liveProgress.current[i + 2]}
         disabled=${!context.canUse || busy} revealAll=${revealingAll} onChange=${change} onScratch=${scratch}>
         ${symbol(cell.number, all && ticket.winningNumbers.includes(cell.number))}
-        <span>${t('{amount}金币', { amount: cell.amount })}</span><//>`)}
+        <span>${t('{amount}资金', { amount: cell.amount })}</span><//>`)}
     </div>
     <div class="scratch-paper__footer"><span aria-hidden="true" class="scratch-barcode"></span><span>${t('本票仅可兑奖一次')}</span></div>
     ${result ? html`<div class=${`scratch-result${result.amount > 0 ? ' scratch-result--win' : ''}`} role="status" aria-live="polite">
-      ${result.amount > 0 ? t('本次获得{amount}金币', { amount: result.amount }) : t('谢谢参与，下次好运')}
+      ${result.amount > 0 ? t('本次获得{amount}资金', { amount: result.amount }) : t('谢谢参与，下次好运')}
     </div>` : html`<div class="scratch-controls">
       <${Button} size="sm" disabled=${!context.canUse || busy || all || revealingAll} onClick=${revealAll}>${t('全部刮开')}<//>
       ${all ? html`<${Button} size="sm" variant="primary" disabled=${!context.canUse || busy}
@@ -321,7 +321,7 @@ export function ScratchPanel({ context, onClose, initialTicketId }) {
   return html`<${Modal} open=${true} title=${face ? null : t('刮刮票')} micro=${face ? null : 'SCRATCH TICKETS'}
     class=${`scratch-panel${face ? ' scratch-panel--face' : ''}`} width="min(8.8rem, 94vw)"
     onClose=${onClose} actions=${face ? null : html`<${Button} size="sm" onClick=${onClose}>${t('关闭')}<//>`}>
-    ${!context.canUse ? html`<p role="status">${t('未准备的休整阶段可购买、刮票与兑奖')}</p>` : null}
+    ${!context.canUse ? html`<p role="status">${t('休整期未准备时可购买、刮票与兑奖')}</p>` : null}
     ${ticket ? (ticket.opened ? html`<${ScratchFace} key=${ticket.id} ticket=${ticket} context=${context} busy=${busy} run=${run} result=${claimed} />`
       : html`<div class="scratch-unopened"><${Img} src=${relicIconUrl(data.get('assets'), ticket.relicId)} />
         <b>${t(getRelic(ticket.relicId).name)}</b><${Button} variant="primary" disabled=${!context.canUse || busy}
@@ -337,8 +337,8 @@ export function ScratchPanel({ context, onClose, initialTicketId }) {
             void run(async () => { if (await context.onBuy(spec.tier, context.view?.seq ?? 0)) setSelectedId(undefined); });
           }}>
           <${Img} src=${relicIconUrl(data.get('assets'), spec.relicId)} />
-          <span class="scratch-product__info"><b>${t(getRelic(spec.relicId).name)}</b><span>${t('中奖率{chance}%，最高{amount}金币', { chance: (10000 - spec.weights[0]) / 100, amount: spec.price * 50 })}</span></span>
-          <b class="scratch-product__price">${context.round < spec.unlockRound ? t('R{unlock} 解锁', { unlock: spec.unlockRound }) : t('{amount}金币', { amount: spec.price })}</b>
+          <span class="scratch-product__info"><b>${t(getRelic(spec.relicId).name)}</b><span>${t('中奖率{chance}%，最高{amount}资金', { chance: (10000 - spec.weights[0]) / 100, amount: spec.price * 50 })}</span></span>
+          <b class="scratch-product__price">${context.round < spec.unlockRound ? t('R{unlock} 解锁', { unlock: spec.unlockRound }) : t('{amount}资金', { amount: spec.price })}</b>
           ${armed === spec.tier ? html`<span class="scard__confirm" role="status"><b>${t('确认购买')}</b><small>${t('再次点击')}</small></span>` : null}
         </button>`)}
       </div>`}

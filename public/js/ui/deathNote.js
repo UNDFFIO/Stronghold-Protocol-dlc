@@ -19,7 +19,7 @@ export function DeathNoteWriting({ context }) {
     } finally { setBusy(false); }
   };
   return html`<form class="death-note" onSubmit=${write}>
-    <label>${t('敌方名字')}<input type="text" value=${name} maxlength="128" autocomplete="off" data-autofocus
+    <label>${t('敌人名称')}<input type="text" value=${name} maxlength="128" autocomplete="off" data-autofocus
       spellcheck="false" disabled=${!enabled || busy} onInput=${(e) => setName(e.target.value)} /></label>
     <${Button} variant="primary" type="submit" disabled=${!enabled || busy || !name.trim()}>
       ${context.used ? t('本回合已书写') : t('书写名字')}<//>
@@ -39,7 +39,7 @@ function ShinigamiEyes({ context }) {
     finally { setBusy(false); }
   };
   return html`<div class=${`death-note-eyes${context.eyes ? ' is-active' : ''}`}>
-    <${Tooltip} placement="right" text=${t('以当前生命值的一半交换：敌方名字不再遮挡，自身生命值不可见，书写名字花费降为4金币。本局仅可交换一次。')}>
+    <${Tooltip} placement="right" text=${t('消耗当前目标生命值的一半（剩余值向上取整），解除敌人名称遮蔽，自身目标生命值不再显示，书写消耗降为4资金。本局仅可交换1次。')}>
       <button type="button" class="death-note-eyes__pact" aria-label=${t('死神之眼')} aria-pressed=${!!context.eyes}
         disabled=${!context.canUse || context.eyes || busy} onClick=${trade}>
         <svg class="death-note-eyes__art" viewBox="0 0 240 240" fill="none" stroke="currentColor" aria-hidden="true">
@@ -60,7 +60,7 @@ function ShinigamiEyes({ context }) {
           <path d="M90 173L86 183 M104 177L102 190 M120 179V194 M136 177L138 190 M150 173L154 183" stroke-width=".7" />
         </svg>
         <span class="death-note-eyes__name">${t('死神之眼')}</span>
-        <small>${context.eyes ? t('已获得') : t('以一半生命值交换')}</small>
+        <small>${context.eyes ? t('已获得') : t('以一半目标生命值交换')}</small>
       </button>
     <//>
     ${failed ? html`<p role="alert">${t('交换失败，请重试')}</p>` : null}
@@ -85,7 +85,7 @@ export function DeathNotePanel({ context, onClose }) {
         <${DeathNoteWriting} context=${context} />
         <div class="death-note-book__footer">
           <span class="death-note-book__folio" aria-hidden="true">II</span>
-          <small class="death-note-book__cost">${t('{amount}金币', { amount: context.cost ?? 8 })}</small>
+          <small class="death-note-book__cost">${t('{amount}资金', { amount: context.cost ?? 8 })}</small>
         </div>
       </section>
     </article>

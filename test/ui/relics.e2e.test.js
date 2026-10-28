@@ -132,7 +132,7 @@ test('四件官方负面藏品：名称效果、红色品质与官方PNG实际�
     await page.waitForSelector('.relic-panel');
     const text = await page.$eval('.relic-panel', (el) => el.textContent);
     for (const name of ['乌萨斯弯刀', '莱塔尼亚权杖', '半洗孤钻', '酒神的印记']) assert.ok(text.includes(name));
-    assert.match(text, /负面/); assert.match(text, /金币数量-50%/); assert.match(text, /可同时部署人数-1/);
+    assert.match(text, /负面/); assert.match(text, /资金数量-50%/); assert.match(text, /可同时部署人数-1/);
     assert.match(text, /最多降至1/);
     for (const selector of ['.tbanner', '.mpop--phase', '.pbanner--overlay']) await page.waitForSelector(selector, { hidden: true });
     await page.screenshot({ path: `${OUT}/official-negative-relics.png` });
@@ -306,7 +306,7 @@ test('死亡笔记：图标直达独立笔记本，桌面手机可书写、关�
       });
       assert.equal(layout.subtitleBelow, true);
       assert.equal(layout.costBottomRight, true);
-      assert.equal(layout.cost, '8金币');
+      assert.equal(layout.cost, '8资金');
       assert.doesNotMatch(info.text, /敌名遮蔽|黑色方块/);
       await page.keyboard.press('Escape');
       await page.waitForSelector('.death-note-panel', { hidden: true });
@@ -348,7 +348,7 @@ test('死亡笔记：图标直达独立笔记本，桌面手机可书写、关�
       await page.waitForFunction(() => globalThis.__MOCK__.S().priv.shinigamiEyes);
       assert.equal(await page.evaluate(() => globalThis.__MOCK__.S().priv.lp), Math.ceil(beforeEyes / 2));
       assert.equal(await page.$eval('.death-note-eyes__pact', (el) => el.disabled), true);
-      assert.equal(await page.$eval('.death-note-book__cost', (el) => el.textContent), '4金币');
+      assert.equal(await page.$eval('.death-note-book__cost', (el) => el.textContent), '4资金');
       assert.equal(await page.$eval('.death-note button', (el) => el.disabled), true, 'trade does not grant a second writing');
       await page.waitForFunction((name) => document.querySelector('#death-note-probe').textContent === `${name} ×12`, {}, enemyName);
       const lp = await page.evaluate(() => ({
@@ -528,7 +528,7 @@ test('时光之末：自己的列表按钮复活队友、显示已使用，观�
     await page.waitForSelector('.gm__watching');
     await page.click('.relic-icons__heading');
     await page.waitForSelector('.relic-card__used');
-    assert.match(await page.$eval('.relic-card__used', (e) => e.textContent), /未使用/);
+    assert.match(await page.$eval('.relic-card__used', (e) => e.textContent), /剩余 1 次/);
     assert.equal(await page.$('.relic-card__revive button'), null);
     await closeWithEscape(page);
     // 被淘汰的本人在当前整备阶段获救，自动回到自己的阵地。
@@ -563,10 +563,10 @@ for (const item of [
   { id: 'relic_126', name: '热辣可可', tier: '稀有', phrases: ['30%', '+150%', '最大加成'], shot: 'cocoa' },
   { id: 'relic_127', name: '止痛片', tier: '精良', phrases: ['30%', '+2/秒', '自然回复'], shot: 'painkillers' },
   { id: 'relic_172', name: '护愈之手', tier: '史诗', phrases: ['免疫异常状态', '等量屏障', '100%'], shot: 'healing-hand' },
-  { id: 'relic_233', name: '“时光之末”', tier: '史诗', phrases: ['11点', '4名', '死亡时自动复活', '保留原有干员'], shot: 'time-end' },
+  { id: 'relic_233', name: '“时光之末”', tier: '史诗', phrases: ['11点', '4名', '受到致命伤害时自动复活', '保留原有干员'], shot: 'time-end' },
   { id: 'relic_158', name: '时间机器', tier: '普通', phrases: ['目标生命值', '等量增加', '仅生效一场'], shot: 'time-machine' },
   { id: 'relic_159', name: '木棍', tier: '精良', phrases: ['2资金'], hiddenPhrases: ['数字', '■', '仅影响显示'], shot: 'stick' },
-  { id: 'relic_156', name: '解压玩具', phrases: ['向下取整', '首领波次不生效', '10%', '未持有者各保留1个', '替代减半效果'], shot: 'toy' },
+  { id: 'relic_156', name: '解压玩具', phrases: ['向下取整', '领袖波次除外', '10%', '未持有者各保留1名', '替代减半效果'], shot: 'toy' },
   { id: 'relic_157', name: '鸭梨手机', phrases: ['全队累计难度-1级', '单人模式-2级', '最低为0', '下一场战斗', '多名玩家获得时可叠加'], shot: 'phone' },
 ]) test(`${item.name}：三选一名称、稀有度、说明及透明图片可用，领取后收藏栏展示`, {
   skip: !ENABLED && 'set SP_E2E=1 and provide system Chrome', timeout: 120000,

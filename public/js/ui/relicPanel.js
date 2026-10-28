@@ -107,7 +107,7 @@ function RelicReviveActions({ relicId, revival }) {
       disabled=${!enabled || !!busy} onClick=${() => pick(p.playerId)}>
       ${busy === p.playerId ? tr('复活中…') : tr('复活 {name}', { name: p.name })}<//>`)
       : html`<span class="relic-panel__note">${tr('暂无可复活的队友')}</span>`}
-    ${enabled ? null : html`<span class="relic-panel__note">${tr('整备阶段可复活队友；死亡时自动用于自救。')}</span>`}
+    ${enabled ? null : html`<span class="relic-panel__note">${tr('休整期可复活队友；自身受到致命伤害时自动用于自救。')}</span>`}
   </div>`;
 }
 

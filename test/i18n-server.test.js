@@ -44,7 +44,7 @@ test('DLC lottery, collectible and self-revival messages localize after Chinese 
         const local = translateWire(reward);
         assert.ok(translateWire(notice).startsWith(pack['超限模拟 · 第 4 回合抽奖']), `${code}/${kind}`);
         assert.ok(!/\{(?:0|1|bondName)\}/.test(local), `${code}/${kind}: ${local}`);
-        if (kind === 'coins') assert.equal(local, pack['15 金币']);
+        if (kind === 'coins') assert.equal(local, pack['15 资金']);
         if (kind === 'relics' || kind === 'legendary') for (const id of reward.ids) assert.ok(local.includes(pack[getRelic(id).name]), `${code}: ${local}`);
         if (kind === 'operators') for (const id of reward.ids) assert.ok(local.includes(data.lookup('chess', id).name), `${code}: ${local}`);
       } finally { h.m.dispose(); setLang('zh'); await data.setLocale('zh'); }

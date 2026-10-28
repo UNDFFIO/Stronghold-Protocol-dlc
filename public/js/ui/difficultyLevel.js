@@ -5,7 +5,7 @@ import { t } from '../../../shared/i18n.js';
 
 const LEVELS = Array.from({ length: MAX_DIFFICULTY_LEVEL + 1 }, (_, i) => MAX_DIFFICULTY_LEVEL - i);
 const baseDescription = () => t('第4回合开始时额外获得1次【超限补给】');
-const baseDetail = () => t('沿用终极模拟基础参数。各等级第4回合均可等概率抽取1项：15金币、2名盟约干员、3件收藏品、1件优先传说品质的藏品；优先抽取不同的合格藏品，候选不足时由热水壶补足。');
+const baseDetail = () => t('沿用终极模拟基础参数。各等级第4回合均可等概率抽取1项：15资金、2名盟约干员、3件收藏品、1件优先传说品质的藏品。收藏品从符合获取条件的范围内优先抽取不同种类，不足时由热水壶补足。');
 const ruleDetail = (rule) => rule ? t(rule.detail) : baseDetail();
 const help = (rule) => ruleDetail(rule) ? html`<${Tooltip} text=${ruleDetail(rule)}><span class="level-rule__help" tabindex="0" aria-label=${ruleDetail(rule)}>[?]</span><//>` : null;
 

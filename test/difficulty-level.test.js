@@ -87,7 +87,7 @@ test('level 20 control armor grows by 10% per second up to +300%, with an explic
   const armor = DIFFICULTY_RULES.find(r => r.level === 20);
   assert.equal(armor.key, 'controlArmor');
   assert.deepEqual(armor.params, { increase: 0.1, maxIncrease: 3 });
-  assert.equal(armor.description, '非领袖敌人受控期间，每累计1秒防御力和法抗提升10%，最高提升300%；控制结束后保留增幅。');
+  assert.equal(armor.description, '非领袖敌人处于控制状态期间，每累计1秒防御力和法术抗性提升10%，最高提升300%；控制结束后保留增幅。');
   assert.match(armor.description, /^非领袖敌人/);
   assert.equal(difficultyEffects(19).controlArmor, false);
   assert.equal(difficultyEffects(20).controlArmor, true);

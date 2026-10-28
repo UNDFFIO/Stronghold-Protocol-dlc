@@ -33,7 +33,7 @@ test('ASCENSION: only round four, including level zero, grants once and publishe
     const wire = ps.privateView().ascensionLottery;
     wire.ids.push('forged'); wire.text = 'forged';
     assert.deepEqual(ps.ascensionLottery.ids, []);
-    assert.equal(ps.ascensionLottery.text, '15 金币');
+    assert.equal(ps.ascensionLottery.text, '15 资金');
     h.m.startRound(5);
     assert.equal(ps.funds, funds + h.m.gd.income(5));
     h.invariants();
