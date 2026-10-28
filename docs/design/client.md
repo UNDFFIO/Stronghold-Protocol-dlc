@@ -21,7 +21,7 @@ get ordinary scrolling without snap animation. No wheel interception or fixed-du
 **DLC extra-round HUD (maintainer request, 2026-10-27).** During extra challenges, the top bar's round slot
 shows 额外回合 and `m.public.extraRound`, taking priority over the hidden-round `??` display. The enemy HP/ATK
 bonus (`(endlessEnemyScale(extraRound) - 1) × 100%`, rounded to two decimal places) appears in the 敌方情报 summary.
-The shared helper preserves linear growth through extra round 10 and compounds by 15% per round afterward (maintainer request, 2026-10-28). There is no separate floating extra-round status.
+The shared helper adds 10% of base per round through extra round 10, then adds 15% of base per round without compounding (maintainer request, 2026-10-28). There is no separate floating extra-round status.
 Ordinary rounds and Hidden Core retain their existing round display; voting and gameplay rules are unchanged.
 During extra challenges, enemy leader previews show the current or next extra boss round (`ceil(extraRound / 6) × 6`)
 instead of the base final-assault round. Only the current extra boss round reveals `extraBossId`; upcoming randomly

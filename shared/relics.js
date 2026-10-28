@@ -9,7 +9,7 @@ export const RELIC_TIERS = Object.freeze([
   { tier: 3, name: N_('稀有'), unlockRound: 4 },
   { tier: 4, name: N_('史诗'), unlockRound: 7 },
   { tier: 5, name: N_('传说'), unlockRound: 7 },
-  // Maintainer-defined special quality, not a sixth strength tier or a random reward.
+  // Maintainer-defined special quality, separate from strength tiers and normal random rewards.
   { tier: 6, name: N_('负面'), unlockRound: null, normalDrop: false },
 ].map((tier) => Object.freeze(tier)));
 
@@ -60,7 +60,7 @@ const relic = (number, name, tier, desc, sourceEffect, mods, extra = {}) => Obje
 
 // Tiers describe the adapted strength, rather than the original rarity. "All" means the owner's operators only.
 export const RELICS = Object.freeze([
-  relic('227', N_('无垠赠礼'), 6, N_('所有玩家游戏界面上的文字倒序显示'),
+  relic('227', N_('无垠赠礼'), 6, N_('游戏界面上的文字倒序显示（仅对自己生效）'),
     N_('坍缩值+3，让探索开启不同的方向'), {}, { reverseText: true }),
   relic('228', N_('路网'), 6, N_('战斗中额外出现原定敌人数50%的另一类敌人，该类敌人不在本局原定敌人种类中（仅对自己生效）'),
     N_('战斗出现额外敌人，让探索开启不同的方向'), {}, { extraEnemyType: true }),
@@ -241,7 +241,8 @@ export function dropWeights(round, { leaked = false } = {}) {
 
 export function canReceiveRelic(r, owned, { hasScratchTicket = false, bonds = {}, extraRound = 0 } = {}) {
   const ids = idsOf(owned);
-  return !!r && !(r.normalRoundsOnly && extraRound > 0) && (!r.requiredBond || bonds[r.requiredBond]?.active === true)
+  return !!r && !(extraRound > 0 && (r.normalRoundsOnly || ((r.tier === 4 || r.tier === 5) && r.id !== 'relic_241')))
+    && (!r.requiredBond || bonds[r.requiredBond]?.active === true)
     && (r.fallbackOnly || (r.scratchTicket ? ids.has('relic_234') && !hasScratchTicket : !ids.has(r.id)));
 }
 

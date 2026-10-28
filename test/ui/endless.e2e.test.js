@@ -54,6 +54,10 @@ test('extra challenge vote and successful settlement fit desktop and mobile; con
       assert.equal(await page.$$eval('.endless-vote__face .pavatar', els => els.length), 4);
       assert.equal(await page.$$eval('.endless-vote__player.is-agreed', els => els.length), 0);
       assert.equal(await page.$eval('.endless-vote__rules', el => el.open), false);
+      const rules = await page.$eval('.endless-vote__rules', el => el.textContent);
+      assert.ok(rules.includes('之后每回合增加基础值的 15%'));
+      assert.ok(rules.includes('进入时每人随机获得 1 件负面藏品'));
+      assert.ok(rules.includes('额外回合无法再获得史诗或传说藏品'));
       const buttons = await page.$$('.endless-vote-actions button');
       for (const button of buttons) {
         await button.evaluate(el => el.scrollIntoView({ block: 'center' }));
@@ -92,7 +96,7 @@ test('extra challenge vote and successful settlement fit desktop and mobile; con
         M.pushPublic();
       });
       await page.waitForFunction(() => document.querySelector('.roundbox__num')?.textContent === '22');
-      assert.equal(await page.$eval('.edrawer__extra', el => el.textContent), '敌方生命与攻击 +970.05%');
+      assert.equal(await page.$eval('.edrawer__extra', el => el.textContent), '敌方生命与攻击 +280%');
       assert.equal(await page.$eval('.eboss .t-lo', el => el.textContent), '额外第 24 回合 · 领袖战');
       assert.equal(await page.$eval('.eboss b', el => el.textContent), '未知领袖');
       const round = await page.$eval('.roundbox', el => {

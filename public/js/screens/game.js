@@ -1791,7 +1791,7 @@ function MatchScreen() {
   const openBond = (id, ownerId, from) => { setBondOpen((b) => toggleBond(b, id, ownerId, from)); audio.sfx('click', { volume: 0.4 }); };
   const watchingNow = combat ? (watching || field?.fieldId || home) : watching;
   const scratchContext = priv?.relics?.some((r) => r.id === 'relic_234') ? {
-    view: priv.scratch, funds: priv.funds ?? 0, round: pub?.round || 1,
+    view: priv.scratch, funds: priv.funds ?? 0, round: pub?.round || 1, extraRound: pub?.extraRound || 0,
     canUse: phase === PHASE.PREP && alive && !priv.ready,
     onBuy: actions.scratchBuy, onOpen: actions.scratchOpen, onClaim: actions.scratchClaim,
   } : null;

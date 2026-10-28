@@ -136,7 +136,8 @@ test('解压玩具：真实服务端领取后，预览与两端战斗spec一致�
     const m = h.m, ps = h.ps('p_0'), other = h.ps('p_1');
     m.wave = { ...m.wave, spawns: [{ ...m.wave.spawns[0], count: 5, time: 0, interval: 0.1 }] };
     ps.bounties = []; other.bounties = [];
-    ps.relics = RELICS.filter((r) => r.id !== 'relic_156').map((r) => ({ id: r.id, round: 1 }));
+    // Exhaust normal rewards without activating unrelated curses such as Road's extra enemies.
+    ps.relics = RELICS.filter((r) => r.tier !== 6 && r.id !== 'relic_156').map((r) => ({ id: r.id, round: 1 }));
     grantRelic(ps, 'relic_235');
     assert.equal(count(m._normalOpts(ps).spawns), 5, '候选未领取不生效');
     const offer = settleRelics(ps, { perfect: true, leaked: [] }, { completed: true });

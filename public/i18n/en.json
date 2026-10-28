@@ -2873,7 +2873,6 @@
   "掉落规则": "Drop rules",
   "继续挑战投票": "Continue challenge vote",
   "隐秘核心已击败。全员同意后继续挑战；任一人选择结算则结束本局。": "Hidden Core defeated. Continue if everyone agrees; choosing settlement ends the run.",
-  "额外前 10 回合，敌方生命值与攻击力每回合增加基础值的 10%；之后每回合在上一回合基础上增加 15%。每 6 回合挑战随机领袖。": "For the first 10 extra rounds, enemy HP and ATK gain 10% of base per round; afterward, they increase by 15% of the previous round per round. Fight a random leader every 6 extra rounds.",
   "后续失败仍算成功，结算记录额外通过回合数。": "Later defeat still counts as success. Settlement records extra rounds cleared.",
   "剩余 {n} 秒；超时结算本局。": "{n} seconds left; the run settles when time expires.",
   "继续挑战": "Continue challenge",
@@ -2923,12 +2922,14 @@
   "路网": "Road Network",
   "追忆仪": "Recollection Instrument",
   "“小磨唧”": "“Little Grinder”",
-  "所有玩家游戏界面上的文字倒序显示": "Text on every player’s game interface is displayed in reverse order",
+  "游戏界面上的文字倒序显示（仅对自己生效）": "Text on your game interface is displayed in reverse order (only affects you)",
   "战斗中额外出现原定敌人数50%的另一类敌人，该类敌人不在本局原定敌人种类中（仅对自己生效）": "Battles spawn extra enemies equal to 50% of the scheduled count, all of one type outside this match’s original enemy types (only affects you)",
   "获得时，失去备战区所有干员和装备，失去7件随机收藏品": "On acquisition, lose all operators and equipment in your reserves and 7 random collectibles",
   "战斗开始后每秒失去20层随机激活盟约层数": "After battle starts, lose 20 stacks from a random active Bond every second",
   "坍缩值+3，让探索开启不同的方向": "Collapse +3. Opens a different direction for exploration",
   "战斗出现额外敌人，让探索开启不同的方向": "Additional enemies appear in battle. Opens a different direction for exploration",
   "获得时，失去所有的源石锭及希望，并使战斗后获得的指挥等级经验和源石锭-50％。在误入奇境有特殊用处": "On acquisition, lose all Originium Ingots and Hope. Command EXP and Originium Ingots earned after battles -50%. Has a special use in Wonderland",
-  "费用自然回复速度降低50％，让探索开启不同的方向。在故肆有特殊用处": "Natural DP recovery speed -50%. Opens a different direction for exploration. Has a special use at the Old Shop"
+  "费用自然回复速度降低50％，让探索开启不同的方向。在故肆有特殊用处": "Natural DP recovery speed -50%. Opens a different direction for exploration. Has a special use at the Old Shop",
+  "额外前 10 回合，敌方生命值与攻击力每回合增加基础值的 10%；之后每回合增加基础值的 15%。每 6 回合挑战随机领袖。": "For the first 10 extra rounds, enemy HP and ATK increase by 10% of their base values per round; afterward, they increase by 15% of base per round. Challenge a random leader every 6 rounds.",
+  "进入时每人随机获得 1 件负面藏品，此后每次击败领袖再获得 2 件，直到无可领取的负面藏品。额外回合无法再获得史诗或传说藏品。": "Each player receives 1 random negative collectible upon entering, then 2 more after each leader victory, until none remain eligible. Epic and Legendary collectibles can no longer be acquired during extra rounds."
 }

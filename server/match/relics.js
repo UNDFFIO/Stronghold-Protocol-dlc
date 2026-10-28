@@ -1,4 +1,4 @@
-import { getRelic, pickRelicChoices, canReceiveRelic, RELIC_TIERS } from '../../shared/relics.js';
+import { getRelic, pickRelicChoices, canReceiveRelic, RELIC_TIERS, RELICS } from '../../shared/relics.js';
 import { issueScratchTicket } from './scratchTickets.js';
 import { normalizeDifficultyLevel } from '../../shared/difficulty.js';
 import { createRng, deriveSeed } from '../sim/rng.js';
@@ -35,6 +35,24 @@ export function selectRelic(ps, offerId, idx) {
     extraRound: ps.m.gd.endlessRound(ps.m.round) }) || (r.multiplayerOnly && ps.m.isSolo)) return null;
   ps.relicOffer = null;
   return grantRelic(ps, r.id, { round: offer.round });
+}
+
+/** Extra-challenge curses use an independent stream and the normal acquisition hooks. */
+export function grantNegativeRelics(ps, count) {
+  const round = ps.m.round;
+  const rng = createRng(deriveSeed(ps.m.seed, `endless-curses:${ps.seat}:${round}`));
+  const granted = [];
+  for (let i = 0; i < count; i++) {
+    // [ASSUMED] Acquisition hooks may remove old curses; recheck ownership, but never repeat within this award.
+    const pool = RELICS.filter(r => r.tier === 6 && !granted.includes(r.id)
+      && canReceiveRelic(r, ps.relics, { bonds: ps.bonds, extraRound: ps.m.gd.endlessRound(round) })
+      && (!r.multiplayerOnly || !ps.m.isSolo));
+    if (!pool.length) break;
+    const reward = grantRelic(ps, pool[rng.int(pool.length)].id);
+    if (!reward) break;
+    granted.push(reward.id);
+  }
+  return granted;
 }
 
 /** Shared acquisition path for choices and immediate grants; preserves one-time collectible effects. */

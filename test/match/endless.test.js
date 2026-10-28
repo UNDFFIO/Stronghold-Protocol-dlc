@@ -9,8 +9,9 @@ import { bossPoolHp } from '../../server/match/finalAssault.js';
 import { FakeBattle } from './fakeBattle.js';
 import { Battle } from '../../server/sim/Battle.js';
 import { buildBattleSpec, createBattleFromSpec } from '../../server/sim/spec.js';
-import { RELICS, pickRelic, pickRelicChoices, relicIncome } from '../../shared/relics.js';
-import { settleRelics, selectRelic, autoSelectRelic, grantRelic } from '../../server/match/relics.js';
+import { RELICS, getRelic, pickRelic, pickRelicChoices, relicIncome } from '../../shared/relics.js';
+import { settleRelics, selectRelic, autoSelectRelic, grantRelic, grantNegativeRelics } from '../../server/match/relics.js';
+import { settleDeathNote } from '../../server/match/deathNote.js';
 
 function atVote(t, options = {}) {
   const h = makeMatch({ fake: true, ...options }).start();
@@ -28,6 +29,140 @@ function accept(h) {
 }
 
 const EXTRA_BLOCKED_RELICS = ['relic_159', 'relic_157', 'relic_156'];
+const CURSES = RELICS.filter(r => r.tier === 6);
+
+for (const clientCombat of [false, true]) test(`extra boss victories grant two curses to each survivor only once (${clientCombat ? 'client' : 'server'})`, t => {
+  const h = atVote(t, { humans: 2, bots: 1, clientCombat,
+    script: b => b.kind === 'boss' ? { bossDps: b.round < 27 ? 1e8 : 0 } : {} });
+  // Keep the resource-destroying instrument out of these random grants to isolate award counts.
+  for (const p of h.m.order) p.relics = [{ id: 'relic_219', round: 1 }];
+  const count = p => p.relics.filter(r => getRelic(r.id).tier === 6).length;
+  accept(h);
+  for (const p of h.m.order) assert.equal(count(p), 2);
+  assert.ok(h.drive(() => h.m.phase === PHASE.PREP && h.m.round === 21));
+  for (const p of h.m.order) assert.equal(count(p), 2, 'ordinary waves do not issue extra curses');
+  assert.ok(h.drive(() => h.m.phase === PHASE.PREP && h.m.round === 22));
+  for (const p of h.m.order) {
+    assert.equal(count(p), 4, p.playerId);
+    assert.equal(p.relics.filter(r => r.round === 21 && getRelic(r.id).tier === 6).length, 2);
+  }
+  h.m._finishFinal(false, () => { throw new Error('duplicate settlement must not run'); });
+  for (const p of h.m.order) assert.equal(count(p), 4, 'duplicate completion cannot reissue');
+  assert.ok(h.drive(() => h.m.phase === PHASE.PREP && h.m.round === 27));
+  for (const p of h.m.order) { p.lp = 1; p.relicReverseLpRound = 0; }
+  assert.ok(h.drive(() => !!h.ended));
+  for (const p of h.m.order) assert.equal(count(p), 4, 'a failed boss grants no curses');
+});
+
+test('extra boss awards stop at the last available curse without blocking the next round', t => {
+  const h = atVote(t, { mode: 'solo', script: b => b.kind === 'boss' ? { bossDps: 1e8 } : {} });
+  const p = h.ps('p_0');
+  p.relics = CURSES.filter(r => !['relic_227', 'relic_242'].includes(r.id)).map(r => ({ id: r.id, round: 1 }));
+  accept(h);
+  assert.equal(p.relics.length, CURSES.length - 1);
+  assert.ok(h.drive(() => h.m.phase === PHASE.PREP && h.m.round === 22));
+  assert.equal(p.relics.filter(r => getRelic(r.id).tier === 6).length, CURSES.length);
+  assert.equal(p.relics.filter(r => r.round === 21 && getRelic(r.id).tier === 6).length, 1);
+  assert.ok(h.drive(() => h.m.phase === PHASE.PREP && h.m.round === 28));
+  assert.equal(p.relics.filter(r => getRelic(r.id).tier === 6).length, CURSES.length);
+  assert.equal(p.relics.filter(r => r.round === 27 && getRelic(r.id).tier === 6).length, 0);
+});
+
+test('only unanimous acceptance immediately grants one random curse to humans and bots, excluding departed and eliminated players', t => {
+  const h = atVote(t, { humans: 3, bots: 1 });
+  h.m.endlessVote = null;
+  h.ps('p_2').eliminate(6);
+  h.m.openEndlessVote();
+  h.m.handle('p_0', { t: 'g.endlessVote', agree: true });
+  assert.ok(h.m.order.every(p => !p.relics.length), 'partial consent grants nothing');
+  h.m.handle('p_1', { t: 'g.endlessVote', agree: true });
+  for (const id of ['p_0', 'p_1', 'ai_0']) {
+    const p = h.ps(id);
+    assert.equal(p.relics.length, 1);
+    assert.equal(getRelic(p.relics[0].id).tier, 6);
+    assert.equal(p.relics[0].round, h.m.gd.hiddenRound, 'awarded before the first extra round starts');
+    assert.deepEqual(p.privateView().relics, p.relics);
+  }
+  assert.equal(h.ps('p_2').relics.length, 0);
+  h.m.handle('p_1', { t: 'g.endlessVote', agree: true });
+  assert.equal(h.ps('p_1').relics.length, 1, 'duplicate votes cannot reissue');
+  const p = h.ps('p_0');
+  p.left = true;
+  assert.deepEqual(grantNegativeRelics(p, 2), []);
+});
+
+test('curse grants exhaust each personal pool without positive fallback or duplicates, including acquisition hooks', t => {
+  const h = atVote(t, { mode: 'solo' });
+  const p = h.ps('p_0');
+  // The instrument must still destroy reserves when chosen, without repeating either draw in this batch.
+  const item = giveItem(h.m, p, 'chess_item_2_05_e_a');
+  p.relics = CURSES.filter(r => !['relic_219', 'relic_242'].includes(r.id)).map(r => ({ id: r.id, round: 1 }));
+  const granted = grantNegativeRelics(p, 2);
+  assert.equal(granted.length, 2);
+  assert.equal(new Set(granted).size, 2);
+  assert.ok(granted.includes('relic_219'));
+  assert.equal(p.find(item.uid), null, 'reserve-loss hook runs immediately');
+  // The instrument may remove previous curses. Eligibility always follows current ownership.
+  p.relics = CURSES.filter(r => r.id !== 'relic_242').map(r => ({ id: r.id, round: 1 }));
+  assert.deepEqual(grantNegativeRelics(p, 2), ['relic_242'], 'only one available means only one grant');
+  assert.deepEqual(grantNegativeRelics(p, 2), [], 'an exhausted pool is a no-op');
+  assert.equal(p.relics.length, CURSES.length);
+});
+
+test('extra rounds reject Epic and Legendary acquisitions except Death Note while allowing curses and lower tiers', t => {
+  const h = atVote(t, { mode: 'solo' });
+  const p = h.ps('p_0');
+  // Establish existing high-tier ownership before entering; avoid a random reserve-loss curse in this fixture.
+  grantRelic(p, 'relic_219');
+  grantRelic(p, 'relic_234');
+  grantRelic(p, 'relic_239');
+  accept(h);
+  assert.ok(p.relics.some(r => r.id === 'relic_234'));
+  assert.ok(p.scratchTickets.some(ticket => ticket.relicId === 'relic_239'));
+  for (const r of RELICS.filter(r => (r.tier === 4 || r.tier === 5) && r.id !== 'relic_241')) {
+    assert.equal(grantRelic(p, r.id, { round: 1 }), null, r.id);
+    p.relicOffer = { id: `forged:${r.id}`, round: h.m.round, options: [r.id] };
+    assert.equal(selectRelic(p, p.relicOffer.id, 0), null);
+    autoSelectRelic(p);
+    assert.ok(p.relicOffer, 'invalid auto-choice also stays unclaimed');
+  }
+  p.relicOffer = null;
+  for (const tierWeights of [[0, 0, 0, 100, 0], [0, 0, 0, 0, 100]]) {
+    assert.equal(pickRelic(h.m.round, p.relics, () => 0, { tierWeights, extraRound: 1 }), null);
+  }
+  for (let i = 0; i < 100; i++) {
+    const ids = pickRelicChoices(h.m.round, p.relics, () => i / 100, { extraRound: 1 });
+    assert.ok(ids.every(id => getRelic(id).tier <= 3));
+  }
+  h.toPrep(h.m.round);
+  p.funds = 100;
+  const seq = p.scratchSeq;
+  for (const tier of [4, 5]) assert.ok(p.buyScratch(tier, seq).error);
+  assert.equal(p.funds, 100, 'blocked purchases never charge');
+  assert.equal(p.scratchSeq, seq);
+  assert.ok(p.buyScratch(3, seq).ok);
+  const held = p.scratchTickets.find(ticket => ticket.relicId === 'relic_239');
+  assert.ok(p.openScratch(held.id).ok);
+  assert.ok(p.claimScratch(held.id).ok, 'already-held high-tier tickets remain usable');
+});
+
+test('Legendary Death Note can still be earned in extra rounds with its original thresholds and match-wide uniqueness', t => {
+  const h = atVote(t, { humans: 2 });
+  accept(h);
+  const p = h.ps('p_0'), other = h.ps('p_1');
+  p.deathNoteDeaths = 29;
+  p.deathNoteLpLost = 9;
+  settleDeathNote(p, { deaths: 1 }, 'normal', 1);
+  assert.equal(p.deathNoteAwarded, true);
+  assert.equal(p.relics.filter(r => r.id === 'relic_241').length, 1);
+  settleDeathNote(p, { deaths: 1 }, 'normal', 1);
+  assert.equal(p.relics.filter(r => r.id === 'relic_241').length, 1);
+  other.deathNoteDeaths = 29;
+  other.deathNoteLpLost = 9;
+  settleDeathNote(other, { deaths: 1 }, 'normal', 1);
+  assert.equal(other.deathNoteAwarded, false);
+  assert.ok(!other.relics.some(r => r.id === 'relic_241'));
+});
 
 test('extra-round relic pools exclude the three restricted collectibles even when all other candidates are exhausted', () => {
   for (const id of EXTRA_BLOCKED_RELICS) {
@@ -161,6 +296,7 @@ for (const action of ['decline', 'timeout', 'leave']) test(`${action} settles th
   if (action === 'decline') h.m.handle('p_0', { t: 'g.endlessVote', agree: false });
   if (action === 'timeout') { h.m.onDisconnect('p_1'); h.sched.advance(h.m.scaled(30_000)); }
   if (action === 'leave') h.m.onLeave('p_0');
+  assert.ok(h.m.order.every(p => !p.relics.some(r => getRelic(r.id).tier === 6)));
   assert.equal(h.ended.victory, true);
   assert.equal(h.ended.hiddenCleared, true);
   assert.equal(h.endedCount, 1);
@@ -181,9 +317,9 @@ test('solo voting has no timeout and acceptance preserves LP, inventory and star
   assert.equal(h.m.gd.endlessScale(17), 1.2);
   assert.equal(h.m.gd.endlessScale(15), 1);
   for (let n = 1; n <= 10; n++) assert.equal(h.m.gd.endlessScale(15 + n), 1 + n * 0.1);
-  assert.ok(Math.abs(h.m.gd.endlessScale(26) - 2.3) < 1e-12, 'extra round 11 compounds from round 10');
-  assert.ok(Math.abs(h.m.gd.endlessScale(27) - 2.645) < 1e-12, 'extra boss round 12 keeps compound growth');
-  assert.ok(Math.abs(h.m.gd.endlessScale(35) - 8.091115471416) < 1e-12, 'extra round 20');
+  assert.equal(h.m.gd.endlessScale(26), 2.15, 'extra round 11 adds 15% of base');
+  assert.equal(h.m.gd.endlessScale(27), 2.3, 'extra boss round 12 uses linear growth');
+  assert.equal(h.m.gd.endlessScale(35), 3.5, 'extra round 20');
   const opts = h.m._normalOpts(p);
   assert.equal(opts.flags.endlessEnemyScale, 1.1);
   assert.equal(buildBattleSpec(opts).flags.endlessEnemyScale, 1.1);
@@ -216,7 +352,7 @@ test('every sixth extra round draws a valid boss; real templates and the increas
     assert.equal(h.m.publicView().extraBossRound, true);
   }
   assert.ok(seen.size > 1, 'bosses are drawn anew rather than repeating the opening boss');
-  for (const [round, scale] of [[21, 1.6], [27, 2 * 1.15 ** 2]]) {
+  for (const [round, scale] of [[21, 1.6], [27, 2.3]]) {
     h.m.startRound(round);
     const id = h.m.endless.bossId;
     h.m.setDeadline(0);
@@ -238,6 +374,7 @@ for (const clientCombat of [false, true]) test(`hidden win opens the vote, extra
   h.m._openTeamLp();
   h.m.startRound(15);
   assert.ok(h.drive(() => h.m.phase === PHASE.CONTINUE_VOTE));
+  assert.equal(h.ps('p_0').relics.filter(r => getRelic(r.id).tier === 6).length, 0, 'Hidden Core clear waits for consent');
   assert.equal(h.ended, null);
   accept(h);
   assert.ok(h.drive(() => h.m.phase === PHASE.PREP && h.m.round === 22));

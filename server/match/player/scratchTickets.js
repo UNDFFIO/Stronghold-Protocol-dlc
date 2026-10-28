@@ -1,5 +1,6 @@
 import { ERR } from '../../../shared/constants.js';
 import { scratchTier } from '../../../shared/scratchTickets.js';
+import { canReceiveRelic, getRelic } from '../../../shared/relics.js';
 import { grantRelic } from '../relics.js';
 import { OK, fail } from './common.js';
 
@@ -9,7 +10,8 @@ export class PlayerScratchTickets {
     const spec = scratchTier(tier);
     if (this.left || !spec || !Number.isInteger(seq) || seq !== this.scratchSeq
       || !this.relics.some((r) => r.id === 'relic_234')
-      || this.m.round < spec.unlockRound) return fail(ERR.BAD_TARGET);
+      || this.m.round < spec.unlockRound
+      || !canReceiveRelic(getRelic(spec.relicId), this.relics, { extraRound: this.m.gd.endlessRound(this.m.round) })) return fail(ERR.BAD_TARGET);
     if (this.funds < spec.price) return fail(ERR.NO_FUNDS);
     this.spend(spec.price);
     grantRelic(this, spec.relicId);

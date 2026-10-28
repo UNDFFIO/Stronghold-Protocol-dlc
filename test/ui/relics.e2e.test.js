@@ -45,8 +45,15 @@ test('four new official curses: collection, journal-ready copy and transparent P
     }), {}, ids);
     await page.$eval('.relic-icons__heading', (el) => el.click());
     await page.waitForSelector('.relic-panel');
-    const text = await page.$eval('.relic-panel', (el) => el.textContent);
-    // The public roster controls the global curse; this fixture exercises the plain catalogue copy first.
+    await page.waitForFunction(() => document.querySelector('.relic-card__name')?.textContent === '礼赠垠无');
+    const text = await page.$eval('.relic-panel', async (el) => {
+      const { reverseText } = await import('/js/ui/enemyNameMask.js');
+      const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+      let node, raw = '';
+      while ((node = walker.nextNode())) raw += reverseText(node.nodeValue);
+      return raw;
+    });
+    // The holder sees reversed text; decode each displayed run to verify its full catalogue copy.
     for (const name of ['无垠赠礼', '路网', '追忆仪', '“小磨唧”']) assert.ok(text.includes(name));
     assert.match(text, /负面/); assert.match(text, /50%/); assert.match(text, /20层/); assert.match(text, /7件/);
     for (const selector of ['.tbanner', '.mpop--phase', '.pbanner--overlay']) await page.waitForSelector(selector, { hidden: true });
@@ -65,7 +72,7 @@ test('four new official curses: collection, journal-ready copy and transparent P
   } finally { await page.close(); }
 });
 
-test('boundless gift: teammate-owned global reversal, dynamic DOM/attributes/Pixi, digit-mask composition and full restoration', {
+test('boundless gift: holder-only reversal, teammate isolation, dynamic DOM/attributes/Pixi, digit-mask composition and full restoration', {
   skip: !ENABLED && 'set SP_E2E=1 and provide system Chrome', timeout: 120000,
 }, async () => {
   const page = await browser.newPage();
@@ -81,17 +88,22 @@ test('boundless gift: teammate-owned global reversal, dynamic DOM/attributes/Pix
       installPixiNumberMask({ Text }); globalThis.__giftText = new Text(); globalThis.__giftText.updateText();
       globalThis.__MOCK__.mutate((s) => { s.pub.players[1].relics = [{ id: 'relic_227', round: 1 }]; });
     });
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    assert.deepEqual(await page.evaluate(() => [document.querySelector('#gift-label').textContent, document.querySelector('#gift-label').title,
+      globalThis.__giftText.rendered]), ['金币123', '金币123', '金币123']);
+    await page.evaluate(() => globalThis.__MOCK__.mutate((s) => { s.priv.relics = [{ id: 'relic_227', round: 1 }]; }));
     await page.waitForFunction(() => document.querySelector('#gift-label').textContent === '321币金');
     assert.deepEqual(await page.evaluate(() => [document.querySelector('#gift-label').title, document.querySelector('#gift-input').value,
       globalThis.__giftText.rendered, globalThis.__giftText._text]), ['321币金', '书写名字123', '321币金', '金币123']);
     await page.evaluate(() => {
       document.querySelector('#gift-label').firstChild.nodeValue = '准备45';
       document.querySelector('#gift-label').title = '准备45';
-      globalThis.__MOCK__.mutate((s) => { s.priv.relics = [{ id: 'relic_159', round: 1 }]; });
+      globalThis.__MOCK__.mutate((s) => { s.priv.relics = [{ id: 'relic_227', round: 1 }, { id: 'relic_159', round: 1 }]; });
     });
     await page.waitForFunction(() => document.querySelector('#gift-label').textContent === '54备准' && document.querySelector('#gift-label').title === '■■备准');
     await page.screenshot({ path: `${OUT}/boundless-gift-reversed.png` });
-    await page.evaluate(() => globalThis.__MOCK__.mutate((s) => { s.pub.players[1].relics = []; s.priv.relics = []; }));
+    // The teammate still owns the gift: losing the local copy must nevertheless restore this client.
+    await page.evaluate(() => globalThis.__MOCK__.mutate((s) => { s.priv.relics = []; }));
     await page.waitForFunction(() => document.querySelector('#gift-label').textContent === '准备45' && document.querySelector('#gift-label').title === '准备45');
     assert.deepEqual(await page.evaluate(() => [globalThis.__giftText.rendered, globalThis.__giftText._text]), ['金币123', '金币123']);
     assert.deepEqual(errors, []);

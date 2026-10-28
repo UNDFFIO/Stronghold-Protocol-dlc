@@ -5,7 +5,7 @@
 // RESULT.
 // Installed on Match.prototype by server/match/Match.js (a method container: never instantiated; `this` is the match).
 
-import { settleRelics, activeReverseLp, consumeRelicLpLoss, consumeRelicShield, unusedRevival, consumeRevival, settleRelicLayerLosses } from '../relics.js';
+import { settleRelics, activeReverseLp, consumeRelicLpLoss, consumeRelicShield, unusedRevival, consumeRevival, settleRelicLayerLosses, grantNegativeRelics } from '../relics.js';
 import { damageRanking } from '../../../shared/damageRanking.js';
 import { settleDeathNote, deathNoteKeys } from '../deathNote.js';
 import { withRoadEnemies } from '../relicRoad.js';
@@ -602,6 +602,9 @@ export class MatchBoss {
     this.runner = null;
     if (this.endless) {
       if (victory) {
+        if (this.endless.cleared < this.gd.endlessRound(this.round)) {
+          for (const ps of this.alivePlayers()) if (!ps.left) grantNegativeRelics(ps, 2);
+        }
         this.endless.cleared = this.gd.endlessRound(this.round);
         this.setDeadline(DELAYS.SETTLE / 1000, () => this.startRound(this.round + 1), { silent: this.soloUntimed });
       } else {

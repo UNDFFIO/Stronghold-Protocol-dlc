@@ -17,7 +17,7 @@ let numbersEnabled = false;
 const segments = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
 export const reverseText = (text) => [...segments.segment(String(text))].map((s) => s.segment).reverse().join('');
 export const ownsTextReverse = (state) => !!state?.match?.public
-  && (state.match.public.players || []).some((p) => (p.relics || []).some((r) => getRelic(r?.id)?.reverseText));
+  && (state.match.private?.relics || []).some((r) => getRelic(r?.id)?.reverseText);
 export const maskEnemyNames = (text) => activePattern ? String(text).replace(activePattern, (name) => '■'.repeat([...name].length)) : String(text);
 export const displayRelicText = (text) => reverseEnabled ? reverseText(maskEnemyNames(text)) : maskEnemyNames(text);
 

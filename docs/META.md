@@ -50,18 +50,18 @@ owned dolls and their registered income effects remain valid. Ordinary rounds re
 
 Extra-round collectible choices and all acquisition paths reject 木棍 (`relic_159`), 鸭梨手机 (`relic_157`) and
 解压玩具 (`relic_156`). Their shared `normalRoundsOnly` flag is checked with the match's current `extraRound`,
-including direct grants with a backdated reward round. Existing ownership and effects remain valid.
+including direct grants with a backdated reward round. Extra rounds also reject all Epic (IV) and Legendary (V) acquisitions, including conditional Death Note grants and scratch-ticket purchases (rejected before charging). Existing ownership, effects and ticket claims remain valid. Negative quality (6) is separate and remains eligible.
 
 After a victorious Hidden Core, `MatchEndless.openEndlessVote()` enters `CONTINUE_VOTE`. The server publishes
 `m.public.endlessVote { voters, agreed }` and accepts `g.endlessVote { agree: boolean }` only from a connected,
 surviving voter. All surviving present humans must consent; AI seats follow. Refusal, departure or a 30-second
 team deadline settles the clear; solo has no deadline. Reconnect receives the current vote. Acceptance records the
-original winners and starts the next round without invoking `finish` or publishing `m.result`.
+original winners, immediately grants one random negative collectible to each surviving, present player (including AI), and starts the next round without invoking `finish` or publishing `m.result`. Each subsequent extra boss victory grants two more to each survivor during settlement, once per cleared round. `grantNegativeRelics` uses independent per-seat/per-round RNG, recomputes the eligible unowned negative pool after each grant, excludes same-batch repeats, and runs normal acquisition hooks. Partial pools yield only the available items; empty pools do nothing. Removed curses may become eligible at later awards [ASSUMED]. Ordinary extra waves and failed bosses do not grant curses.
 
 `GameData.endlessRound`, `waveRound` and `isBossRound` extend the round configuration without changing generated
 data. Normal waves reuse the last normal template and redraw faction entries; every sixth extra round redraws the
 weighted regular boss pool. `flags.endlessEnemyScale` uses `shared/endless.js`: `1 + 0.1 * N` for extra rounds 1–10, then
-`2 * 1.15 ** (N - 10)` from round 11. The same helper drives the client bonus display (rounded to two decimal places). The multiplier travels through real, client, rehearsal and Unite
+`2 + 0.15 * (N - 10)` from round 11 (15% of base added per round, without compounding). The same helper drives the client bonus display (rounded to two decimal places). The multiplier travels through real, client, rehearsal and Unite
 BattleSpecs; spawn base HP/ATK scale once, outside inherited spawn mods, and shared boss HP scales independently.
 The public view carries `extraRound`, `extraRounds`, `extraBossRound` and `extraBossId`. The client shows `extraRound`
 in the top round slot and the HP/ATK bonus in 敌方情报 (see [client contract](design/client.md#9-client-rendering-contract-publicjsrender)). Extra boss victories return
@@ -1344,4 +1344,4 @@ The host’s pre-match `room.setAiTakeover {on}` opts a co-op room in; default o
 
 ### 四件官方负面藏品的适配（2026-10-28）
 
-`server/match/relicRoad.js` 为路网持有者的普通波次或首领半场追加原定数量50%的固定外部敌种，独立种子且不复制悬赏。`grantRelic()` 对追忆仪执行备战资源销毁、库存归还及至多七件随机藏品移除。持有“小磨唧”的战场强制服务端权威模拟；`layerGains` 可携带带符号的层数净变化，普通战斗、联防与首领战分别只结算一次，合成失败结果不扣层。无垠赠礼由公共玩家藏品列表驱动全体客户端展示。完整边界及官方来源见[收藏品规则](COLLECTIBLES.md)。
+`server/match/relicRoad.js` 为路网持有者的普通波次或首领半场追加原定数量50%的固定外部敌种，独立种子且不复制悬赏。`grantRelic()` 对追忆仪执行备战资源销毁、库存归还及至多七件随机藏品移除。持有“小磨唧”的战场强制服务端权威模拟；`layerGains` 可携带带符号的层数净变化，普通战斗、联防与首领战分别只结算一次，合成失败结果不扣层。无垠赠礼仅由本人私有藏品列表驱动本客户端文字倒序。完整边界及官方来源见[收藏品规则](COLLECTIBLES.md)。

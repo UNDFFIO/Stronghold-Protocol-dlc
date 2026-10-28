@@ -8,10 +8,14 @@ import { rowLp } from '../../public/js/ui/teamPanel.js';
 import { PHASE } from '../../shared/constants.js';
 import { redactEnemyNames, ownsEnemyNameMask, ownsTextReverse, reverseText } from '../../public/js/ui/enemyNameMask.js';
 
-test('boundless gift: any public holder reverses every client, with grapheme-safe reversal and match reset', () => {
-  assert.equal(ownsTextReverse({ match: { public: { players: [{ playerId: 'other', relics: [{ id: 'relic_227' }] }] } } }), true);
+test('boundless gift: only private ownership reverses this client, with grapheme-safe reversal and match reset', () => {
+  const pub = { players: [{ playerId: 'other', relics: [{ id: 'relic_227' }] }] };
+  assert.equal(ownsTextReverse({ match: { public: pub, private: { relics: [] } } }), false);
+  assert.equal(ownsTextReverse({ match: { public: pub } }), false);
+  assert.equal(ownsTextReverse({ match: { public: pub, private: { relics: [{ id: 'relic_227' }] } } }), true);
+  assert.equal(ownsTextReverse({ match: { public: { players: [] }, private: { relics: [{ id: 'relic_227' }], watching: 'other' } } }), true);
   assert.equal(ownsTextReverse({ match: { public: { players: [] }, private: { relics: [] } } }), false);
-  assert.equal(ownsTextReverse({ match: { public: null } }), false);
+  assert.equal(ownsTextReverse({ match: { public: null, private: { relics: [{ id: 'relic_227' }] } } }), false);
   assert.equal(reverseText('金币123'), '321币金');
   assert.equal(reverseText('A👨‍👩‍👧‍👦e\u0301'), 'e\u0301👨‍👩‍👧‍👦A');
 });

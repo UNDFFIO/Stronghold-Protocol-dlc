@@ -41,6 +41,31 @@ async function buyAndOpen(page) {
   await page.waitForSelector('.scratch-coating');
 }
 
+test('extra rounds offer only Common through Rare scratch tickets and restore all tiers outside extra rounds', {
+  skip: !ENABLED && 'set SP_E2E=1 and provide Chrome', timeout: 60000,
+}, async () => {
+  const page = await browser.newPage();
+  try {
+    await openShop(page, 'fallback');
+    assert.equal((await page.$$('.scratch-product')).length, 5);
+    await page.evaluate(() => globalThis.__MOCK__.mutate(s => {
+      s.pub.round = 16; s.pub.extraRound = 1;
+    }));
+    await page.waitForFunction(() => document.querySelectorAll('.scratch-product').length === 3);
+    assert.equal(await page.$('.scratch-product.relic-tier-4'), null);
+    assert.equal(await page.$('.scratch-product.relic-tier-5'), null);
+    await page.evaluate(() => globalThis.__MOCK__.mutate(s => { s.pub.extraRound = 0; }));
+    await page.waitForFunction(() => document.querySelectorAll('.scratch-product').length === 5);
+    await page.evaluate(() => globalThis.__MOCK__.mutate(s => { s.pub.extraRound = 1; }));
+    await page.waitForFunction(() => document.querySelectorAll('.scratch-product').length === 3);
+    await page.click('.scratch-product.relic-tier-3');
+    await page.waitForSelector('.scratch-product.relic-tier-3.is-armed');
+    await page.click('.scratch-product.relic-tier-3');
+    await page.waitForSelector('.scratch-unopened');
+    assert.ok(await page.$eval('.scratch-unopened', el => el.textContent.includes('稀有刮刮票')));
+  } finally { await page.close(); }
+});
+
 test('all five ticket backgrounds and square symbols load without false matches on desktop and mobile', {
   skip: !ENABLED && 'set SP_E2E=1 and provide Chrome', timeout: 120000,
 }, async () => {

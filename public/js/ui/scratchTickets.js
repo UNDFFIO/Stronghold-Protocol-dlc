@@ -327,7 +327,7 @@ export function ScratchPanel({ context, onClose, initialTicketId }) {
         <b>${t(getRelic(ticket.relicId).name)}</b><${Button} variant="primary" disabled=${!context.canUse || busy}
           onClick=${() => run(() => context.onOpen(ticket.id))}>${t('开始刮奖')}<//></div>`)
       : html`<div class="scratch-shop">
-        ${SCRATCH_TIERS.map((spec) => html`<button type="button" key=${spec.tier}
+        ${SCRATCH_TIERS.filter(spec => !context.extraRound || spec.tier < 4).map((spec) => html`<button type="button" key=${spec.tier}
           class=${`scratch-product relic-tier-${spec.tier}${armed === spec.tier ? ' is-armed' : ''}`}
           aria-pressed=${armed === spec.tier}
           disabled=${!context.canUse || busy || context.round < spec.unlockRound || context.funds < spec.price}

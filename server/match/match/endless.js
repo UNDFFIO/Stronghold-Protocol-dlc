@@ -1,6 +1,7 @@
 // Maintainer DLC (2026-10-26): unanimous continuation after clearing Hidden Core.
 import { PHASE, ERR } from '../../../shared/constants.js';
 import { OK, fail } from './common.js';
+import { grantNegativeRelics } from '../relics.js';
 
 export class MatchEndless {
   openEndlessVote() {
@@ -34,6 +35,7 @@ export class MatchEndless {
       this.endless = { startRound: this.round + 1, cleared: 0,
         winners: new Set(this.alivePlayers().filter(p => !p.left).map(p => p.playerId)) };
       this.gd.endlessStartRound = this.endless.startRound;
+      for (const player of this.alivePlayers()) if (!player.left) grantNegativeRelics(player, 1);
       this.startRound(this.endless.startRound);
     }
     this.markPublic();
