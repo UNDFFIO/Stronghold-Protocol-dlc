@@ -152,7 +152,8 @@ test('rules-only manifests load, hash and compose through the room summary and b
 
 test('shopBias filters within the drawn tier, respects stock, and falls back in that same tier', () => {
   const records = { other: { giveBondId: 'other' }, hit: { giveBondId: 'active' }, higher: { giveBondId: 'active' } };
-  const pool = new SharedPool({ visibleChess: [], shopItemsByTier: { 1: ['other', 'hit'], 2: ['higher'] }, item: (id) => records[id] });
+  const pool = new SharedPool({ visibleChess: [], shopItemsByTier: { 1: ['other', 'hit'], 2: ['higher'] },
+    shopItemAllowed: () => true, item: (id) => records[id] });
   pool.entries.set('one', { tier: 1, cap: 9, left: 9 });
   pool.entries.set('two', { tier: 2, cap: 1, left: 1 });
   const bias = new Set(['active']);

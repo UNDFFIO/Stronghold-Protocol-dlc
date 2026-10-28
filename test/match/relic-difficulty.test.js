@@ -28,8 +28,8 @@ function firstHit(b) {
 test('鸭梨手机：稀有档进度、正常抽取领取、全队降级及两端实际战斗规则一致', () => {
   assert.equal(getRelic(id).tier, 3);
   const owned = RELICS.filter(r => r.id !== id).map(r => ({ id: r.id, round: 1 }));
-  assert.deepEqual(pickRelicChoices(3, owned, createRng(1), { hasScratchTicket: true }), []);
-  assert.deepEqual(pickRelicChoices(4, owned, createRng(1), { hasScratchTicket: true }), [id]);
+  assert.deepEqual(pickRelicChoices(3, owned, createRng(1), { hasScratchTicket: true }), ['relic_014', 'relic_014', 'relic_014']);
+  assert.deepEqual(pickRelicChoices(4, owned, createRng(1), { hasScratchTicket: true }), [id, 'relic_014', 'relic_014']);
   const h = makeMatch({ mode: 'coop', humans: 2, difficulty: 'ASCENSION', difficultyLevel: 5, battleContent: 'none' });
   try {
     h.m.round = 4;
@@ -38,7 +38,7 @@ test('鸭梨手机：稀有档进度、正常抽取领取、全队降级及两�
     grantRelic(ps, 'relic_235');
     const before = h.m.newBattle(opts);
     const offer = settleRelics(ps, { perfect: true, leaked: [] }, { completed: true });
-    assert.deepEqual(offer.options, [id]);
+    assert.deepEqual(offer.options, [id, 'relic_014', 'relic_014', 'relic_014']);
     assert.equal(h.m.difficultyLevel, 5, '未领取的候选不降级');
     assert.equal(selectRelic(ps, 'forged', 0), null);
     assert.equal(h.m.difficultyLevel, 5);

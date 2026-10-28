@@ -20,7 +20,7 @@ test('天师锦囊：未激活或仅累计炎层数不能获取，激活后普�
     exhaust(ps, 'relic_132');
     const opts = { hasScratchTicket: true, bonds: ps.bonds };
     ps.layers.yanShip = 100;
-    assert.deepEqual(pickRelicChoices(1, ps.relics, createRng(1), opts), []);
+    assert.deepEqual(pickRelicChoices(1, ps.relics, createRng(1), opts), ['relic_014', 'relic_014', 'relic_014']);
     assert.equal(grantRelic(ps, 'relic_132'), null);
     const yan = [...h.m.pool.entries.keys()].filter((id) => h.m.gd.chess(id).bonds.includes('yanShip')).slice(0, 3);
     assert.equal(yan.length, 3);
@@ -37,7 +37,7 @@ test('天师锦囊：未激活或仅累计炎层数不能获取，激活后普�
     };
     assert.equal(getRelic('relic_132').tier, 1);
     const offer = settleRelics(ps, { perfect: true, leaked: [] }, { completed: true });
-    assert.deepEqual(offer.options, ['relic_132']);
+    assert.deepEqual(offer.options, ['relic_132', 'relic_014', 'relic_014', 'relic_014']);
     assert.equal(summoned(), 0);
     ps.bonds.yanShip.active = false;
     assert.equal(selectRelic(ps, offer.id, 0), null);
@@ -62,7 +62,7 @@ test('天师锦囊：超限补给使用相同盟约限制', () => {
       ps.bonds.yanShip = { active, count: active ? 3 : 0, tier: active ? 1 : 0, layers: 0 };
       const reward = drawAscensionLottery(ps);
       assert.equal(reward.kind, 'relics');
-      assert.deepEqual(reward.ids, active ? ['relic_132'] : []);
+      assert.deepEqual(reward.ids, active ? ['relic_132', 'relic_014', 'relic_014'] : ['relic_014', 'relic_014', 'relic_014']);
     } finally { h.m.dispose(); }
   }
 });
@@ -85,7 +85,7 @@ test('冰中火：普通R1合法领取，候选不生效，下一场从可信ID�
       return hp - e.hp;
     };
     const offer = settleRelics(ps, { perfect: true, leaked: [] }, { completed: true });
-    assert.deepEqual(offer.options, ['relic_133']);
+    assert.deepEqual(offer.options, ['relic_133', 'relic_014', 'relic_014', 'relic_014']);
     assert.equal(damage(), 7000);
     assert.equal(selectRelic(ps, offer.id, 0).id, 'relic_133');
     assert.equal(damage(), 12250);

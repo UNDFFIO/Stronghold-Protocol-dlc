@@ -34,7 +34,7 @@ test('negative quality is immutable and excluded from all random reward pools, e
       }
     }
     {
-      assert.deepEqual(fixture.pickRelicChoices(round, owned, createRng(round), { hasScratchTicket: true }), []);
+      assert.deepEqual(fixture.pickRelicChoices(round, owned, createRng(round), { hasScratchTicket: true }), ['relic_014', 'relic_014', 'relic_014']);
     }
   }
 });

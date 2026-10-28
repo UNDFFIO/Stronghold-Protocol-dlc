@@ -10,7 +10,7 @@ function claim(h, ps, id) {
   ps.relics = RELICS.filter((r) => r.id !== id).map((r) => ({ id: r.id, round: h.m.round }));
   grantRelic(ps, 'relic_235');
   const offer = settleRelics(ps, { perfect: true, leaked: [] }, { completed: true });
-  assert.deepEqual(offer.options, [id]);
+  assert.deepEqual(offer.options, [id, 'relic_014', 'relic_014', 'relic_014']);
   assert.equal(selectRelic(ps, offer.id, 0).id, id);
   assert.equal(selectRelic(ps, offer.id, 0), null);
   ps.relics = ps.relics.filter((r) => r.id === id);

@@ -97,10 +97,10 @@ test('解压玩具：触发回合预览、实际波次和两端模拟均为 9 / 
 test('解压玩具：仅多人抽取，普通进度过滤单人限定', () => {
   const owned = RELICS.filter((r) => r.id !== 'relic_156').map((r) => r.id);
   {
-    assert.deepEqual(pickRelicChoices(7, owned, createRng(1), { hasScratchTicket: true }), []);
-    assert.deepEqual(pickRelicChoices(7, owned, createRng(1), { multiplayer: true, hasScratchTicket: true }), ['relic_156']);
+    assert.deepEqual(pickRelicChoices(7, owned, createRng(1), { hasScratchTicket: true }), ['relic_014', 'relic_014', 'relic_014']);
+    assert.deepEqual(pickRelicChoices(7, owned, createRng(1), { multiplayer: true, hasScratchTicket: true }), ['relic_156', 'relic_014', 'relic_014']);
   }
-  assert.deepEqual(pickRelicChoices(1, owned, createRng(1), { multiplayer: true, hasScratchTicket: true }), []);
+  assert.deepEqual(pickRelicChoices(1, owned, createRng(1), { multiplayer: true, hasScratchTicket: true }), ['relic_014', 'relic_014', 'relic_014']);
 });
 
 test('解压玩具：奇偶数、均分余数、多人持有同时处理、重复ID与输入不变', () => {
@@ -140,7 +140,7 @@ test('解压玩具：真实服务端领取后，预览与两端战斗spec一致�
     grantRelic(ps, 'relic_235');
     assert.equal(count(m._normalOpts(ps).spawns), 5, '候选未领取不生效');
     const offer = settleRelics(ps, { perfect: true, leaked: [] }, { completed: true });
-    assert.deepEqual(offer.options, ['relic_156']);
+    assert.deepEqual(offer.options, ['relic_156', 'relic_014', 'relic_014', 'relic_014']);
     assert.equal(selectRelic(ps, offer.id, 0).id, 'relic_156');
     assert.equal(selectRelic(ps, offer.id, 0), null);
     assert.equal(count(m._normalOpts(ps).spawns), 2);

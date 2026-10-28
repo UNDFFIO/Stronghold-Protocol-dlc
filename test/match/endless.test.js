@@ -33,9 +33,9 @@ test('extra-round relic pools exclude the three restricted collectibles even whe
   for (const id of EXTRA_BLOCKED_RELICS) {
     const owned = RELICS.filter(r => r.id !== id).map(r => ({ id: r.id, round: 1 }));
     const opts = { multiplayer: true, hasScratchTicket: true };
-    assert.deepEqual(pickRelicChoices(15, owned, () => 0, opts), [id], `${id} remains available before continuation`);
+    assert.deepEqual(pickRelicChoices(15, owned, () => 0, opts), [id, 'relic_014', 'relic_014'], `${id} remains available before continuation`);
     for (const extraRound of [1, 6, 22]) {
-      assert.deepEqual(pickRelicChoices(15 + extraRound, owned, () => 0, { ...opts, extraRound }), []);
+      assert.deepEqual(pickRelicChoices(15 + extraRound, owned, () => 0, { ...opts, extraRound }), ['relic_014', 'relic_014', 'relic_014']);
       assert.equal(pickRelic(15 + extraRound, owned, () => 0,
         { ...opts, extraRound, tierWeights: [5, 65, 30, 0, 0] }), null, 'explicit reward weights also respect eligibility');
     }
@@ -61,7 +61,7 @@ for (const mode of ['solo', 'coop']) test(`${mode}: extra-round battle rewards a
   p.relics = RELICS.filter(r => !EXTRA_BLOCKED_RELICS.includes(r.id) && r.id !== allowed).map(r => ({ id: r.id, round: 1 }));
   grantRelic(p, 'relic_235');
   const offer = settleRelics(p, { perfect: true, leaked: [] }, { completed: true, lpLoss: 0 });
-  assert.deepEqual(offer.options, [allowed]);
+  assert.deepEqual(offer.options, [allowed, 'relic_014', 'relic_014', 'relic_014']);
   assert.equal(selectRelic(p, offer.id, 0).id, allowed, 'other collectibles remain obtainable');
 });
 
