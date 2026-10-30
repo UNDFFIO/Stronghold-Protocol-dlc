@@ -80,13 +80,14 @@ Completed battles offer one collectible from three choices when the surviving, p
 
 ### DLC: Ascension supplies
 
-`server/match/ascensionLottery.js` grants once at the start of round 4 to each surviving, present Ascension player
-(including level 0). The four equally likely categories are 15 Funds, two operators from the highest accumulated-layer
+`server/match/ascensionLottery.js` grants once at the start of round 5 to each surviving, present Ascension player
+(including level 0). The four equally likely categories are 15 Funds, three operators from the highest accumulated-layer
 bond, three distinct collectibles, and one 「收藏品补给（优先传说）」. The three-collectible pool uses tier weights `[5, 65, 30, 0, 0]`;
 the category named 「收藏品补给（优先传说）」 uses `[0, 0, 0, 0, 100]`, preferring one Legendary collectible; if no eligible candidate remains, Hot-Water Kettle fills the slot and applies its LP recovery.
+One operator is guaranteed to be an unowned tier-1–4 member of the selected bond, assessed before the draw across board, hand and temp, including elite forms. If none qualify, all three use ordinary draws from that bond.
 `pickRelic` accepts the server's explicit `tierWeights`; ordinary draws retain their existing table. Owned and
 mode-ineligible items are excluded, exhausted tiers are removed and the remaining weights normalized, with no fallback
-outside the specified tiers. `grantRelic` applies every item exactly once, including acquisition hooks for the round-4
+outside the specified tiers. `grantRelic` applies every item exactly once, including acquisition hooks for the round-5
 battle. The private view contains actual awarded IDs: three different IDs for the three-item prize, one ID for the
 Legendary prize. The three identical Legendary reel images are presentation only.
 
@@ -1327,7 +1328,7 @@ The host’s pre-match `room.setAiTakeover {on}` opts a co-op room in; default o
 
 ### DLC 与上游 0.3.2 集成
 
-收藏品、超限、刮刮票和分阶段商店沿用本 fork 规则。所有 AI 策略共用的休整前处理先打开并兑奖持有票券；其余招募、编队和演习采用上游更新。版本宿主与普通对局均传递 difficultyLevel。公开房间在选择同盟方式中滚动浏览，公开性和密码在房间底部难度胶囊旁设置。
+收藏品、超限、刮刮票和分阶段商店沿用本 fork 规则。所有 AI 策略共用的休整前处理先打开并兑奖持有票券；其余招募、编队和演习采用上游更新。版本宿主与普通对局均传递 difficultyLevel。公开房间在选择同盟方式中滚动浏览，公开性和密码并入房间底部原有的「同盟设置」，房主修改即时生效（密码在回车或失焦时提交），其他玩家只读。
 
 
 ### 死亡笔记

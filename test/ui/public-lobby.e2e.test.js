@@ -74,10 +74,16 @@ describe('public lobby and room settings (real browser)', { skip: process.env.SP
   };
   const settings = async (page) => {
     await page.click('[data-testid="room-settings-open"]');
-    await page.waitForSelector('.room-config');
+    await page.waitForSelector('.rs-opts .room-config');
+    assert.equal(await page.$$('.rs-pill__gear').then((els) => els.length), 1);
+    assert.equal(await page.$('.room-config-btn'), null);
   };
   const save = async (page) => {
-    await page.click('.room-config .modal__actions .btn--primary');
+    await page.keyboard.press('Tab');
+    await waitForFunctionLong(page, () => !document.querySelector('[data-testid="room-public-toggle"]')?.disabled
+      && !document.querySelector('input[name="room-new-password"]')?.value);
+    assert.equal(await page.$('.room-config .btn--primary'), null, 'access changes need no save button');
+    await page.keyboard.press('Escape');
     await waitForFunctionLong(page, () => !document.querySelector('.room-config'));
   };
   const enterPassword = async (page, password) => {
@@ -110,6 +116,7 @@ describe('public lobby and room settings (real browser)', { skip: process.env.SP
     assert.equal(await host.evaluate(() => globalThis.__SP__.store.get().room.test), true);
     await settings(host);
     await host.click('[data-testid="room-public-toggle"]');
+    await waitForFunctionLong(host, () => !document.querySelector('[data-testid="room-public-toggle"]').disabled);
     await host.type('input[name="room-new-password"]', 'Test password');
     await save(host);
     const viewer = await open('Test guest');
@@ -129,13 +136,14 @@ describe('public lobby and room settings (real browser)', { skip: process.env.SP
     }
   });
 
-  test('settings publish live, password join/spectate and private invitations work, cancellation preserves settings', { timeout: 120000 }, async () => {
+  test('settings publish live, password join/spectate and private invitations work, closing keeps applied settings', { timeout: 120000 }, async () => {
     const host = await open('Host');
     const code = await create(host);
     const viewer = await open('Guest');
     await waitForFunctionLong(viewer, () => document.querySelector('.public-hall__empty')?.textContent.includes('暂无公开房间'));
     await settings(host);
     await host.click('[data-testid="room-public-toggle"]');
+    await waitForFunctionLong(host, () => !document.querySelector('[data-testid="room-public-toggle"]').disabled);
     await host.type('input[name="room-new-password"]', 'First password');
     await save(host);
     await viewer.waitForSelector(row(code));
@@ -167,11 +175,11 @@ describe('public lobby and room settings (real browser)', { skip: process.env.SP
 
     await settings(host);
     await host.click('[data-testid="room-public-toggle"]');
+    await waitForFunctionLong(host, () => !document.querySelector('[data-testid="room-public-toggle"]').disabled);
     await host.keyboard.press('Escape');
     await waitForFunctionLong(host, () => !document.querySelector('.room-config'));
-    assert.equal(await host.evaluate(() => globalThis.__SP__.store.get().room.isPublic), true);
+    assert.equal(await host.evaluate(() => globalThis.__SP__.store.get().room.isPublic), false);
     await settings(host);
-    await host.click('[data-testid="room-public-toggle"]');
     await host.type('input[name="room-new-password"]', 'Second password');
     await save(host);
     const lobby = await open('Lobby');
@@ -249,7 +257,7 @@ describe('public lobby and room settings (real browser)', { skip: process.env.SP
     await create(english);
     await settings(english);
     const text = await english.$eval('.room-config', (el) => el.textContent);
-    assert.match(text, /Room Settings/);
+    assert.equal(await english.$('.rs-opts[aria-label="Alliance Settings"]') !== null, true);
     assert.match(text, /Public room/);
     assert.match(text, /Room password/);
   });
@@ -259,6 +267,7 @@ describe('public lobby and room settings (real browser)', { skip: process.env.SP
     const code = await create(host);
     await settings(host);
     await host.click('[data-testid="room-public-toggle"]');
+    await waitForFunctionLong(host, () => !document.querySelector('[data-testid="room-public-toggle"]').disabled);
     await save(host);
     const viewer = await open('Viewer');
     await viewer.waitForSelector(row(code));
@@ -283,6 +292,7 @@ describe('public lobby and room settings (real browser)', { skip: process.env.SP
     const code = await create(host);
     await settings(host);
     await host.click('[data-testid="room-public-toggle"]');
+    await waitForFunctionLong(host, () => !document.querySelector('[data-testid="room-public-toggle"]').disabled);
     await save(host);
     const viewer = await open('Viewer');
     await viewer.waitForSelector(row(code));
@@ -303,6 +313,7 @@ describe('public lobby and room settings (real browser)', { skip: process.env.SP
     const code = await create(host);
     await settings(host);
     await host.click('[data-testid="room-public-toggle"]');
+    await waitForFunctionLong(host, () => !document.querySelector('[data-testid="room-public-toggle"]').disabled);
     await save(host);
     const viewer = await open('Viewer');
     await viewer.waitForSelector(row(code));

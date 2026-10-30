@@ -38,8 +38,8 @@ async function openLottery(page, reward) {
     });
     observer.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['class'] });
     globalThis.__MOCK__.mutate((s) => {
-      s.pub.round = 4;
-      s.priv.ascensionLottery = { ...reward, round: 4, bondId: null };
+      s.pub.round = 5;
+      s.priv.ascensionLottery = { ...reward, round: 5, bondId: null };
     });
   }, reward);
   await page.waitForSelector('.ascension-lottery');
@@ -48,10 +48,10 @@ async function openLottery(page, reward) {
 
 for (const reward of [
   { kind: 'coins', amount: 15, ids: [], text: '15 资金' },
-  { kind: 'operators', amount: 0, ids: [], text: '炎盟约干员：惊蛰、夕' },
+  { kind: 'operators', amount: 0, ids: [], text: '炎盟约干员：惊蛰、夕、令' },
   { kind: 'relics', amount: 0, ids: ['relic_003', 'relic_004', 'relic_139'], text: '收藏品：橙味风暴、尖叫樱桃、黄金平原' },
   { kind: 'legendary', amount: 0, ids: ['relic_006'], text: '收藏品补给（优先传说）：皮特水果什锦' },
-]) test(`fourth-round ${reward.kind} lottery result renders and dismisses without reappearing on private updates`, {
+]) test(`fifth-round ${reward.kind} lottery result renders and dismisses without reappearing on private updates`, {
   skip: !ENABLED && 'set SP_E2E=1 and provide Chrome', timeout: 60000,
 }, async () => {
   const page = await browser.newPage();
@@ -70,6 +70,7 @@ for (const reward of [
     assert.deepEqual(await page.evaluate(() => globalThis.__LOTTERY_STOPS__), [[], [0], [0, 1], [0, 1, 2]],
       'reels stop left to right and private pushes do not restart them');
     const text = await page.$eval('.ascension-lottery', (e) => e.textContent);
+    if (reward.kind === 'operators') assert.match(text, /3 名盟约干员/);
     const collection = reward.kind === 'relics' || reward.kind === 'legendary';
     const expected = collection ? `本次抽中：${reward.ids.map((id) => getRelic(id).name).join('、')}` : `本次抽中：${reward.text}`;
     assert.equal(await page.$eval('.lottery-result__win', (e) => e.textContent.trim()), expected);

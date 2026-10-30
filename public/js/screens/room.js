@@ -59,7 +59,7 @@ import { copyText } from '../ui/clipboard.js';
 import { GuideButton } from '../ui/guide.js';
 import { openStats } from './stats.js';
 import { SettingsButton } from '../ui/settings.js';
-import { RoomSettingsButton } from '../ui/roomSettings.js';
+import { RoomAccessSettings } from '../ui/roomSettings.js';
 import { LoadoutButton } from './loadout.js';
 import { PluginTag, VersionTag, isModdedRoom } from '../ui/pluginTag.js';
 import { VersionVote, versionVoteOf } from '../ui/versionVote.js';
@@ -389,19 +389,24 @@ function AiTakeoverToggle({ option, busy, onToggle }) {
 
 /**
  * ⚙ of the bottom pill (co-op): 同盟设置 — the 模拟难度 (opens 选择模拟协议: the host's 确认, the others' read-only view)
- * and the 「AI 队友最后选择」 switch. Closes on a click outside it or Esc.
+ * and the AI switches, public visibility and password. Closes on a click outside it or Esc.
  */
-function RoomOptions({ option, takeoverOption, onAiTakeover, soloOption = null, room, isHost, busy, onAiLast, onSoloUnlimited, onDifficulty, onClose, version = null }) {
+function RoomOptions({ option, takeoverOption, onAiTakeover, soloOption = null, room, isHost, online, busy, onAiLast, onSoloUnlimited, onDifficulty, onClose, version = null }) {
   const info = difficultyInfo(room.mode, room.difficulty);
   const title = soloOption ? t('模拟设置') : t('同盟设置');
   useEffect(() => {
-    const away = (e) => { if (!e.target.closest?.('.rs-opts, .rs-pill__gear')) onClose(); };
-    const onKey = (e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose(); } };
+    const close = () => {
+      const input = document.activeElement;
+      if (input?.matches('input[name="room-new-password"]')) input.blur();
+      onClose();
+    };
+    const away = (e) => { if (!e.target.closest?.('.rs-opts, .rs-pill__gear')) close(); };
+    const onKey = (e) => { if (e.key === 'Escape') { e.stopPropagation(); close(); } };
     addEventListener('pointerdown', away);
     addEventListener('keydown', onKey);
     return () => { removeEventListener('pointerdown', away); removeEventListener('keydown', onKey); };
   }, []);
-  return html`<div class="rs-opts" role="dialog" aria-label=${title}>
+  return html`<div class=${`rs-opts${soloOption ? '' : ' rs-opts--coop'}`} role="dialog" aria-label=${title}>
     <h4>${title}</h4>
     ${soloOption ? null : html`<div class="rs-opts__row" data-testid="room-opt-difficulty">
       <span class="rs-opts__k">${t('模拟难度')}</span>
@@ -426,6 +431,7 @@ function RoomOptions({ option, takeoverOption, onAiTakeover, soloOption = null, 
     ${soloOption
       ? html`<${SoloUnlimitedToggle} option=${soloOption} busy=${busy} onToggle=${onSoloUnlimited} />`
       : html`<${AiLastToggle} option=${option} busy=${busy} onToggle=${onAiLast} />`}
+    ${!soloOption ? html`<${RoomAccessSettings} room=${room} isHost=${isHost} online=${online} disabled=${!!busy} />` : null}
   </div>`;
 }
 
@@ -733,10 +739,9 @@ export function RoomScreen() {
             title=${facts.isHost ? t('更改模拟难度') : t('由创建者选择')}><${DifficultyIcon} difficulty=${room.difficulty} />${DIFFICULTY_NAMES[room.difficulty] ? t(DIFFICULTY_NAMES[room.difficulty]) : ''}<span class="num rs-pill__code">${info.code}</span></button>
           ${versionCtl ? html`<${Tooltip} text=${versionCtl.why} class="rs-pill__version"><button type="button" class=${`rs-pill__ver${versionCtl.editable ? '' : ' is-ro'}`} data-testid="room-version"
             disabled=${versionCtl.disabled} onClick=${versionCtl.onOpen} aria-label=${t('游戏版本：{name}', { name: versionLabel(curVersion) })}><${Icon} name="book" /><span class="rs-pill__vername">${versionLabel(curVersion)}</span></button><//>` : null}
-          ${coop ? html`<${RoomSettingsButton} room=${room} isHost=${facts.isHost} online=${online} disabled=${!!busy} />` : null}
           ${aiLast || soloOpt ? html`<button type="button" class=${`rs-pill__gear${opts ? ' is-on' : ''}`} onClick=${() => setOpts((v) => !v)} title=${aiLast ? t('同盟设置') : t('模拟设置')} aria-label=${aiLast ? t('同盟设置') : t('模拟设置')}
-            aria-expanded=${opts ? 'true' : 'false'}><${GearGlyph} /></button>` : null}
-          ${opts && (aiLast || soloOpt) ? html`<${RoomOptions} takeoverOption=${aiTakeoverOption(room, me.playerId)} onAiTakeover=${setAiTakeover} option=${aiLast} soloOption=${soloOpt} room=${room} isHost=${facts.isHost} busy=${busy} onAiLast=${setAiLast}
+            data-testid=${coop ? 'room-settings-open' : null} aria-expanded=${opts ? 'true' : 'false'}><${GearGlyph} /></button>` : null}
+          ${opts && (aiLast || soloOpt) ? html`<${RoomOptions} takeoverOption=${aiTakeoverOption(room, me.playerId)} onAiTakeover=${setAiTakeover} option=${aiLast} soloOption=${soloOpt} room=${room} isHost=${facts.isHost} online=${online} busy=${busy} onAiLast=${setAiLast}
             onSoloUnlimited=${setSoloUnlimited} onDifficulty=${openProto} onClose=${() => setOpts(false)} version=${versionCtl} />` : null}
         </div>
       </div>

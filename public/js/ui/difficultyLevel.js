@@ -4,8 +4,8 @@ import { html, Icon, MicroLabel, Tooltip } from './components.js';
 import { t } from '../../../shared/i18n.js';
 
 const LEVELS = Array.from({ length: MAX_DIFFICULTY_LEVEL + 1 }, (_, i) => MAX_DIFFICULTY_LEVEL - i);
-const baseDescription = () => t('第4回合开始时额外获得1次【超限补给】');
-const baseDetail = () => t('沿用终极模拟基础参数。各等级第4回合均可等概率抽取1项：15资金、2名盟约干员、3件收藏品、1件优先传说品质的藏品。收藏品从符合获取条件的范围内优先抽取不同种类，不足时由热水壶补足。');
+const baseDescription = () => t('第5回合开始时额外获得1次【超限补给】');
+const baseDetail = () => t('沿用终极模拟基础参数。各等级第5回合均可等概率抽取1项：15资金、3名盟约干员、3件收藏品、1件优先传说品质的藏品。盟约干员中保证1名为该盟约未拥有的4级及以下干员，无符合条件者时普通抽取。收藏品从符合获取条件的范围内优先抽取不同种类，不足时由热水壶补足。');
 const ruleDetail = (rule) => rule ? t(rule.detail) : baseDetail();
 const help = (rule) => ruleDetail(rule) ? html`<${Tooltip} text=${ruleDetail(rule)}><span class="level-rule__help" tabindex="0" aria-label=${ruleDetail(rule)}>[?]</span><//>` : null;
 
@@ -144,7 +144,7 @@ export function DifficultyLevelPicker({ value = 0, onChange, disabled = false, r
           <div><strong>${t(r.name)}</strong><span>${r.description} ${help(r)}</span></div>
           <${Icon} name=${r.level <= preview ? 'check' : 'lock'} />
         </div>`)}
-        ${!shown.length ? html`<span class="level-effects__empty">${t('0 级无附加战场协议，仍有第 4 回合抽奖；点击「全部协议」预览挑战。')}</span>` : null}
+        ${!shown.length ? html`<span class="level-effects__empty">${t('0 级无附加战场协议，仍有第 5 回合抽奖；点击「全部协议」预览挑战。')}</span>` : null}
       </div>
       <span class="level-effects__note">${t('生命、攻击沿用终极基准；滚动右侧列表查看累计规则。')}</span>
     </div>

@@ -7,13 +7,14 @@ import { t, msg, dn, wireMessage } from '../../shared/i18n.js';
 export const LOTTERY_RELIC_WEIGHTS = Object.freeze([5, 65, 30, 0, 0]);
 export const LOTTERY_LEGENDARY_WEIGHTS = Object.freeze([0, 0, 0, 0, 100]);
 
-/** One independent, server-owned, equal-probability draw per survivor at the start of ASCENSION R4. */
+/** One independent, server-owned, equal-probability draw per survivor at the start of ASCENSION R5. */
 export function drawAscensionLottery(ps) {
   const m = ps.m;
-  if (m.difficulty !== 'ASCENSION' || m.round !== 4 || !ps.alive || ps.left || ps.ascensionLottery) return null;
+  if (m.difficulty !== 'ASCENSION' || m.round !== 5 || !ps.alive || ps.left || ps.ascensionLottery) return null;
+  // Keep the original seed namespace so postponing the draw preserves its random stream.
   const rng = createRng(deriveSeed(m.seed, `ascension-lottery:${ps.seat}:4`));
   const kind = ['coins', 'operators', 'relics', 'legendary'][rng.int(4)];
-  const reward = { round: 4, kind, ids: [], bondId: null, amount: 0, text: '' };
+  const reward = { round: 5, kind, ids: [], bondId: null, amount: 0, text: '' };
   let message, notice;
   // Record before acquisition hooks, so re-entrancy cannot grant a second reward.
   ps.ascensionLottery = reward;
@@ -21,7 +22,7 @@ export function drawAscensionLottery(ps) {
     ps.addFunds(15, { reason: 'ascension-lottery' });
     reward.amount = 15;
     message = msg('15 资金');
-    notice = msg('超限模拟 · 第 4 回合抽奖：15 资金');
+    notice = msg('超限模拟 · 第 5 回合抽奖：15 资金');
   } else if (kind === 'operators') {
     // Persistent layers, not activation tier. Inactive bonds with accumulated layers remain eligible.
     // With no accumulated layers, prefer bonds represented in the player's current lineup.
@@ -35,27 +36,31 @@ export function drawAscensionLottery(ps) {
     }
     reward.bondId = ties.length ? ties[rng.int(ties.length)] : null;
     const pool = [...m.pool.entries.keys()].filter((id) => m.gd.chess(id).bonds?.includes(reward.bondId));
-    for (let i = 0; i < 2 && pool.length; i++) {
-      const id = pool[rng.int(pool.length)];
+    const owned = new Set(ps.allChess().map((piece) => m.gd.baseIdOf(piece.id)));
+    const missing = pool.filter((id) => m.gd.tierOf(id) <= 4 && !owned.has(m.gd.baseIdOf(id)));
+    for (let i = 0; i < 3 && pool.length; i++) {
+      // Grant the guaranteed new operator first; other slots use the full selected bond pool.
+      const choices = i === 0 && missing.length ? missing : pool;
+      const id = choices[rng.int(choices.length)];
       // Effect grants may create a copy when the shared pool is exhausted, as other direct grants do.
       if (ps.acquireChess(id, { source: 'ascension-lottery' })) reward.ids.push(id);
     }
     const bondName = m.gd.bond(reward.bondId)?.name || reward.bondId || t('盟约');
     message = msg('{bondName}盟约干员：{1}', { bondName: dn(bondName),
       1: reward.ids.length ? reward.ids.map((id) => dn(m.gd.chess(id).name)) : dn('整备区已满，未能领取') });
-    notice = msg('超限模拟 · 第 4 回合抽奖：{bondName}盟约干员：{1}', message.params);
+    notice = msg('超限模拟 · 第 5 回合抽奖：{bondName}盟约干员：{1}', message.params);
   } else {
     const legendary = kind === 'legendary';
     const tierWeights = legendary ? LOTTERY_LEGENDARY_WEIGHTS : LOTTERY_RELIC_WEIGHTS;
     for (let i = 0; i < (legendary ? 1 : 3); i++) {
-      const r = pickRelic(4, ps.relics, rng, { multiplayer: !m.isSolo, tierWeights,
+      const r = pickRelic(5, ps.relics, rng, { multiplayer: !m.isSolo, tierWeights,
         hasScratchTicket: ps.scratchTickets.length > 0, bonds: ps.bonds, excludeIds: reward.ids }) ?? getRelic('relic_014');
-      if (r && grantRelic(ps, r.id, { round: 4, battleRound: 4 })) reward.ids.push(r.id);
+      if (r && grantRelic(ps, r.id, { round: 5, battleRound: 5 })) reward.ids.push(r.id);
     }
     const params = { 0: reward.ids.length ? reward.ids.map((id) => dn(getRelic(id).name)) : dn('可用收藏品已全部持有') };
     message = legendary ? msg('收藏品补给（优先传说）：{0}', params) : msg('收藏品：{0}', params);
-    notice = legendary ? msg('超限模拟 · 第 4 回合抽奖：收藏品补给（优先传说）：{0}', params)
-      : msg('超限模拟 · 第 4 回合抽奖：收藏品：{0}', params);
+    notice = legendary ? msg('超限模拟 · 第 5 回合抽奖：收藏品补给（优先传说）：{0}', params)
+      : msg('超限模拟 · 第 5 回合抽奖：收藏品：{0}', params);
   }
   Object.assign(reward, wireMessage(message));
   ps.dirty();

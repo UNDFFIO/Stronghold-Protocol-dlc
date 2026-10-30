@@ -22,7 +22,7 @@ function PrizeIcon({ kind }) {
 function prizeLabel(kind) {
   switch (kind) {
     case 'coins': return t('15 资金');
-    case 'operators': return t('2 名盟约干员');
+    case 'operators': return t('3 名盟约干员');
     case 'relics': return t('3 件随机收藏品');
     case 'legendary': return t('收藏品补给（优先传说）');
     default: return '';

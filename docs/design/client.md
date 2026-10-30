@@ -7,9 +7,9 @@ with the host, difficulty, occupied player/spectator seats and waiting/running s
 subscriptions and supports loading, empty, offline and retry states. Join is disabled for a full or running room;
 spectate is disabled only when spectator seats are full. Password rooms open a masked password dialog for either
 action; private codes and invite links use the same dialog after the server requests a password.
-The co-op waiting room's bottom-right 房间设置 opens the shared modal UI: public/private toggle, masked password
-replacement and explicit removal. Only the host can save; teammates and spectators see the access state read-only.
-Cancel/Escape discard unsaved changes. Existing global 设置 remains in the top bar. All text uses the language packs;
+The co-op waiting room's existing 同盟设置 contains the public/private toggle, masked password replacement and
+explicit removal. Host changes apply immediately (password replacement on Enter or blur); teammates and spectators
+see the access state read-only. There is no separate access-settings button, modal or save action. Existing global 设置 remains in the top bar. All text uses the language packs;
 the hall and bottom-right controls adapt to small screens. The public list is the last section, below the mode,
 difficulty, code-entry and creation controls. The setup and hall each fill at least the available scrollport height;
 native `scroll-snap-type: y proximity` gently settles near either section's start. Continued downward scrolling reaches
@@ -960,9 +960,9 @@ The official HUD has neither number (the maintainer's decisions of 2026-10-13 an
 read once: the merged switch is on when either old key was the boolean `true`; a stored boolean `ammoEnergyCount`
 wins, and the old keys are not written back. [ASSUMED] that precedence, so turning the merged switch off stays off.
 
-### DLC: fourth-round lottery presentation
+### DLC: fifth-round lottery presentation
 
-The Ascension round-four result opens under the title 「超限补给」 with three vertical reels. They decelerate and stop
+The Ascension round-five result opens under the title 「超限补给」 with three vertical reels. They decelerate and stop
 from left to right over 2.5 seconds. Coins and operators show matching category symbols. The three-collectible reward
 shows each of the three actual awarded items with its original art, localized name and tier. The 「收藏品补给（优先传说）」 reward
 repeats the same awarded Legendary item on all three reels, with its art and name, but grants / applies only one item.
@@ -1161,7 +1161,7 @@ is presentation inferred from the available animation roles; simulation facing a
 
 ### DLC 与 0.3.2 界面集成
 
-公开房间列表位于「选择同盟方式」的第二个滚动区，首屏保留创建与密钥加入；列表支持密码加入、观战及测试房确认。房间底部难度胶囊旁的公开性／密码设置对房主可编辑、其他人只读。超限轮盘适配新版单人简报和同盟座位下方，等级、规则与只读同步保持原义。
+公开房间列表位于「选择同盟方式」的第二个滚动区，首屏保留创建与密钥加入；列表支持密码加入、观战及测试房确认。房间底部的「同盟设置」统一提供难度、版本、AI、公开性和密码选项，不再另设房间设置入口；公开性／密码对房主可编辑、其他人只读，开关即时生效，密码在回车或失焦时提交，无保存按钮。菜单超出可用高度时内部滚动。超限轮盘适配新版单人简报和同盟座位下方，等级、规则与只读同步保持原义。
 
 ### DLC collectible copy and disclosure
 

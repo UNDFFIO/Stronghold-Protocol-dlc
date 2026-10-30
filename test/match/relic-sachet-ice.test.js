@@ -56,7 +56,7 @@ test('天师锦囊：超限补给使用相同盟约限制', () => {
     const h = makeMatch({ mode: 'solo', difficulty: 'ASCENSION', seed: 7, fake: true }).start();
     try {
       const ps = h.ps('p_0');
-      h.toPrep(4);
+      h.toPrep(5);
       ps.ascensionLottery = null;
       exhaust(ps, 'relic_132');
       ps.bonds.yanShip = { active, count: active ? 3 : 0, tier: active ? 1 : 0, layers: 0 };

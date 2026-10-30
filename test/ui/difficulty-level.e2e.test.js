@@ -57,7 +57,7 @@ test('lobby shows tactical tips for ascension; room level controls render, synch
     await c.page.focus('.level-wheel'); await c.page.keyboard.press('Home');
     await sleep(300);
     assert.equal(await currentLevel(c), 0);
-    assert.match(await c.page.$eval('.level-wheel__row.is-selected', el => el.textContent), /无附加协议.*第4回合开始时额外获得1次【超限补给】/s);
+    assert.match(await c.page.$eval('.level-wheel__row.is-selected', el => el.textContent), /无附加协议.*第5回合开始时额外获得1次【超限补给】/s);
     await c.page.hover('.level-wheel__row.is-selected .level-rule__help');
     await c.page.waitForSelector('.tooltip.is-shown');
     assert.match(await c.page.$eval('.tooltip', el => el.textContent), /等概率.*15资金.*3件收藏品.*1件优先传说品质的藏品.*热水壶补足/s);

@@ -29,11 +29,11 @@ test('DLC lottery, collectible and self-revival messages localize after Chinese 
       try {
         h.toPrep();
         const ps = h.ps('p_0');
-        h.m.round = 4;
+        h.m.round = 5;
         const reward = drawAscensionLottery(ps);
         assert.equal(reward.kind, kind);
         const notice = h.allTo('p_0', 'm.toast').at(-1);
-        assert.equal(notice.text, `超限模拟 · 第 4 回合抽奖：${reward.text}`, 'older clients retain the Chinese result');
+        assert.equal(notice.text, `超限模拟 · 第 5 回合抽奖：${reward.text}`, 'older clients retain the Chinese result');
         const view = ps.privateView().ascensionLottery;
         if (view.params?.[0]?.length) {
           view.params[0][0].dn = 'forged';
@@ -42,7 +42,7 @@ test('DLC lottery, collectible and self-revival messages localize after Chinese 
         setLang(code);
         await data.setLocale(code);
         const local = translateWire(reward);
-        assert.ok(translateWire(notice).startsWith(pack['超限模拟 · 第 4 回合抽奖']), `${code}/${kind}`);
+        assert.ok(translateWire(notice).startsWith(pack['超限模拟 · 第 5 回合抽奖']), `${code}/${kind}`);
         assert.ok(!/\{(?:0|1|bondName)\}/.test(local), `${code}/${kind}: ${local}`);
         if (kind === 'coins') assert.equal(local, pack['15 资金']);
         if (kind === 'relics' || kind === 'legendary') for (const id of reward.ids) assert.ok(local.includes(pack[getRelic(id).name]), `${code}: ${local}`);
