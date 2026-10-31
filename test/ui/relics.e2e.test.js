@@ -28,6 +28,79 @@ async function closed(page) {
   await page.waitForSelector('.relic-panel', { hidden: true });
 }
 
+test('collapse: engine reuses illegal highlights and retains them after selection clears', {
+  skip: !ENABLED && 'set SP_E2E=1 and provide system Chrome', timeout: 120000,
+}, async () => {
+  const page = await browser.newPage();
+  try {
+    await page.goto(`${base}/dev/game-mock.html?shot=1&phase=PREP&render=engine`, { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('canvas');
+    await page.evaluate(async () => {
+      const { TileField } = await import('/js/render/tiles.js');
+      const original = TileField.prototype.setHighlights;
+      TileField.prototype.setHighlights = function (...args) {
+        const result = original.apply(this, args);
+        if (args[2] === 'collapse') {
+          globalThis.__collapseField = this;
+          globalThis.__collapseStyle = args[1];
+        }
+        return result;
+      };
+      globalThis.__MOCK__.mutate((s) => {
+        s.priv.relics = [{ id: 'relic_239', round: 1 }];
+        s.priv.collapseTiles = [[9, 3], [10, 4], [11, 5], [12, 6]];
+      });
+    });
+    await page.waitForFunction(() => globalThis.__collapseField?.highlights.get('collapse')?.tiles.length === 4);
+    assert.equal(await page.evaluate(() => globalThis.__collapseStyle), 'illegal');
+    // A normal screen selection clear must not clear the persistent restriction group.
+    await page.mouse.click(400, 350);
+    assert.equal(await page.evaluate(() => globalThis.__collapseField.highlights.get('collapse')?.tiles.length), 4);
+    for (const selector of ['.tbanner', '.mpop--phase', '.pbanner--overlay']) await page.waitForSelector(selector, { hidden: true });
+    await page.screenshot({ path: `${OUT}/collapse-seed-board.png` });
+    await page.evaluate(() => globalThis.__MOCK__.mutate((s) => { s.priv.collapseTiles = []; }));
+    await page.waitForFunction(() => !globalThis.__collapseField.highlights.has('collapse'));
+  } finally { await page.close(); }
+});
+
+test('collapse: official icon, copy and persistent illegal tiles in prep', {
+  skip: !ENABLED && 'set SP_E2E=1 and provide system Chrome', timeout: 120000,
+}, async () => {
+  const page = await browser.newPage();
+  const errors = []; page.on('pageerror', (e) => errors.push(e.message));
+  try {
+    await page.goto(`${base}/dev/game-mock.html?shot=1&phase=PREP&render=fallback`, { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('.relic-icons__heading');
+    await page.evaluate(() => globalThis.__MOCK__.mutate((s) => {
+      s.priv.relics = [{ id: 'relic_239', round: 1 }];
+      s.priv.collapseTiles = [[9, 3], [10, 4], [11, 5], [12, 6]];
+    }));
+    await page.waitForFunction(() => document.querySelectorAll('.ff-tile.is-illegal').length === 4);
+    await page.waitForFunction(() => {
+      const img = document.querySelector('.effect--relic[data-relic-id="relic_239"] img');
+      return img?.complete && img.naturalWidth > 0 && img.src.includes('/official/');
+    });
+    await page.$eval('.relic-icons__heading', (el) => el.click());
+    await page.waitForSelector('.relic-panel');
+    const copy = await page.$eval('.relic-panel', (el) => el.textContent);
+    assert.match(copy, /坍缩之种/); assert.match(copy, /Boss战回合不生效/); assert.match(copy, /负面/);
+    for (const selector of ['.tbanner', '.mpop--phase', '.pbanner--overlay']) await page.waitForSelector(selector, { hidden: true });
+    await page.screenshot({ path: `${OUT}/collapse-seed-collection.png` });
+    const png = await page.evaluate(async () => {
+      const manifest = await (await fetch('/data/assets.json')).json();
+      const res = await fetch(manifest.relics.relic_239);
+      const bitmap = await createImageBitmap(await res.blob());
+      const canvas = document.createElement('canvas'); canvas.width = bitmap.width; canvas.height = bitmap.height;
+      const ctx = canvas.getContext('2d'); ctx.drawImage(bitmap, 0, 0);
+      return { status: res.status, width: bitmap.width, alpha: [...ctx.getImageData(0, 0, canvas.width, canvas.height).data].some((v, i) => i % 4 === 3 && v === 0) };
+    });
+    assert.equal(png.status, 200); assert.ok(png.width > 0); assert.equal(png.alpha, true);
+    await page.evaluate(() => globalThis.__MOCK__.mutate((s) => { s.priv.collapseTiles = []; }));
+    await page.waitForFunction(() => document.querySelectorAll('.ff-tile.is-illegal').length === 0);
+    assert.deepEqual(errors, []);
+  } finally { await page.close(); }
+});
+
 test('four new official curses: collection, journal-ready copy and transparent PNG decoding', {
   skip: !ENABLED && 'set SP_E2E=1 and provide system Chrome', timeout: 120000,
 }, async () => {
@@ -56,6 +129,7 @@ test('four new official curses: collection, journal-ready copy and transparent P
     // The holder sees reversed text; decode each displayed run to verify its full catalogue copy.
     for (const name of ['无垠赠礼', '路网', '追忆仪', '“小磨唧”']) assert.ok(text.includes(name));
     assert.match(text, /负面/); assert.match(text, /50%/); assert.match(text, /20层/); assert.match(text, /7件/);
+    assert.match(text, /进入休整期时恢复扣除的层数/);
     for (const selector of ['.tbanner', '.mpop--phase', '.pbanner--overlay']) await page.waitForSelector(selector, { hidden: true });
     await page.screenshot({ path: `${OUT}/official-four-new-curses.png` });
     for (const id of ids) {

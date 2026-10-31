@@ -21,7 +21,7 @@ test('图鉴跨局保存本人领取的藏品，候选、队友和观战藏品�
     { playerId: 'me', relics: [{ id: 'relic_002' }] },
   ] } });
   assert.deepEqual(target.get().ids, ['relic_003', 'relic_002']);
-  assert.deepEqual(saves.at(-1), ['relicJournal', { v: 1, ids: target.get().ids }]);
+  assert.deepEqual(saves.at(-1), ['relicJournal', { v: 2, ids: target.get().ids }]);
   stop();
   source.patch('match', { private: { relics: [{ id: 'relic_001' }] } });
   assert.equal(saves.length, 2);

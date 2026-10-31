@@ -5,7 +5,7 @@
 // RESULT.
 // Installed on Match.prototype by server/match/Match.js (a method container: never instantiated; `this` is the match).
 
-import { settleRelics, activeReverseLp, consumeRelicLpLoss, consumeRelicShield, unusedRevival, consumeRevival, settleRelicLayerLosses, grantNegativeRelics } from '../relics.js';
+import { settleRelics, activeReverseLp, consumeRelicLpLoss, consumeRelicShield, unusedRevival, consumeRevival, grantNegativeRelics } from '../relics.js';
 import { damageRanking } from '../../../shared/damageRanking.js';
 import { settleDeathNote, deathNoteKeys } from '../deathNote.js';
 import { withRoadEnemies } from '../relicRoad.js';
@@ -571,7 +571,6 @@ export class MatchBoss {
           this.lastDamageResults.set(pid, damageRanking(pp.unitStats || []));
         }
         if (pp && ps) {
-          settleRelicLayerLosses(ps, { ...pp, synthetic: res.synthetic });
           settleDeathNote(ps, { ...pp, synthetic: res.synthetic }, 'boss', Math.max(0, ps.lpAtFinal - ps.lp));
           ps.stats.dmgDealt += Number(pp.damageDealt) || 0;
           ps.stats.kills += Number(pp.killed) || 0;

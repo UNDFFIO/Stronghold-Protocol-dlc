@@ -19,7 +19,7 @@ export const CUSTOM_RELIC_ICON_FILES = Object.freeze({
   relic_236: 'relic_236.png',
   relic_237: 'relic_237.png',
   relic_238: 'relic_238.png',
-  relic_239: 'relic_239.png',
+  relic_243: 'relic_239.png',
   relic_240: 'relic_240.png',
 });
 
@@ -35,6 +35,8 @@ export async function prepareCustomRelicIcons(assetsRoot) {
 }
 
 export const RELIC_ICON_FILES = Object.freeze({
+  "relic_239": "rogue_3_relic_curse_1.png", // 坍缩之种，银凇止境 No.239，PRTS
+
   "relic_227": "rogue_3_relic_boss_2.png", // 无垠赠礼，银凇止境 No.227，PRTS 2026-10-28
   "relic_228": "rogue_3_relic_boss_2b.png", // 路网，银凇止境 No.228
   "relic_219": "rogue_5_relic_final_7.png", // 追忆仪，界园志异 No.219
@@ -99,7 +101,7 @@ export const RELIC_ICON_FILES = Object.freeze({
 
 export function relicIconTemplate() {
   return Object.fromEntries([...Object.entries(RELIC_ICON_FILES).map(([id, file]) => [id, { alts: [{
-    rel: `relics/${id}.png`, kind: 'png',
+    rel: id === 'relic_239' ? 'relics/official/relic_239.png' : `relics/${id}.png`, kind: 'png',
     urls: [`https://torappu.prts.wiki/assets/roguelike_topic_itempic/${file}`],
   }] }]), ...Object.keys(CUSTOM_RELIC_ICON_FILES).map((id) => [id, { alts: [{
     rel: `relics/${id}.png`, kind: 'png', urls: [],

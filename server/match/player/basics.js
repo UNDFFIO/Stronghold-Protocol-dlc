@@ -7,6 +7,7 @@
 // Installed on PlayerState.prototype by server/match/PlayerState.js (a method container: never instantiated; `this` is
 // the player state).
 
+import { activeCollapseTiles } from '../relicCollapse.js';
 import { PHASE } from '../../../shared/constants.js';
 import { relicDeployPenalty } from '../../../shared/relics.js';
 import { msg, dn } from '../../../shared/i18n.js';
@@ -253,6 +254,11 @@ export class PlayerBasics {
    * A change of that field (the boss round begins, a re-pairing) re-checks the board's legality like a terrain change.
    */
   deployMap() {
+    const collapseKey = activeCollapseTiles(this).join(';');
+    if (this._collapseKey !== collapseKey) {
+      this._collapseKey = collapseKey;
+      this.invalidateDeployMap();
+    }
     const field = typeof this.m.deployFieldOf === 'function' ? this.m.deployFieldOf(this) : 'normal';
     if (this._deployMap && this._deployField !== undefined && this._deployField !== field) {
       this._deployMap = null;

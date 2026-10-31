@@ -493,3 +493,6 @@ and clear timers. No shrinking-electorate auto-approval. `aiTakeoverRound` is op
 player rows; local history retains it. [ASSUMED] inherited seat totals do not grant personal awards or aggregates.
 
 The internal welcome preserves the socket’s negotiated delta version and clears its public baseline for a full resync. The inherited seat’s pending pool/delegated rehearsal is cancelled; other seats continue.
+
+
+DLC 坍缩之种：`m.private.collapseTiles` 为当前回合持有者禁用地块的 `[row, col][]`（棋盘坐标）。进入休整期前生成；Boss回合或不持有时为空数组。客户端将这些格合并为不可部署，服务端独立校验，重连沿用同一列表。

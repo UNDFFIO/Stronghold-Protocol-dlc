@@ -21,7 +21,8 @@ function installGrinder(battle, byPlayer) {
   if (grinderInstalled.has(battle)) return;
   grinderInstalled.add(battle);
   let nextAt = 1;
-  // [ASSUMED] At each whole combat second choose one active, nonempty bond; persist actual loss, floored at zero.
+  // [ASSUMED] At each whole combat second choose one active, nonempty bond, floored at zero.
+  // Temporary losses carry into Unite, separately from the gains that persist at settlement.
   battle.on('tick', () => {
     if (battle.time + 1e-9 < nextAt) return;
     nextAt += 1;
@@ -34,8 +35,9 @@ function installGrinder(battle, byPlayer) {
       const id = candidates[Math.floor(battle.rng() * candidates.length)];
       const lost = Math.min(amount, ps.bonds[id].layers);
       ps.bonds[id].layers -= lost;
-      const deltas = battle._pp(pid).layerGains;
-      deltas[id] = (deltas[id] || 0) - lost;
+      const pp = battle._pp(pid);
+      const losses = pp.temporaryLayerLosses ||= {};
+      losses[id] = (losses[id] || 0) + lost;
       battle._ev(['layer', pid, id, -lost]);
     }
   });

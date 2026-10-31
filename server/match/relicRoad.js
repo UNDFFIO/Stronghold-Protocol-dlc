@@ -1,7 +1,7 @@
 import { createRng, deriveSeed } from '../sim/rng.js';
 import { isFlyKey, routeByMotion, gateOf } from './waves.js';
 
-/** Select one extra enemy outside every original match faction (including SPECIAL) and keep it for this match.
+/** Select one extra enemy outside every original match faction (including SPECIAL) and reselect each round.
  * The independent seed makes scouting/rehearsal/reconstruction pure, with no shop or wave RNG consumption. */
 export function roadEnemyKey(m, ps) {
   const originalTypes = new Set([...m.factions, 'SPECIAL', m.gd.factions.generation?.fillType].filter(Boolean));
@@ -11,7 +11,7 @@ export function roadEnemyKey(m, ps) {
   const candidates = [...new Set(entries.filter((e) => !originalTypes.has(e.type)).map((e) => e.key))]
     .filter((key) => key !== 'enemy_9012_acloon' && !original.has(key) && !m.gd.inactiveEnemies.has(key) && m.gd.enemy(key)).sort();
   if (!candidates.length) return null;
-  const rng = createRng(deriveSeed(m.seed, `relic-road:${ps.seat}`));
+  const rng = createRng(deriveSeed(m.seed, `relic-road:${ps.seat}:${m.round}`));
   return candidates[rng.int(candidates.length)];
 }
 

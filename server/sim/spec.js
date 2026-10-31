@@ -375,6 +375,9 @@ export function resultDigest(result) {
       (Array.isArray(p.leaked) ? p.leaked : []).map((l) => `${l && l.enemyKey}|${l && l.counted === false ? 0 : 1}|${l && l.uniteRuntime ? 'x' : ''}|${(l && l.sourcePlayerId) || ''}|${modsKey(l && l.mods)}`).sort(),
       Math.round(Number(p.damageDealt) || 0), Math.round(Number(p.bossDamage) || 0),
       (Array.isArray(p.unitsEnd) ? p.unitsEnd : []).map((u) => [u && u.uid, r4(u && u.hpPct), r4(u && u.sp), !!(u && u.alive)]),
+      // Only cursed battles carry temporary losses; ordinary result hashes retain their existing shape.
+      ...(Object.keys(p.temporaryLayerLosses || {}).length
+        ? [Object.keys(p.temporaryLayerLosses).sort().map((k) => [k, r4(p.temporaryLayerLosses[k])])] : []),
     ];
   });
   const json = JSON.stringify([res.reason ?? null, r4(res.time), res.killed | 0, res.total | 0, players]);
@@ -416,6 +419,8 @@ export function compactResult(res) {
     const p = r.perPlayer[pid] || {};
     const layerGains = {};
     for (const [k, v] of Object.entries(p.layerGains || {}).slice(0, 40)) if (isKey(k) && fnum(v) !== 0) layerGains[k] = Math.max(-1e4, Math.min(1e4, fnum(v)));
+    const temporaryLayerLosses = {};
+    for (const [k, v] of Object.entries(p.temporaryLayerLosses || {}).slice(0, 40)) if (isKey(k) && fnum(v) > 0) temporaryLayerLosses[k] = fnum(v);
     const total = Math.max(0, Math.trunc(fnum(p.total)));
     perPlayer[pid] = {
       // `killed` keeps the sim's reading (every counted knock-out, runtime splits / summons included) and is deliberately
@@ -432,6 +437,7 @@ export function compactResult(res) {
       }),
       perfect: !!p.perfect,
       layerGains,
+      ...(Object.keys(temporaryLayerLosses).length ? { temporaryLayerLosses } : {}),
       coins: Math.max(0, fnum(p.coins)),
       damageDealt: Math.max(0, Math.round(fnum(p.damageDealt))),
       bossDamage: Math.max(0, Math.round(fnum(p.bossDamage))),

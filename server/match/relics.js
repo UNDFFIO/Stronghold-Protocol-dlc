@@ -114,16 +114,6 @@ function loseRelicReserves(ps, acquiredId, round) {
   ps.m.markPublic();
 }
 
-/** Non-normal battles disable gains but still persist the curse's signed layer deltas. */
-export function settleRelicLayerLosses(ps, result) {
-  if (!result || result.synthetic || !ps.relics.some((r) => getRelic(r.id)?.bondLayerLossPerSecond)) return;
-  for (const [id, n] of Object.entries(result.layerGains || {})) {
-    if (!ps.gd.bond(id) || !Number.isFinite(n) || n >= 0) continue;
-    ps.layers[id] = Math.max(0, (ps.layers[id] || 0) + Math.trunc(n));
-  }
-  ps.recompute();
-}
-
 export function autoSelectRelic(ps) {
   if (!ps.relicOffer) return;
   let idx = 0;

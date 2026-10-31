@@ -8,7 +8,7 @@ const TIER_ROWS = [
   [8, 7, [5400, 2700, 1450, 390, 55, 5]],
   [10, 7, [5200, 2700, 1600, 430, 64, 6]],
 ];
-export const SCRATCH_TIERS = Object.freeze(TIER_ROWS.map(([price, unlockRound, weights], i) => Object.freeze({ tier: i + 1, relicId: `relic_${235 + i}`,
+export const SCRATCH_TIERS = Object.freeze(TIER_ROWS.map(([price, unlockRound, weights], i) => Object.freeze({ tier: i + 1, relicId: `relic_${i === 4 ? 243 : 235 + i}`,
   price, unlockRound, weights: Object.freeze(weights) })));
 
 export const scratchTier = (tier) => SCRATCH_TIERS.find((t) => t.tier === tier) ?? null;

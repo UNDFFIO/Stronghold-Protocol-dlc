@@ -145,7 +145,7 @@ test('scratch multiplayer ownership and automatic use on bot prep without buying
     const a = h.ps('p_0'), b = h.ps('p_1');
     grantRelic(a, 'relic_234'); grantRelic(a, 'relic_235');
     const id = a.scratchTickets[0].id;
-    grantRelic(a, 'relic_235'); grantRelic(a, 'relic_239');
+    grantRelic(a, 'relic_235'); grantRelic(a, 'relic_243');
     const tickets = structuredClone(a.scratchTickets), funds = a.funds;
     assert.ok(b.openScratch(id).error); assert.ok(b.claimScratch(id).error);
     assert.equal(b.privateView().scratch.tickets[0], undefined);

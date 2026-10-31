@@ -115,10 +115,10 @@ test('extra rounds reject Epic and Legendary acquisitions except Death Note whil
   // Establish existing high-tier ownership before entering; avoid a random reserve-loss curse in this fixture.
   grantRelic(p, 'relic_219');
   grantRelic(p, 'relic_234');
-  grantRelic(p, 'relic_239');
+  grantRelic(p, 'relic_243');
   accept(h);
   assert.ok(p.relics.some(r => r.id === 'relic_234'));
-  assert.ok(p.scratchTickets.some(ticket => ticket.relicId === 'relic_239'));
+  assert.ok(p.scratchTickets.some(ticket => ticket.relicId === 'relic_243'));
   for (const r of RELICS.filter(r => (r.tier === 4 || r.tier === 5) && r.id !== 'relic_241')) {
     assert.equal(grantRelic(p, r.id, { round: 1 }), null, r.id);
     p.relicOffer = { id: `forged:${r.id}`, round: h.m.round, options: [r.id] };
@@ -141,7 +141,7 @@ test('extra rounds reject Epic and Legendary acquisitions except Death Note whil
   assert.equal(p.funds, 100, 'blocked purchases never charge');
   assert.equal(p.scratchSeq, seq);
   assert.ok(p.buyScratch(3, seq).ok);
-  const held = p.scratchTickets.find(ticket => ticket.relicId === 'relic_239');
+  const held = p.scratchTickets.find(ticket => ticket.relicId === 'relic_243');
   assert.ok(p.openScratch(held.id).ok);
   assert.ok(p.claimScratch(held.id).ok, 'already-held high-tier tickets remain usable');
 });

@@ -167,10 +167,12 @@ export class MatchCombat {
         this.lastResults.set(pid, pp ? { ...pp, synthetic: !!res.synthetic,
           relicCompleted: !res.synthetic && (res.reason === 'cleared' || res.reason === 'timeout') }
           : { killed: 0, total: 0, leaked: [], perfect: true, synthetic: true, layerGains: {}, coins: 0, damageDealt: 0, unitsEnd: [], unitStats: [] });
-        // the views show the layers the battle reached until settle() makes them persistent (DESIGN §20.15)
+        // Keep the reached count visible through Unite; settle() persists gains and discards temporary losses.
         const ps = this.players.get(pid);
-        const gains = pp && pp.layerGains && typeof pp.layerGains === 'object' ? pp.layerGains : null;
-        if (ps && gains && Object.keys(gains).length) { ps.pendingLayerGains = { ...gains }; ps.dirty(); }
+        const gains = pp && pp.layerGains && typeof pp.layerGains === 'object' ? { ...pp.layerGains } : {};
+        // Carry the reached count into Unite; only ordinary gains become persistent at settlement.
+        for (const [id, n] of Object.entries(pp?.temporaryLayerLosses || {})) gains[id] = (gains[id] || 0) - n;
+        if (ps && Object.keys(gains).length) { ps.pendingLayerGains = gains; ps.dirty(); }
       }
     }
     for (const f of this.fields) f.live = false;

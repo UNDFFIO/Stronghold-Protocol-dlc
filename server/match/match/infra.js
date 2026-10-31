@@ -4,6 +4,7 @@
 // field and deploy map, and the guarded meta dispatch (dispatch, dispatchItem → effectsMeta.js EffectDispatcher).
 // Installed on Match.prototype by server/match/Match.js (a method container: never instantiated; `this` is the match).
 
+import { activeCollapseTiles } from '../relicCollapse.js';
 import { buildDeployMap } from '../board.js';
 
 export class MatchInfra {
@@ -140,7 +141,9 @@ export class MatchInfra {
    * Pure — no PlayerState cache is touched (the read-only checker invariants.js uses it; PlayerState.deployMap caches).
    */
   deployMapFor(ps, field = this.deployFieldOf(ps)) {
-    return buildDeployMap(this.stage, { deviceOverrides: ps.deviceOverrides, tileOverrides: ps.tileOverrides, field });
+    const map = buildDeployMap(this.stage, { deviceOverrides: ps.deviceOverrides, tileOverrides: ps.tileOverrides, field });
+    if (field === 'normal') for (const key of activeCollapseTiles(ps)) map.delete(key);
+    return map;
   }
 
   dispatch(ps, hook, ev = {}, opts = {}) {

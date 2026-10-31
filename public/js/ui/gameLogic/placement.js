@@ -78,6 +78,7 @@ export function stageOverrides(priv, getEffect = () => null) {
   if (isObj(priv?.deviceOverrides) || isObj(priv?.tileOverrides)) {
     for (const [k, v] of Object.entries(isObj(priv.deviceOverrides) ? priv.deviceOverrides : {})) deviceOverrides[k] = !!v;
     for (const [k, v] of Object.entries(isObj(priv.tileOverrides) ? priv.tileOverrides : {})) if (typeof v === 'string') tileOverrides[k] = v;
+    for (const [r, c] of priv?.collapseTiles || []) tileOverrides[tileKey(r, c)] = 'none';
     return { deviceOverrides, tileOverrides };
   }
   for (const e of Array.isArray(priv?.effects) ? priv.effects : []) {
@@ -91,6 +92,7 @@ export function stageOverrides(priv, getEffect = () => null) {
       for (const [alias, v] of Object.entries(b.bb)) if (alias.includes('#')) deviceOverrides[alias] = Number(v) !== 0;
     }
   }
+  for (const [r, c] of priv?.collapseTiles || []) tileOverrides[tileKey(r, c)] = 'none';
   return { deviceOverrides, tileOverrides };
 }
 

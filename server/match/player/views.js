@@ -3,6 +3,7 @@
 // Installed on PlayerState.prototype by server/match/PlayerState.js (a method container: never instantiated; `this` is
 // the player state).
 
+import { activeCollapseTiles } from '../relicCollapse.js';
 import { relicsView, relicOfferView, activeRelicShield, activeReverseLp } from '../relics.js';
 import { deathNoteView } from '../deathNote.js';
 import { ascensionLotteryView } from '../ascensionLottery.js';
@@ -110,6 +111,7 @@ export class PlayerViews {
       bonds: bondList(this.gd, this.bondsView(), { full: true, off: offBondCounts(this.gd, this) }),
       effects: this.effectsView(),
       relics: relicsView(this),
+      collapseTiles: activeCollapseTiles(this).map((key) => key.split(',').map(Number)),
       relicReward: this.relicReward ? { ...this.relicReward } : null,
       relicOffer: relicOfferView(this),
       deathNote: deathNoteView(this),

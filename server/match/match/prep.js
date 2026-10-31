@@ -3,12 +3,14 @@
 // (onPrepEnd, PlayerState.endPrep, then COMBAT or the Final Assault / Hidden Core).
 // Installed on Match.prototype by server/match/Match.js (a method container: never instantiated; `this` is the match).
 
+import { prepareCollapseTiles } from '../relicCollapse.js';
 import { PHASE } from '../../../shared/constants.js';
 import { testSlice } from '../testTrace.js';
 import { DELAYS } from './common.js';
 
 export class MatchPrep {
   enterPrep() {
+    for (const ps of this.alivePlayers()) prepareCollapseTiles(ps);
     this.phase = PHASE.PREP;
     this.sp = null;
     const alive = this.alivePlayers();

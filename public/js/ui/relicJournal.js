@@ -9,7 +9,12 @@ export function journalIds(records) {
   return RELICS.filter((r) => ids.has(r.id)).map((r) => r.id);
 }
 
-export const relicJournalStore = createStore({ ids: journalIds(loadPref(PREF, null)?.ids) });
+export function migrateJournal(saved) {
+  return journalIds((Array.isArray(saved?.ids) ? saved.ids : []).map((id) => saved?.v !== 2 && id === 'relic_239' ? 'relic_243' : id));
+}
+const savedJournal = loadPref(PREF, null);
+export const relicJournalStore = createStore({ ids: migrateJournal(savedJournal) });
+if (savedJournal && savedJournal.v !== 2) savePref(PREF, { v: 2, ids: relicJournalStore.get().ids });
 
 /** 持续收录本人实际持有的藏品，跨局保留；待选奖励和观战阵地不作为获得记录。 */
 export function installRelicJournal({ source = store, target = relicJournalStore, persist = savePref } = {}) {
@@ -20,7 +25,7 @@ export function installRelicJournal({ source = store, target = relicJournalStore
     const prev = target.get().ids;
     if (!records.some((r) => getRelic(r?.id) && !prev.includes(r.id))) return;
     const ids = journalIds([...prev, ...records]);
-    persist(PREF, { v: 1, ids });
+    persist(PREF, { v: 2, ids });
     target.set({ ids });
   };
   collect(source.get());

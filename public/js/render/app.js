@@ -853,6 +853,7 @@ export async function createFieldView(host, options = {}) {
       });
     };
     const src = ps && typeof ps === 'object' ? ps : {};
+    drawHighlight(src.collapseTiles || [], 'illegal', 'collapse');
     standInList = Array.isArray(src.standIns) ? src.standIns.filter((x) => typeof x === 'string') : [];
     diyPicks = src.diy && typeof src.diy === 'object' ? src.diy : {};
     ownPen = Array.isArray(src.nextEnemies) ? src.nextEnemies : null;
@@ -1273,6 +1274,7 @@ export async function createFieldView(host, options = {}) {
   function clearHl(group) {
     if (group) hlReq.delete(group); else hlReq.clear();
     tiles.clearHighlights(group);
+    if (mode === 'prep') drawHighlight(lastPrep?.ps?.collapseTiles || [], 'illegal', 'collapse');
     syncLeaderHits();
   }
 
@@ -1525,6 +1527,7 @@ export async function createFieldView(host, options = {}) {
     clearHl();
     renderT0Battle = null;
     mode = 'battle';
+    tiles.clearHighlights('collapse');
     const rect = meta.rect ? normRect(meta.rect) : (meta.kind === 'boss' || meta.kind === 'hidden' ? { ...GEO.BOSS_RECT } : meta.kind === 'unite' ? { ...GEO.UNITE_RECT } : { ...GEO.NORMAL_RECT });
     // prep: true = a read-only scouting board (a teammate's lineup during prep): prep-style pieces, no bars
     battleMeta = { fieldId: meta.fieldId ?? null, kind: meta.kind || 'normal', rect, stageId: meta.stageId ?? null, prep: meta.prep === true };

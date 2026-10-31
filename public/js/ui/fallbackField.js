@@ -264,6 +264,7 @@ export function createFallbackView(host, opts = {}) {
   }
 
   function dropState(target) {
+    if (st.mode === 'prep' && target?.area === 'board' && st.priv?.collapseTiles?.some(([r, c]) => r === target.row && c === target.col)) return 'illegal';
     if (!st.drag?.moved || !target || typeof st.canPlace !== 'function') return null;
     try { return st.canPlace(st.drag.uid, target) ? 'legal' : 'illegal'; } catch { return null; }
   }
@@ -348,6 +349,7 @@ export function createFallbackView(host, opts = {}) {
         const k = tileKey(row, col);
         let hl = st.highlight.get(k);
         for (const g of st.hlGroups.values()) if (g.tiles.has(k)) hl = g.name;
+        if (st.mode === 'prep' && st.priv?.collapseTiles?.some(([r, c]) => r === row && c === col)) hl = 'illegal';
         const hov = st.hoverTarget?.area === 'board' && st.hoverTarget.row === row && st.hoverTarget.col === col ? dropState(st.hoverTarget) : null;
         tiles.push(html`<div key=${k} class=${cx('ff-tile', `ff-tile--${tileClass(row, col)}`, hl && `is-${hl}`, hov && `is-hover-${hov}`)}
           data-drop="board" data-row=${row} data-col=${col}
