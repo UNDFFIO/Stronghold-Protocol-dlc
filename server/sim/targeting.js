@@ -88,8 +88,8 @@ export function canTargetEnemy(attacker, e, profile) {
   if (f.stealth && enemyStealthed(e)) return false;
   // `dollHitsFly`: a 傀儡师 whose <替身> state hits air (风丸 — PRTS 特性备注 「<替身>状态下可对空，由技能产生的召唤物不可对空」,
   // GitHub community report of 2026-10-15) targets flyers while substituted (Unit.trait.doll, professions.js installDollkeeper)
-  if (e.isFlying && !(profile && (profile.canHitFly || (profile.dollHitsFly && attacker && attacker.trait && attacker.trait.doll)))) return false;
-  if (profile && profile.groundOnly && e.isFlying) return false;
+  if (e.isFlying && !attacker?.mem?.egirHitsAir && !(profile && (profile.canHitFly || (profile.dollHitsFly && attacker && attacker.trait && attacker.trait.doll)))) return false;
+  if (profile && profile.groundOnly && e.isFlying && !attacker?.mem?.egirHitsAir) return false;
   if (profile && typeof profile.skipEnemy === 'function' && profile.skipEnemy(e)) return false;
   return true;
 }

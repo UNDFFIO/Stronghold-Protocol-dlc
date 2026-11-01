@@ -3,6 +3,21 @@ import { issueScratchTicket } from './scratchTickets.js';
 import { normalizeDifficultyLevel } from '../../shared/difficulty.js';
 import { createRng, deriveSeed } from '../sim/rng.js';
 import { msg, dn } from '../../shared/i18n.js';
+import { computeBonds } from './bondsMeta.js';
+
+/** Maintainer adaptation: settlement only, independent of the ordinary low-loss reward. */
+export function settleEgirRelic(ps, result) {
+  if (!ps.alive || ps.left || ps.lp <= 0 || !result || result.synthetic
+    || typeof result.perfect !== 'boolean' || !Array.isArray(result.leaked)) return null;
+  const bond = computeBonds(ps.gd, ps).egirShip;
+  if (!bond?.active) return null;
+  const stage = bond.layers >= 600 ? 3 : bond.layers >= 250 ? 2 : bond.layers >= 100 ? 1 : 0;
+  const owned = Math.max(0, ...ps.relics.map((r) => getRelic(r.id)?.egirStage || 0));
+  if (stage <= owned) return null;
+  const reward = grantRelic(ps, `relic_${243 + stage}`, { egirEvolution: true });
+  if (reward) ps.relics = ps.relics.filter((r) => !getRelic(r.id)?.egirStage || r.id === reward.id);
+  return reward;
+}
 
 /** Process a completed battle once using the actual LP charged at settlement. */
 export function settleRelics(ps, result, { completed = false, lpLoss = 0 } = {}) {
@@ -12,12 +27,13 @@ export function settleRelics(ps, result, { completed = false, lpLoss = 0 } = {})
     || !Number.isFinite(lpLoss)
     || ps.relicSettledRounds.has(round)) return null;
   ps.relicSettledRounds.add(round);
+  settleEgirRelic(ps, result);
   if (lpLoss > 5 || ps.relicOffer) return null;
   const rng = createRng(deriveSeed(ps.m.seed, `relic-choice:${ps.seat}:${round}`));
   const leaked = result.leaked.some((l) => l && l.counted !== false);
   const count = 3 + [...new Set(ps.relics.map((r) => r.id))].reduce((sum, id) => sum + (getRelic(id)?.battleChoiceBonus || 0), 0);
   const options = pickRelicChoices(round, ps.relics, rng, { count, leaked, multiplayer: !ps.m.isSolo,
-    hasScratchTicket: ps.scratchTickets.length > 0, bonds: ps.bonds, extraRound: ps.m.gd.endlessRound(round) });
+    hasScratchTicket: ps.scratchTickets.length > 0, bonds: ps.bonds, recollectionRemovedRelics: ps.recollectionRemovedRelics, extraRound: ps.m.gd.endlessRound(round) });
   if (!options.length) return null;
   ps.relicOffer = { id: `relic:${ps.seat}:${round}`, round, reason: 'lowLoss', leaked, options };
   ps.dirty();
@@ -32,7 +48,7 @@ export function selectRelic(ps, offerId, idx) {
   const r = getRelic(offer.options[idx]);
   if (r?.normalDrop === false) return null;
   if (!canReceiveRelic(r, ps.relics, { hasScratchTicket: ps.scratchTickets.length > 0, bonds: ps.bonds,
-    extraRound: ps.m.gd.endlessRound(ps.m.round) }) || (r.multiplayerOnly && ps.m.isSolo)) return null;
+    recollectionRemovedRelics: ps.recollectionRemovedRelics, extraRound: ps.m.gd.endlessRound(ps.m.round) }) || (r.multiplayerOnly && ps.m.isSolo)) return null;
   ps.relicOffer = null;
   return grantRelic(ps, r.id, { round: offer.round });
 }
@@ -43,9 +59,9 @@ export function grantNegativeRelics(ps, count) {
   const rng = createRng(deriveSeed(ps.m.seed, `endless-curses:${ps.seat}:${round}`));
   const granted = [];
   for (let i = 0; i < count; i++) {
-    // [ASSUMED] Acquisition hooks may remove old curses; recheck ownership, but never repeat within this award.
+    // Recheck ownership after acquisition hooks, but never repeat within this award.
     const pool = RELICS.filter(r => r.tier === 6 && !granted.includes(r.id)
-      && canReceiveRelic(r, ps.relics, { bonds: ps.bonds, extraRound: ps.m.gd.endlessRound(round) })
+      && canReceiveRelic(r, ps.relics, { bonds: ps.bonds, recollectionRemovedRelics: ps.recollectionRemovedRelics, extraRound: ps.m.gd.endlessRound(round) })
       && (!r.multiplayerOnly || !ps.m.isSolo));
     if (!pool.length) break;
     const reward = grantRelic(ps, pool[rng.int(pool.length)].id);
@@ -56,10 +72,11 @@ export function grantNegativeRelics(ps, count) {
 }
 
 /** Shared acquisition path for choices and immediate grants; preserves one-time collectible effects. */
-export function grantRelic(ps, id, { round = ps.m.round, battleRound = round + 1 } = {}) {
+export function grantRelic(ps, id, { round = ps.m.round, egirEvolution = false } = {}) {
   const r = getRelic(id);
+  if (r?.egirStage && !egirEvolution) return null;
   if (r?.deathNote && ps.m.order.some((p) => p !== ps && p.relics.some((entry) => entry.id === id))) return null;
-  if (!ps.alive || ps.left || !canReceiveRelic(r, ps.relics, { bonds: ps.bonds, extraRound: ps.m.gd.endlessRound(ps.m.round) })
+  if (!ps.alive || ps.left || !canReceiveRelic(r, ps.relics, { bonds: ps.bonds, recollectionRemovedRelics: ps.recollectionRemovedRelics, extraRound: ps.m.gd.endlessRound(ps.m.round) })
     || (r.multiplayerOnly && ps.m.isSolo)) return null;
   const reward = { id: r.id, round };
   if (!ps.relics.some((o) => o.id === id)) ps.relics.push(reward);
@@ -77,7 +94,6 @@ export function grantRelic(ps, id, { round = ps.m.round, battleRound = round + 1
     ps.m.difficultyLevel = normalizeDifficultyLevel(ps.m.difficultyLevel - reduction);
     ps.m.markPublic();
   }
-  if (r.reverseLpOnce) ps.relicReverseLpRound = battleRound;
   if (r.loseReserves) loseRelicReserves(ps, r.id, round);
   if (r.deployCapPenalty) ps.recompute();
   ps.relicReward = reward;
@@ -89,7 +105,7 @@ export function grantRelic(ps, id, { round = ps.m.round, battleRound = round + 1
 }
 
 /** [ASSUMED] Reserve includes hand and temporary overflow, with equipped items; deployed pieces stay.
- * The newly acquired instrument is excluded from the seven random losses. No sale payouts or refunds. */
+ * Negative collectibles are excluded from the seven random losses. No sale payouts or refunds. */
 function loseRelicReserves(ps, acquiredId, round) {
   for (const slots of [ps.hand, ps.temp]) for (let i = 0; i < slots.length; i++) {
     const p = slots[i];
@@ -103,13 +119,16 @@ function loseRelicReserves(ps, acquiredId, round) {
     slots[i] = null;
   }
   const rng = createRng(deriveSeed(ps.m.seed, `relic-reserves:${ps.seat}:${round}`));
-  const candidates = ps.relics.filter((r) => r.id !== acquiredId);
+  const candidates = ps.relics.filter((r) => r.id !== acquiredId && getRelic(r.id)?.tier !== 6);
   rng.shuffle(candidates);
   const removed = new Set(candidates.slice(0, 7));
   const ids = new Set([...removed].map((r) => r.id));
+  for (const id of ids) {
+    const tier = getRelic(id)?.tier;
+    if (tier === 4 || tier === 5) ps.recollectionRemovedRelics.add(id);
+  }
   ps.relics = ps.relics.filter((r) => !removed.has(r));
   ps.scratchTickets = ps.scratchTickets.filter((ticket) => !ids.has(ticket.relicId));
-  if (ids.has('relic_158')) ps.relicReverseLpRound = 0;
   ps.recompute();
   ps.m.markPublic();
 }
@@ -123,10 +142,10 @@ export function autoSelectRelic(ps) {
   selectRelic(ps, ps.relicOffer.id, idx);
 }
 
-export const activeReverseLp = (ps) => ps.relicReverseLpRound > 0 && ps.relicReverseLpRound === ps.m.round;
-/** 时间机器先反转应扣血量，护盾保留；负数表示回血。 */
-export const previewRelicLpLoss = (ps, amount) => activeReverseLp(ps) ? -Math.max(0, amount) : shieldedLpLoss(ps, amount);
-export const consumeRelicLpLoss = (ps, amount) => activeReverseLp(ps) ? -Math.max(0, amount) : consumeRelicShield(ps, amount);
+// Compatibility for existing wire consumers: Time Machine no longer reverses LP.
+export const activeReverseLp = () => false;
+export const previewRelicLpLoss = (ps, amount) => shieldedLpLoss(ps, amount);
+export const consumeRelicLpLoss = (ps, amount) => consumeRelicShield(ps, amount);
 
 export const activeRelicShield = (ps) => ps.relicShieldRound === ps.m.round ? Math.max(0, ps.relicShield) : 0;
 export const shieldedLpLoss = (ps, amount) => Math.max(0, amount - activeRelicShield(ps));

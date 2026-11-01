@@ -10,6 +10,7 @@ import { compileRoute } from '../ai.js';
 import { unitInfo } from '../snapshot.js';
 import { normalizeRoute, normalizeEnemy } from '../simdata.js';
 import { fin } from './util.js';
+import { rememberTimeMachineRoute } from './relicTimeMachine.js';
 import { relicEnemyMultiplier } from '../../../shared/relics.js';
 
 const FALLBACK_ENEMY = Object.freeze({
@@ -158,6 +159,7 @@ export class BattleSpawns {
       const end = this.grid.specialTiles('end')[0];
       if (end) e.route.legs.push({ t: 'move', r: end[0], c: end[1], final: true });
     }
+    rememberTimeMachineRoute(this, e, route?.start ?? start);
     e.counted = opts.countInTotal ?? (!def.notCountInTotal && e.tag !== 'boss' && e.tag !== 'part');
     // 联防 (player report, 2026-10-16): on a 联防 field only the enemies the escaped wave SENT IN are billable. An enemy
     // that appears while the field runs — a split child (磨砻's 木制瑞印, 沉沙's 断刃), a summon, a 变身 copy, a boss

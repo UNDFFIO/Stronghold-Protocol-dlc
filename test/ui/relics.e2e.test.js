@@ -638,7 +638,7 @@ for (const item of [
   { id: 'relic_127', name: '止痛片', tier: '精良', phrases: ['30%', '+2/秒', '自然回复'], shot: 'painkillers' },
   { id: 'relic_172', name: '护愈之手', tier: '史诗', phrases: ['免疫异常状态', '等量屏障', '100%'], shot: 'healing-hand' },
   { id: 'relic_233', name: '“时光之末”', tier: '史诗', phrases: ['11点', '4名', '受到致命伤害时自动复活', '保留原有干员'], shot: 'time-end' },
-  { id: 'relic_158', name: '时间机器', tier: '普通', phrases: ['目标生命值', '等量增加', '仅生效一场'], shot: 'time-machine' },
+  { id: 'relic_158', name: '时间机器', tier: '普通', phrases: ['前3个', '立即传送回红门', '仅生效1次'], shot: 'time-machine' },
   { id: 'relic_159', name: '木棍', tier: '精良', phrases: ['2资金'], hiddenPhrases: ['数字', '■', '仅影响显示'], shot: 'stick' },
   { id: 'relic_156', name: '解压玩具', phrases: ['向下取整', '领袖波次除外', '10%', '未持有者各保留1名', '替代减半效果'], shot: 'toy' },
   { id: 'relic_157', name: '鸭梨手机', phrases: ['全队累计难度-1级', '单人模式-2级', '最低为0', '下一场战斗', '多名玩家获得时可叠加'], shot: 'phone' },
@@ -1072,5 +1072,40 @@ test('木棍：整个界面逐位方块、输入值保留、更新与观战持�
     await page.waitForFunction(() => !document.querySelector('#mask-input').style.fontFamily.includes('RelicDigits'));
     assert.equal(await page.evaluate(() => globalThis.__maskText.text), '123');
     assert.deepEqual(errors, []);
+  } finally { await page.close(); }
+});
+
+
+test('阿戈尔升级藏品：三阶段名称品质、累计效果与官方图片可加载', {
+  skip: !ENABLED && 'set SP_E2E=1 and provide system Chrome', timeout: 120000,
+}, async () => {
+  const page = await browser.newPage();
+  try {
+    await page.setViewport({ width: 1280, height: 900 });
+    await page.goto(`${base}/dev/game-mock.html?shot=1&phase=PREP`, { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('.relic-icons__heading');
+    const ids = ['relic_244', 'relic_245', 'relic_246'];
+    await page.evaluate((ids) => globalThis.__MOCK__.mutate((s) => {
+      s.priv.relics = ids.map((id) => ({ id, round: 2 }));
+    }), ids);
+    for (const id of ids) await page.waitForFunction((id) => {
+      const img = document.querySelector(`.effect--relic[data-relic-id="${id}"] img`);
+      return img?.complete && img.naturalWidth > 0;
+    }, {}, id);
+    await page.$eval('.relic-icons__heading', (el) => el.click());
+    await page.waitForSelector('.relic-panel');
+    const text = await page.$eval('.relic-panel', (el) => el.textContent);
+    for (const value of ['“犹疑”', '“观望”', '“决心”', '稀有', '史诗', '传说',
+      '阻挡数+1', '攻击速度+100', '持续8秒', '浊心斯卡蒂', '初始速度']) assert.ok(text.includes(value), value);
+    for (const selector of ['.tbanner', '.mpop--phase', '.pbanner--overlay']) await page.waitForSelector(selector, { hidden: true });
+    await page.screenshot({ path: `${OUT}/egir-evolution-collection.png` });
+    await page.setViewport({ width: 390, height: 844 });
+    const bounds = await page.$eval('.relic-panel', (el) => {
+      const r = el.getBoundingClientRect();
+      return { left: r.left, right: r.right, overflow: el.scrollWidth - el.clientWidth };
+    });
+    assert.ok(bounds.left >= 0 && bounds.right <= 390 && bounds.overflow <= 1);
+    await page.screenshot({ path: `${OUT}/egir-evolution-mobile.png` });
+    for (const id of ids) assert.equal((await page.goto(`${base}/assets/relics/${id}.png`)).status(), 200);
   } finally { await page.close(); }
 });

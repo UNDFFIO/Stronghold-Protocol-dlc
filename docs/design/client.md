@@ -695,8 +695,9 @@ per mounted match, not again after a loading/retry cycle. The event retry limit 
 Replacing a field renderer also resets the game screen's entered-view identity. Frames are buffered while the replacement loads; after subscribing, the local runner re-shows full current metadata/snapshot, or the server resends the watched field. Real local and server-streamed battles preserve the same simulation object and clock through recovery, including enemies spawned before the new renderer existed.
 
 §30.4: the HP tower retains current HP until settlement and shows pending loss separately. In the DLC fork,
-collectible shields reduce that pending loss; Time Machine instead shows a separate `+N` pending gain without
-raising the current HP before settlement. Shop refresh is single
+collectible shields reduce that pending loss. Time Machine returns enemies immediately in the simulation;
+its explicit `teleport` event snaps the existing model to the gate, including short jumps. It does not hide,
+remove or respawn the enemy and does not preview an LP gain. Shop refresh is single
 flight per client until its promise settles (success or error); the button and R key share that state. DIY-only
 potential/cultivation changes are exportable; spectator member resolution includes the owner's DIY selection.
 Bond tooltips show banned visible members in one clamped scrollable compound box, stacked on narrow screens.

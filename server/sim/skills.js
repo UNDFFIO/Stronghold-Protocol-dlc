@@ -431,6 +431,12 @@ export class SkillRuntime {
   /** Public form of the operation cooldown, for kits with their own automatic cast of a MANUAL skill. */
   get opCooling() { return this._opCooling(); }
 
+  /** 决心's live borrowed attack tiles also count for range-based skill starts. */
+  _withRelicRange(keys) {
+    const extra = this.unit.mem.egirExtraRangeKeys?.();
+    return extra?.length ? [...new Set([...(keys || []), ...extra])] : keys;
+  }
+
   /**
    * Absolute tile keys of the trigger grid at the unit's current tile and direction (cached, with their Set). ACTIVE_RANGE
    * grows it by the unit's permanent rangeExtend (the range the skill would run with — Battle._refreshRange) unless the
@@ -447,7 +453,10 @@ export class SkillRuntime {
       this._trigDir = u.dir;
       this._trigExt = ext;
     }
-    return this._trigKeys;
+    if (!u.mem.egirExtraRangeKeys) return this._trigKeys;
+    const keys = this._withRelicRange(this._trigKeys);
+    this._trigSet = new Set(keys);
+    return keys;
   }
 
   /** `trigger.allies`: an injured, healable ally on the trigger grid (the unit's own range without one) ≤ hpAtMost. */
@@ -455,7 +464,7 @@ export class SkillRuntime {
     const b = this.battle;
     const u = this.unit;
     let keys;
-    if (this.triggerGrid) { this._triggerKeys(); keys = this._trigSet; } else keys = u.baseRangeKeys || u.rangeKeys;
+    if (this.triggerGrid) { this._triggerKeys(); keys = this._trigSet; } else keys = this._withRelicRange(u.baseRangeKeys || u.rangeKeys);
     const lim = this.triggerHpAtMost + 1e-9;
     return b.injuredAlliesInKeys(keys, u).some((a) => a.hpRatio <= lim);
   }
@@ -498,7 +507,7 @@ export class SkillRuntime {
     const b = this.battle;
     const u = this.unit;
     if (b.rangeChanged(u)) b._refreshRange(u);
-    const keys = range || u.baseRangeKeys || u.rangeKeys;
+    const keys = range || this._withRelicRange(u.baseRangeKeys || u.rangeKeys);
     if (keys) {
       if (this.healSkill) return b.injuredAlliesInKeys(keys, u, !!u.profile?.heal?.elementHealRatio).length > 0
         || (this.triggerEnemies && b.enemiesInKeys(keys, u, TRIGGER_PROFILE).length > 0);

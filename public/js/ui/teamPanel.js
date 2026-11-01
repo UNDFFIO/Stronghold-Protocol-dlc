@@ -103,7 +103,7 @@ const AVATAR_CLICK_GAP_MS = 500;
  * @param {number} [cap] lpCapPerRound
  */
 export function rowLpTip(lp, cap = 10) {
-  if (lp?.pending < 0) return t('时间机器：本场战斗结算时目标生命值增加 {0} 点', { 0: -lp.pending });
+  if (lp?.pending < 0) return t('本场战斗结算时目标生命值增加 {0} 点', { 0: -lp.pending });
   if (!lp || !(lp.pending > 0)) return null;
   if (lp.unite && lp.left != null) return t('目标生命值 {lp}，联防中：漏过的敌人还剩 {left} 个，按现在结算扣除 {pending} 点（每回合至多 {cap} 点）', { lp: lp.lp, left: lp.left, pending: lp.pending, cap });
   return lp.unite ? t('目标生命值 {lp}，联防中，结算时扣除至多 {pending} 点', { lp: lp.lp, pending: lp.pending })

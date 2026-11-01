@@ -69,7 +69,7 @@ test('debug grants preserve one-time effects and ticket prerequisites; removal c
     assert.equal(send('relic_157', 'remove').ok, true);
     assert.equal(h.m.difficultyLevel, reduced, 'settled difficulty reduction is not rolled back');
     assert.equal(send('relic_158').ok, true);
-    assert.equal(ps.relicReverseLpRound, h.m.round, 'prep grant applies to the upcoming battle');
+    assert.ok(ps.battleInput().relics.includes('relic_158'));
     assert.equal(send('relic_158', 'remove').ok, true);
     assert.equal(ps.relicReverseLpRound, 0);
     assert.equal(send('relic_235').error, 'BAD_TARGET');

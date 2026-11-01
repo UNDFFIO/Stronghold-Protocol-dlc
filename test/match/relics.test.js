@@ -9,6 +9,85 @@ import { makeMatch } from './harness.js';
 import { makeBattle, chessRec, enemyRec } from '../helpers/battleHarness.js';
 import { settleDeathNote, deathNoteKeys, resolveDeathNoteName } from '../../server/match/deathNote.js';
 import { attachAudit } from '../../server/match/audit.js';
+import { FakeBattle } from './fakeBattle.js';
+
+test('阿戈尔升级：本场增层先结算，升级仅带入下一场战斗，客户端与服务端流程一致', () => {
+  for (const clientCombat of [false, true]) {
+    const h = makeMatch({ mode: 'solo', fake: true, clientCombat,
+      script: () => ({ layerGains: { p_0: { egirShip: 1 } } }) }).start();
+    try {
+      h.toPrep(1);
+      const ps = h.ps('p_0');
+      ps.layers.egirShip = 249;
+      ps.bondCountBonus.egirShip = 5;
+      ps.relics = [{ id: 'relic_244', round: 0 }];
+      ps.recompute();
+      assert.ok(h.drive(() => h.m.phase === PHASE.SETTLE && h.m.round === 1));
+      const first = FakeBattle.instances.find((b) => b.kind === 'normal' && b.round === 1);
+      assert.ok(first);
+      assert.deepEqual(first.opts.players[0].relics, ['relic_244'], 'the completed battle keeps its original relic');
+      assert.equal(ps.layers.egirShip, 250);
+      assert.deepEqual(ps.relics.map((r) => r.id), ['relic_245']);
+      assert.equal(ps.privateView().relicReward.id, 'relic_245');
+      h.toPrep(2);
+      assert.ok(h.drive(() => h.m.phase === PHASE.SETTLE && h.m.round === 2));
+      const next = FakeBattle.instances.find((b) => b.kind === 'normal' && b.round === 2);
+      assert.ok(next.opts.players[0].relics.includes('relic_245'));
+      assert.ok(!next.opts.players[0].relics.includes('relic_244'));
+    } finally { h.m.dispose(); }
+  }
+});
+
+test('阿戈尔藏品：结算阈值、逐级替换、跨级、不降级和普通途径隔离', () => {
+  const h = makeMatch({ mode: 'solo', difficulty: 'ULTIMATE', fake: true }).start();
+  try {
+    h.toPrep(1); const ps = h.ps('p_0');
+    const settle = (layers, active = true) => {
+      ps.layers.egirShip = layers;
+      ps.bondCountBonus.egirShip = active ? 5 : 0;
+      ps.recompute();
+      ps.relicSettledRounds.clear();
+      settleRelics(ps, { perfect: false, leaked: [] }, { completed: true, lpLoss: 6 });
+      return ps.relics.filter((r) => getRelic(r.id)?.egirStage).map((r) => r.id);
+    };
+    assert.deepEqual(settle(99), []);
+    assert.deepEqual(settle(100, false), []);
+    assert.deepEqual(settle(100), ['relic_244']);
+    assert.deepEqual(settle(249), ['relic_244']);
+    assert.deepEqual(settle(250), ['relic_245']);
+    assert.deepEqual(settle(599), ['relic_245']);
+    assert.deepEqual(settle(600), ['relic_246']);
+    assert.deepEqual(settle(0, false), ['relic_246']);
+    ps.relics = [];
+    assert.deepEqual(settle(600), ['relic_246']);
+    for (const id of ['relic_244', 'relic_245', 'relic_246']) assert.equal(grantRelic(ps, id), null);
+    for (let seed = 0; seed < 200; seed++) assert.ok(pickRelicChoices(20, [], createRng(seed))
+      .every((id) => !getRelic(id).egirStage));
+    assert.ok(ps.battleInput().relics.includes('relic_246'));
+    ps.relics = []; h.m.gd.endlessStartRound = h.m.gd.hiddenRound + 1;
+    h.m.round = h.m.gd.endlessStartRound;
+    assert.ok(h.m.gd.endlessRound(h.m.round) > 0);
+    assert.deepEqual(settle(250), ['relic_245']);
+    assert.deepEqual(settle(600), ['relic_246']);
+  } finally { h.m.dispose(); }
+});
+
+test('阿戈尔升级：首领结算无普通奖励时仍升级，伪造与未完成结果不发放', () => {
+  const h = makeMatch({ mode: 'solo', difficulty: 'HARD', fake: true,
+    script: (b) => b.kind === 'boss' ? { bossDps: 1e8, duration: Infinity } : {} }).start();
+  try {
+    h.toPrep(14); const ps = h.ps('p_0');
+    ps.lp = 999; ps.layers.egirShip = 600; ps.bondCountBonus.egirShip = 5; ps.recompute();
+    const result = { perfect: true, leaked: [] };
+    settleRelics(ps, result);
+    settleRelics(ps, { ...result, synthetic: true }, { completed: true });
+    assert.ok(!ps.relics.some((r) => getRelic(r.id)?.egirStage));
+    h.m.hiddenBossId = null;
+    assert.ok(h.drive(() => !!h.ended));
+    assert.deepEqual(h.ended.players[0].relics.filter((r) => getRelic(r.id)?.egirStage).map((r) => r.id), ['relic_246']);
+    assert.ok(!ps.relicOffer);
+  } finally { h.m.dispose(); }
+});
 
 test('官方负面藏品：合法定向领取、排重、普通池隔离与下一场敌方强化', () => {
   for (const [id, mul] of [['relic_177', 1.4], ['relic_181', 1.3], ['relic_185', 1.25], ['relic_187', 1.3]]) {
@@ -295,8 +374,8 @@ test('死亡笔记：真实结算累计实际损血，护盾、回血与队友�
     settle(1, 6, 6);
     assert.equal(ps.deathNoteLpLost, 4);
     assert.equal(mate.deathNoteLpLost, 6);
-    ps.relicReverseLpRound = 2;
-    settle(2, 6, 0);
+    ps.lp += 6; // Healing does not contribute to damage taken.
+    settle(2, 0, 0);
     assert.equal(ps.deathNoteLpLost, 4, 'healing neither adds progress nor subtracts prior losses');
     assert.equal(ps.relics.length, 0);
     settle(3, 6, 0);
@@ -769,7 +848,7 @@ test('collection: weaker same-tier duplicates cannot be drawn or granted', () =>
 });
 
 test('collection: every tier is populated, early pools cannot run out during ordinary play, definitions are immutable', () => {
-  assert.equal(RELICS.length, 76);
+  assert.equal(RELICS.length, 79);
   assert.equal(new Set(RELICS.map((r) => r.id)).size, RELICS.length);
   assert.ok(RELICS.filter((r) => r.tier === 1).length >= 9);
   for (const { tier } of RELIC_TIERS.filter((t) => t.normalDrop !== false)) assert.ok(RELICS.some((r) => r.tier === tier));

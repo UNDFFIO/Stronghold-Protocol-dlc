@@ -192,7 +192,7 @@ test('live LP previews include shields, keep uncapped survivor counts and avoid 
 });
 
 
-test('LP tower keeps current HP for both shielded losses and time-machine gains until settlement', () => {
+test('LP tower keeps current HP for both shielded losses and legacy pending gains until settlement', () => {
   for (const [lp, pending, tick] of [[24, 8, '−8'], [1, -3, '+3']]) {
     const view = LpTower({ value: lp, pending });
     const nodes = [...walk(view)];
@@ -205,7 +205,7 @@ test('LP tower keeps current HP for both shielded losses and time-machine gains 
   }
 });
 
-test('时间机器：普通与联防血量预览加血、不截断低血回血、结算后不重复预览', () => {
+test('旧版回血标记兼容：普通与联防血量预览加血、不截断低血回血、结算后不重复预览', () => {
   const first = liveLp(null, { phase: 'COMBAT', round: 2, lp: 1, leaks: 3, shield: 2, reverseLp: true });
   assert.equal(first.shown, 4); assert.equal(first.pending, -3);
   const settled = liveLp(first.base, { phase: 'COMBAT', round: 2, lp: 4, leaks: 3, reverseLp: true });

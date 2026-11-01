@@ -137,6 +137,8 @@ export class Unit {
   /** Aggregated stats (lazy). */
   get s() {
     if (this._dirty || (this._hpScaling && this.hp !== this._statsHp)) this._recalc();
+    const cap = this.mem.relicMoveCap?.();
+    if (cap != null && this._s.moveSpeed > cap) return { ...this._s, moveSpeed: cap };
     return this._s;
   }
 

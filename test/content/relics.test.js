@@ -4,8 +4,187 @@ import { makeBattle, chessRec, enemyRec, flatStage, flatRoutes, checkInvariants 
 import { install as installRelics } from '../../server/sim/content/relics.js';
 import { DataSource } from '../../server/sim/simdata.js';
 import { buildBattleSpec, createBattleFromSpec, resultDigest } from '../../server/sim/spec.js';
+import { canTargetEnemy } from '../../server/sim/targeting.js';
 
 const ATK = 'relic_003';
+test('决心：深巡、幽灵鲨和乌尔比安的真实技能可由远处水月范围内的敌人触发', () => {
+  for (const base of ['chess_char_1_04', 'chess_char_2_07', 'chess_char_5_05']) {
+    for (const form of ['a', 'b']) for (const relics of [[], ['relic_246']]) {
+      const h = makeBattle({
+        players: [player(relics, [piece(`${base}_${form}`), piece('chess_char_4_09_a', 2, 12, 8)])],
+        defs: { enemies: { probe: enemyRec({ key: 'probe', hp: 1e9, atk: 0, speed: 0 }) } },
+        flags: { startOpCooldown: 0 }, autoFinish: false,
+      });
+      h.step();
+      const u = h.unit(1);
+      assert.equal(u.skill.activations, 0);
+      h.spawn('probe', { pos: [12, 9] });
+      u.skill.addCharge(1);
+      h.run(2);
+      assert.equal(u.skill.activations, relics.length ? 1 : 0, `${base}_${form} / ${relics}`);
+      healthy(h);
+    }
+  }
+});
+
+test('决心：敌人进入借用范围后，各类范围策略实际开启技能并保留非范围策略限制', () => {
+  for (const rule of ['DEFAULT', 'SEARCH', 'ACTIVE_RANGE', 'SKILL_RANGE', 'CUSTOM_RANGE', 'NEVER', 'TAKE_DAMAGE']) {
+    for (const id of ['relic_245', 'relic_246']) {
+      const f = fight([id], {
+        defs: { chess: {
+          r_guard: op('r_guard', 'WARRIOR', { bonds: ['egirShip'], rangeGrid: [[0, 0]],
+            skill: { spCost: 10, initSp: 0, spType: 'INCREASE_WITH_TIME' } }),
+          donor: op('donor', 'WARRIOR', { charId: 'char_437_mizuki', rangeGrid: [[0, 0], [0, 1]], stats: { atk: 0 } }),
+        }, enemies: { probe: enemyRec({ key: 'probe', hp: 1e7, speed: 0 }) } },
+        kits: { r_guard: () => ({ skill: { kind: 'duration', duration: 20, spCost: 10, initSp: 0,
+          trigger: { rule, grid: ['ACTIVE_RANGE', 'SKILL_RANGE', 'CUSTOM_RANGE'].includes(rule) ? [[0, 0]] : null },
+          mods: { atkPct: 1 } } }) },
+        players: [player([id], [piece(), piece('donor', 2, 10, 7)])], enemies: [{ key: 'probe' }],
+      });
+      f.step();
+      const u = f.unit(1), e = f.enemies()[0];
+      e.x = 8; e.y = 10;
+      f.run(0.2);
+      assert.equal(u.skill.activations, 0, 'range never bypasses the SP requirement');
+      u.skill.gainSp(10, 'test');
+      e.x = 1; e.y = 9;
+      f.run(0.2);
+      assert.equal(u.skill.activations, 0, 'an enemy outside both ranges does not trigger');
+      e.x = 8; e.y = 10;
+      f.b.addBuff(u, { key: 'test:egir-silence', duration: Infinity, flags: { silence: true } });
+      f.run(0.2);
+      assert.equal(u.skill.activations, 0, 'borrowed range does not bypass silence');
+      f.b.removeBuff(u, 'test:egir-silence');
+      f.run(1.5);
+      const expected = id === 'relic_246' && !['NEVER', 'TAKE_DAMAGE'].includes(rule) ? 1 : 0;
+      assert.equal(u.skill.activations, expected, `${id} / ${rule}`);
+      healthy(f);
+    }
+  }
+});
+
+test('决心：技能开启范围实时跟随提供者退场、范围变化与再部署，且不借用队友范围', () => {
+  const f = fight(['relic_246'], {
+    defs: { chess: {
+      r_guard: op('r_guard', 'WARRIOR', { bonds: ['egirShip'], rangeGrid: [[0, 0]],
+        skill: { spCost: 10, initSp: 0, spType: 'INCREASE_WITH_TIME' } }),
+      donor: op('donor', 'WARRIOR', { charId: 'char_1012_skadi2', rangeGrid: [[0, 0]], stats: { atk: 0 } }),
+    }, enemies: { probe: enemyRec({ key: 'probe', hp: 1e7, speed: 0 }) } },
+    kits: { r_guard: () => ({ skill: { kind: 'duration', duration: 20, spCost: 10, initSp: 0,
+      trigger: { rule: 'ACTIVE_RANGE', grid: [[0, 0]] }, mods: { atkPct: 1 } } }) },
+    players: [player(['relic_246'], [piece(), piece('donor', 2, 10, 7)]),
+      player([], [piece('donor', 3, 10, 8)], { playerId: 'p2', seat: 1 })], enemies: [{ key: 'probe' }],
+  });
+  f.step();
+  const u = f.unit(1), donor = f.unit(2), e = f.enemies()[0];
+  e.x = 8; e.y = 10;
+  u.skill.gainSp(10, 'test');
+  f.run(0.2);
+  assert.equal(u.skill.activations, 0, 'teammate provider does not trigger');
+  donor.rangeGrid = [[0, 0], [0, 1]];
+  f.b.refreshRange(donor);
+  f.b.retreat(donor);
+  f.run(0.2);
+  assert.equal(u.skill.activations, 0, 'retreated provider does not trigger');
+  f.b.redeploy(donor, { free: true });
+  f.run(0.2);
+  assert.equal(u.skill.activations, 1, 'current provider range participates without moving the recipient');
+  healthy(f);
+});
+
+test('阿戈尔升级藏品：累计对空、阻挡与击倒攻速，隔离队友和非成员', () => {
+  for (const [id, stage] of [['relic_244', 1], ['relic_245', 2], ['relic_246', 3]]) {
+    const f = fight([id], { defs: { chess: {
+      r_guard: op('r_guard', 'WARRIOR', { bonds: ['egirShip'] }), outsider: op('outsider'),
+    } }, players: [player([id, id], [piece(), piece('outsider', 2, 10, 5)]),
+      player([], [piece('r_guard', 3, 10, 6)], { playerId: 'p2', seat: 1 })] });
+    f.step();
+    const u = f.unit(1), other = f.unit(2), mate = f.unit(3);
+    const air = { alive: true, deployed: true, isFlying: true, s: { flags: {} } };
+    assert.equal(canTargetEnemy(u, air, { groundOnly: true }), true);
+    assert.equal(canTargetEnemy(other, air, {}), false);
+    assert.equal(canTargetEnemy(mate, air, {}), false);
+    assert.equal(u.s.blockCnt, u.base.blockCnt + (stage >= 2 ? 1 : 0));
+    installRelics(f.b);
+    assert.equal(u.s.blockCnt, u.base.blockCnt + (stage >= 2 ? 1 : 0));
+    const knockOut = () => { const e = f.b.spawnEnemy('enemy_1001_slime'); f.b.dealDamage({ source: u, target: e, amount: 1e9, type: 'true' }); };
+    knockOut(); f.run(4); knockOut();
+    assert.equal(u.s.aspd, u.base.aspd + (stage >= 2 ? 100 : 0));
+    f.run(8.1);
+    assert.equal(u.s.aspd, u.base.aspd);
+    healthy(f);
+  }
+});
+
+test('决心：动态共享本人水月范围，限速保留减速，撤退立即解除且重部署不叠加', () => {
+  const f = fight(['relic_246'], { defs: { chess: {
+    r_guard: op('r_guard', 'WARRIOR', { bonds: ['egirShip'], rangeGrid: [[0, 0]] }),
+    donor: op('donor', 'WARRIOR', { charId: 'char_437_mizuki', bonds: ['egirShip'], rangeGrid: [[0, 0], [0, 1]] }),
+  }, enemies: { probe: enemyRec({ key: 'probe', hp: 100000, speed: 1 }) } },
+  players: [player(['relic_246'], [piece(), piece('donor', 2, 10, 7)])], enemies: [{ key: 'probe' }] });
+  f.step();
+  const u = f.unit(1), donor = f.unit(2), e = f.enemies()[0];
+  assert.ok(u.rangeKeys.includes(donor.rangeKeys[0]));
+  e.x = donor.tileC; e.y = donor.tileR;
+  f.b.addBuff(e, { key: 'speed', duration: Infinity, mods: { moveMul: 3 } });
+  assert.equal(e.s.moveSpeed, e.base.moveSpeed);
+  f.b.addBuff(e, { key: 'slow', duration: Infinity, mods: { moveMul: 0.1 } });
+  close(e.s.moveSpeed, e.base.moveSpeed * 0.3, 'slows preserved');
+  f.b.removeBuff(e, e.findBuff('slow'));
+  f.b.retreat(donor);
+  assert.ok(!u.rangeKeys.includes(donor.rangeKeys[0]));
+  assert.equal(e.s.moveSpeed, e.base.moveSpeed * 3);
+  f.b.redeploy(donor);
+  assert.equal(e.s.moveSpeed, e.base.moveSpeed);
+  healthy(f);
+});
+test('决心：两种提供者的原生范围变化驱动真实普攻，隔离队友且不递归借用', () => {
+  for (const charId of ['char_437_mizuki', 'char_1012_skadi2']) {
+    const f = fight(['relic_246'], { defs: { chess: {
+      r_guard: op('r_guard', 'WARRIOR', { bonds: ['egirShip'], rangeGrid: [[0, 0]] }),
+      donor: op('donor', 'WARRIOR', { charId, bonds: ['egirShip'], rangeGrid: [[0, 0]], stats: { atk: 0 } }),
+    }, enemies: { probe: enemyRec({ key: 'probe', hp: 100000, speed: 0 }) } },
+    players: [player(['relic_246'], [piece(), piece('donor', 2, 10, 7)]),
+      player([], [piece('donor', 3, 10, 6)], { playerId: 'p2', seat: 1 })], enemies: [{ key: 'probe' }] });
+    f.step(); const u = f.unit(1), donor = f.unit(2), mate = f.unit(3), e = f.enemies()[0];
+    assert.ok(!u.rangeKeys.includes(mate.rangeKeys[0]), 'teammate range is excluded');
+    e.x = 8; e.y = 10;
+    let hits = 0;
+    f.b.on('damaged', ({ source, target }) => { if (source === u && target === e) hits++; });
+    f.run(1); assert.equal(hits, 0);
+    donor.rangeGrid = [[0, 0], [0, 1]];
+    f.b.refreshRange(donor);
+    const extended = [...donor.mem.egirOwnRangeKeys()];
+    f.run(1); assert.ok(hits > 0, 'ordinary attacks reach the borrowed range');
+    assert.deepEqual(donor.mem.egirOwnRangeKeys(), extended, 'native range remains distinct');
+    const before = hits; f.b.retreat(donor); f.run(2);
+    assert.equal(hits, before, 'retreated provider no longer enables distant attacks');
+    healthy(f);
+  }
+});
+
+test('阿戈尔决心：序列化战斗规格两端结算一致', () => {
+  const raw = {
+    chess: {
+      r_guard: op('r_guard', 'WARRIOR', { bonds: ['egirShip'], rangeGrid: [[0, 0]] }),
+      donor: op('donor', 'WARRIOR', { charId: 'char_437_mizuki', bonds: ['egirShip'], rangeGrid: [[0, 0], [0, 1]] }),
+    },
+    enemies: { probe: enemyRec({ key: 'probe', hp: 1000, speed: 0.1 }) },
+    stages: { egir_stage: flatStage({ id: 'egir_stage' }) },
+  };
+  const spec = buildBattleSpec({ battleId: 'egir-test', seed: 244, stageId: 'egir_stage', kind: 'normal', round: 8,
+    timeLimit: 10, players: [player(['relic_246'], [piece(), piece('donor', 2, 10, 7)])], routes: flatRoutes(),
+    spawns: [{ time: 0, enemyKey: 'probe', routeIndex: 0, pos: [10, 8] }] });
+  const server = createBattleFromSpec(spec, new DataSource(raw, null), { quiet: true });
+  const browser = createBattleFromSpec(JSON.parse(JSON.stringify(spec)), new DataSource(JSON.parse(JSON.stringify(raw)), null), { quiet: true });
+  for (const b of [server, browser]) {
+    b.step(); b.addBuff(b.enemies[0], { key: 'fast', duration: Infinity, mods: { moveMul: 3 } });
+    b.runToEnd(12); assert.deepEqual(b.errors, []); checkInvariants(b);
+    assert.equal(b.result().killed, 1);
+  }
+  assert.equal(resultDigest(server.result()).hash, resultDigest(browser.result()).hash);
+});
+
 test('官方负面藏品：出生满血、真实伤害、后续生成、重复持有及安装不叠加', () => {
   for (const [relics, mul] of [[['relic_177'], 1.4], [['relic_181'], 1.3], [['relic_185'], 1.25],
     [['relic_187'], 1.3], [['relic_177', 'relic_181', 'relic_185', 'relic_187', 'relic_177'], 2.25]]) {

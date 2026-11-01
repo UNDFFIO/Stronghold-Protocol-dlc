@@ -464,3 +464,15 @@ until the cast clip ends too. `attackTurnSkill` returns the selected ability or 
 瑕光 S3 先贤化身 is a sourced guardian exception (§35.91, #789): DEFAULT activates with an attackable enemy in her
 attack range, even at full HP. The official TAKE_DAMAGE row remains rawRule for provenance. The maintainer accepted
 the author video BV1UdAHzNEVj and their recall on 2026-10-24; other guardian skills keep their class rule.
+
+
+### 时间机器：即时回门（DLC）
+
+时间机器在每场战斗中使持有者蓝门前3个进入的敌人立即传送回红门，每个敌人仅生效1次。传送保留原实体、生命值和状态，不触发退场、出生或漏怪结算；再次进入蓝门正常漏怪。普通作战、联防及首领战分别计次，超时结算不触发，也不再反转目标生命值扣除。[ASSUMED] 按蓝门所属防守者独立计次，重复持有不叠加；返回最接近原路线起点的红门并重走原路线，无红门的首领阵地返回原路线入口。
+
+
+### 阿戈尔升级收藏品（DLC，2026-11-01）
+
+持有者阿戈尔盟约干员获得累计对空、阻挡+1、击倒攻速+100持续8秒。“决心”动态借用本人已部署水月／浊心斯卡蒂当前原生攻击范围，覆盖敌人速度上限为出生基础速度；离场立即解除。 完整规则、来源与假设见[收藏品规则](../COLLECTIBLES.md#阿戈尔升级藏品dlc)。
+
+“决心”的额外攻击范围同时计入 DEFAULT、SEARCH、ACTIVE_RANGE、SKILL_RANGE、CUSTOM_RANGE 的技能开启范围；保持原策略的攻击时机、目标筛选、治疗目标条件及技力、冷却限制，不改变 NEVER 和 TAKE_DAMAGE 的触发方式。范围随提供者的技能、撤退、倒下和再部署实时更新。

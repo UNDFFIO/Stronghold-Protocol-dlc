@@ -4,6 +4,7 @@ import { getRelic, relicModifiers } from '../../../shared/relics.js';
 import { passiveBuff, playerOps, onField, inRange, unitBonds } from './support/index.js';
 import { spawnYanyou } from './tokens.js';
 import { RESIST_STATUSES } from '../buffs.js';
+import { installEgirRelics } from './relicEgir.js';
 
 const KEY = 'relic:collection';
 const healingHandInstalled = new WeakSet();
@@ -250,6 +251,7 @@ export function install(battle) {
     if (ids.length) byPlayer.set(ps.playerId, ids);
   }
   if (!byPlayer.size) return;
+  installEgirRelics(battle, byPlayer);
   if ([...byPlayer.values()].some((ids) => ids.some((id) => getRelic(id)?.bondLayerLossPerSecond))) installGrinder(battle, byPlayer);
   if ([...byPlayer.values()].some((ids) => ids.includes('relic_242'))) installCursedNote(battle, byPlayer);
   if ([...byPlayer.values()].some((ids) => ids.includes('relic_133'))) installIceFire(battle);

@@ -6,6 +6,7 @@
 import { COLS } from '../constants.js';
 import { unitInfo } from '../snapshot.js';
 import { fin } from './util.js';
+import { returnTimeMachineEnemy } from './relicTimeMachine.js';
 
 export class BattleDeploy {
   /**
@@ -256,6 +257,7 @@ export class BattleDeploy {
   /** Leak: an enemy reached its goal. */
   leak(e) {
     if (!e || !e.alive || e.side !== 'enemy') return;
+    if (returnTimeMachineEnemy(this, e)) return;
     this._recordLeak(e, false);
     this._remove(e, 'leak');
     this._ev(['leak', e.id]);

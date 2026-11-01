@@ -35,6 +35,9 @@ export async function prepareCustomRelicIcons(assetsRoot) {
 }
 
 export const RELIC_ICON_FILES = Object.freeze({
+  "relic_244": "rogue_2_relic_grace_90.png", // “犹疑”，水月 No.240；本地编号避免冲突
+  "relic_245": "rogue_2_relic_grace_89.png", // “观望”，水月 No.239
+  "relic_246": "rogue_2_relic_grace_88.png", // “决心”，水月 No.238
   "relic_239": "rogue_3_relic_curse_1.png", // 坍缩之种，银凇止境 No.239，PRTS
 
   "relic_227": "rogue_3_relic_boss_2.png", // 无垠赠礼，银凇止境 No.227，PRTS 2026-10-28

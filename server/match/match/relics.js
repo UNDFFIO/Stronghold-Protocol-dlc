@@ -17,7 +17,7 @@ export class MatchRelics {
     if (!relic || relic.multiplayerOnly) return fail(ERR.BAD_TARGET);
     if (action === 'add') {
       if (relic.scratchTicket && ps.scratchTickets.length) return fail(ERR.BAD_TARGET);
-      if (!grantRelic(ps, relicId, { battleRound: this.round })) return fail(ERR.BAD_TARGET);
+      if (!grantRelic(ps, relicId)) return fail(ERR.BAD_TARGET);
     } else if (action === 'remove') {
       if (!ps.relics.some((r) => r.id === relicId)) return fail(ERR.BAD_TARGET);
       // Removing the identity card also discards its tickets, preserving their ownership invariant.
@@ -26,7 +26,6 @@ export class MatchRelics {
       ps.scratchTickets = ps.scratchTickets.filter((ticket) => !removed(ticket.relicId));
       if (removed(ps.scratchResult?.relicId)) ps.scratchResult = null;
       if (removed(ps.relicReward?.id)) ps.relicReward = null;
-      if (relic.reverseLpOnce) ps.relicReverseLpRound = 0;
     } else return fail(ERR.BAD_TARGET);
     ps.recompute();
     this.markPublic();

@@ -5,7 +5,7 @@
 // RESULT.
 // Installed on Match.prototype by server/match/Match.js (a method container: never instantiated; `this` is the match).
 
-import { settleRelics, activeReverseLp, consumeRelicLpLoss, consumeRelicShield, unusedRevival, consumeRevival, grantNegativeRelics } from '../relics.js';
+import { settleRelics, settleEgirRelic, consumeRelicShield, unusedRevival, consumeRevival, grantNegativeRelics } from '../relics.js';
 import { damageRanking } from '../../../shared/damageRanking.js';
 import { settleDeathNote, deathNoteKeys } from '../deathNote.js';
 import { withRoadEnemies } from '../relicRoad.js';
@@ -460,15 +460,7 @@ export class MatchBoss {
     if (this.teamLp == null || !Number.isFinite(n) || !(n > 0)) return;
     // Boss HP is shared: shields cover losses on their owner's field; global overtime uses the team's shields.
     const affected = this.alivePlayers().filter((ps) => !players || players.includes(ps.playerId));
-    // 首领阵地共用血池：该阵地有时间机器时反转整笔扣血；全队超时则按玩家血池份额反转。
-    if (players && affected.some(activeReverseLp)) n = -n;
-    else if (!players && affected.some(activeReverseLp)) {
-      const total = affected.reduce((sum, ps) => sum + Math.max(0, ps.lpAtFinal ?? ps.lp), 0);
-      n = affected.reduce((sum, ps) => {
-        const share = total > 0 ? Math.max(0, ps.lpAtFinal ?? ps.lp) / total : 1 / affected.length;
-        return sum + consumeRelicLpLoss(ps, Number(amount) * share);
-      }, 0);
-    } else for (const ps of affected) n = consumeRelicShield(ps, n);
+    for (const ps of affected) n = consumeRelicShield(ps, n);
     this.teamLp = Math.max(0, this.teamLp - n);
     // 首领战全队共用生命：血池耗尽时按座位只消耗一件，恢复共享血池 11 点。
     if (this.teamLp <= 0) {
@@ -592,6 +584,8 @@ export class MatchBoss {
     const eligible = !this.endless && !hidden && victory && !!this.hiddenBossId
       && hiddenEligible(this.gd, { layerSum: this.hiddenLayerSum, teamLp: this.teamLp });
     this._syncTeamLp();
+    // The evolution chain also settles after boss/extra battles, independently of ordinary choices.
+    for (const ps of this.alivePlayers()) settleEgirRelic(ps, this.lastResults.get(ps.playerId));
     // Collectibles are supplies for the next stage, never an extra choice before the final result.
     if (eligible) for (const ps of this.alivePlayers()) settleRelics(ps, this.lastResults.get(ps.playerId), { completed: true, lpLoss: Math.max(0, ps.lpAtFinal - ps.lp) });
     for (const ps of this.alivePlayers()) { ps.relicShield = 0; ps.dirty(); }

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { makeMatch, give } from './harness.js';
-import { grantRelic } from '../../server/match/relics.js';
+import { grantRelic, settleRelics, selectRelic } from '../../server/match/relics.js';
 import { roadEnemyKey, withRoadEnemies } from '../../server/match/relicRoad.js';
 import { RELICS, getRelic, pickRelic } from '../../shared/relics.js';
 import { createRng } from '../../server/sim/rng.js';
@@ -188,14 +188,14 @@ test('little grinder: one random active bond per second, concurrent gains use th
   assert.deepEqual(run(), run());
 });
 
-test('recollection instrument: fewer than seven collectibles, pending time machine and consumed ticket records are cleaned, one-time healing is retained', () => {
+test('recollection instrument: fewer than seven collectibles, time machine ownership and consumed ticket records are cleaned, one-time healing is retained', () => {
   const h = makeMatch({ mode: 'solo', fake: true }).start();
   try {
     h.toPrep(1); const ps = h.ps('p_0');
     grantRelic(ps, 'relic_014'); grantRelic(ps, 'relic_158');
     grantRelic(ps, 'relic_234'); grantRelic(ps, 'relic_235');
     const lp = ps.lp;
-    assert.ok(ps.relicReverseLpRound > 0); assert.ok(ps.scratchTickets.length);
+    assert.ok(ps.relics.some(r => r.id === 'relic_158')); assert.ok(ps.scratchTickets.length);
     grantRelic(ps, 'relic_219');
     assert.deepEqual(ps.relics.map((r) => r.id), ['relic_219']);
     assert.equal(ps.relicReverseLpRound, 0); assert.deepEqual(ps.scratchTickets, []);
@@ -274,4 +274,63 @@ for (const hidden of [false, true]) test(`little grinder: ${hidden ? 'Hidden Cor
     assert.equal(ps.layers.sargonShip, 45);
     assert.equal(ps.battleInput().bonds.sargonShip.layers, 45);
   } finally { h.m.dispose(); }
+});
+
+test('recollection preserves every curse and restores only the owner’s removed high tiers to extra-round offers', () => {
+  const h = makeMatch({ humans: 2, fake: true }).start();
+  try {
+    h.toPrep(1);
+    const ps = h.ps('p_0'), mate = h.ps('p_1');
+    const curses = RELICS.filter(r => r.tier === 6 && r.id !== 'relic_219');
+    ps.relics = curses.map(r => ({ id: r.id, round: 1 }));
+    for (const id of ['relic_049', 'relic_006']) assert.ok(grantRelic(ps, id));
+    assert.ok(grantRelic(ps, 'relic_219'));
+    assert.deepEqual(new Set(ps.relics.map(r => r.id)), new Set([...curses.map(r => r.id), 'relic_219']));
+    assert.deepEqual(ps.recollectionRemovedRelics, new Set(['relic_049', 'relic_006']));
+    h.m.gd.endlessStartRound = h.m.gd.hiddenRound + 1;
+    h.m.round = h.m.gd.endlessStartRound;
+    assert.ok(h.m.gd.endlessRound(h.m.round) > 0);
+    for (const id of ['relic_049', 'relic_006']) {
+      const tierWeights = [0, 0, 0, 0, 0];
+      tierWeights[getRelic(id).tier - 1] = 100;
+      assert.equal(pickRelic(h.m.round, ps.relics, () => 0, {
+        multiplayer: true, tierWeights, extraRound: 1, recollectionRemovedRelics: ps.recollectionRemovedRelics,
+      }).id, id);
+      assert.equal(grantRelic(mate, id), null, 'teammate has no exemption');
+    }
+    assert.equal(grantRelic(ps, 'relic_079'), null, 'untouched high-tier relic stays blocked');
+    // Exhaust lower tiers so the actual settlement offer must contain both restored high tiers.
+    ps.relics.push(...RELICS.filter(r => r.tier <= 3 && !r.fallbackOnly).map(r => ({ id: r.id, round: 1 })));
+    ps.scratchTickets.push({ relicId: 'relic_235' });
+    const offer = settleRelics(ps, { perfect: true, leaked: [] }, { completed: true });
+    assert.ok(offer.options.includes('relic_049'));
+    assert.ok(offer.options.includes('relic_006'));
+    assert.equal(selectRelic(ps, offer.id, offer.options.indexOf('relic_049')).id, 'relic_049');
+    assert.equal(grantRelic(ps, 'relic_049'), null, 'ownership still prevents duplicates');
+    assert.ok(grantRelic(ps, 'relic_006'), 'direct grants use the same exemption');
+  } finally { h.m.dispose(); }
+});
+
+test('recollection-removed high-tier tickets can be bought again in extra rounds with normal prerequisites', () => {
+  for (const tier of [4, 5]) {
+    const h = makeMatch({ mode: 'solo', fake: true }).start();
+    try {
+      h.toPrep(10);
+      const ps = h.ps('p_0');
+      ps.relics = []; ps.scratchTickets = [];
+      const id = tier === 4 ? 'relic_238' : 'relic_243';
+      assert.ok(grantRelic(ps, 'relic_234'));
+      assert.ok(grantRelic(ps, id));
+      grantRelic(ps, 'relic_219');
+      assert.ok(ps.recollectionRemovedRelics.has(id));
+      h.m.gd.endlessStartRound = h.m.gd.hiddenRound + 1;
+      h.m.round = h.m.gd.endlessStartRound;
+      ps.funds = 100;
+      assert.ok(ps.buyScratch(tier, ps.scratchSeq).error, 'lost identity card is still required');
+      grantRelic(ps, 'relic_234');
+      assert.ok(ps.buyScratch(tier, ps.scratchSeq).ok);
+      assert.ok(ps.scratchTickets.some(ticket => ticket.relicId === id));
+      assert.ok(ps.funds < 100);
+    } finally { h.m.dispose(); }
+  }
 });

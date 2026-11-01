@@ -13,9 +13,9 @@ for (const clientCombat of [false,true]) test(`时间机器完整流程 ${client
  assert.ok(h.drive(()=>h.m.phase===PHASE.SETTLE && h.m.round===1));
  const offer=ps.relicOffer;assert.deepEqual(offer.options,['relic_158','relic_014','relic_014','relic_014']);
  assert.equal(h.m.handle(ps.playerId,{t:'g.relic',offerId:offer.id,idx:0}).ok,true);
- assert.equal(h.m.round,2);assert.equal(ps.relicReverseLpRound,2);
+ assert.equal(h.m.round,2);assert.ok(ps.battleInput().relics.includes('relic_158'));
  const lp=ps.lp;assert.ok(h.drive(()=>h.m.phase===PHASE.SETTLE && h.m.round===2));
- assert.equal(ps.lp,lp+3);assert.equal(ps.privateView().lp,lp+3);
- assert.equal(h.lastTo(ps.playerId,'m.private').lp,lp+3);
+ assert.equal(ps.lp,lp-3);assert.equal(ps.privateView().lp,lp-3);
+ assert.equal(h.lastTo(ps.playerId,'m.private').lp,lp-3);
  } finally{h.m.dispose();}
 });

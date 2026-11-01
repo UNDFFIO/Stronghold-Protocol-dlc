@@ -14,7 +14,7 @@
 //     the older one. A unit missing from the newer snapshot (died/left mid-buffer) holds its last position
 //     until renderT reaches the newer snapshot; a unit that only exists in the newer one (spawned mid-buffer)
 //     appears when renderT reaches it. Moves longer than `teleport` tiles between two snapshots snap, as do moves
-//     marked by a parasite attachment `teleport` fx (even a short blink) and units whose deploy animation starts
+//     marked by a parasite attachment or Time Machine `teleport` fx (even a short blink) and units whose deploy animation starts
 //     between snapshots. Other teleport effects retain the normal distance-threshold interpolation rule.
 //   * event queue: a `b.ev` batch is stamped with its game time (`gt`, the snapshot it was drained with); a batch
 //     without one is placed inside the latest snapshot interval (newest snapshot time minus half an interval),
@@ -234,8 +234,8 @@ export class SnapshotBuffer {
     this.interval = 0.1 * this.defaultRate / 2; // game s between snapshots (estimated)
     /** @type {{t:number, ev:any}[]} */
     this.events = [];
-    /** @type {Map<number|string, number[]>} Parasite attachment blink times, retained after cosmetic fx is consumed. */
-    this.parasiteBlinkTimes = new Map();
+    /** @type {Map<number|string, number[]>} Explicit teleport times, retained after cosmetic fx is consumed. */
+    this.teleportSnapTimes = new Map();
     this.meta = null; // latest snapshot's extra fields (dp, killed, total, boss…)
     return this;
   }
@@ -278,10 +278,10 @@ export class SnapshotBuffer {
     // (no animation frames) snapshots keep arriving and must not pile up; a clock left behind is clamped.
     const horizon = s.t - this.keep * this.rate;
     while (this.snaps.length > 2 && this.snaps[1].t < horizon) this.snaps.shift();
-    for (const [id, times] of this.parasiteBlinkTimes) {
+    for (const [id, times] of this.teleportSnapTimes) {
       const kept = times.filter((t) => t > this.snaps[0].t);
-      if (kept.length) this.parasiteBlinkTimes.set(id, kept);
-      else this.parasiteBlinkTimes.delete(id);
+      if (kept.length) this.teleportSnapTimes.set(id, kept);
+      else this.teleportSnapTimes.delete(id);
     }
     if (!Number.isFinite(this.renderT)) this.renderT = Math.max(this.snaps[0].t, s.t - this.delay * this.rate);
     else if (this.renderT < this.snaps[0].t) this.renderT = this.snaps[0].t;
@@ -303,13 +303,13 @@ export class SnapshotBuffer {
     for (const ev of evs) {
       if (!Array.isArray(ev) || typeof ev[0] !== 'string') continue;
       this.events.push({ t: stamp, ev });
-      if (ev[0] === 'fx' && ev[1] === 'teleport' && ev[4]?.kind === 'parasite') {
+      if (ev[0] === 'fx' && ev[1] === 'teleport' && ['parasite', 'timeMachine'].includes(ev[4]?.kind)) {
         const id = ev[4]?.id;
         if ((typeof id === 'number' && Number.isFinite(id)) || (typeof id === 'string' && id)) {
-          const times = this.parasiteBlinkTimes.get(id) ?? [];
+          const times = this.teleportSnapTimes.get(id) ?? [];
           times.push(stamp);
           if (times.length > 32) times.shift();
-          this.parasiteBlinkTimes.set(id, times);
+          this.teleportSnapTimes.set(id, times);
         }
       }
       added++;
@@ -370,9 +370,9 @@ export class SnapshotBuffer {
     return ans;
   }
 
-  _parasiteBlinkAt(id, from, to) {
+  _teleportSnapAt(id, from, to) {
     let first = Infinity;
-    for (const t of this.parasiteBlinkTimes.get(id) ?? []) if (t > from && t <= to && t < first) first = t;
+    for (const t of this.teleportSnapTimes.get(id) ?? []) if (t > from && t <= to && t < first) first = t;
     return first;
   }
 
@@ -422,7 +422,7 @@ export class SnapshotBuffer {
       if (b) {
         const dx = b[1] - a[1], dy = b[2] - a[2];
         // (a deployment in between — the newer snapshot starts its deploy animation — lands on its tile, no slide)
-        const jumpAt = this._parasiteBlinkAt(id, A.t, B.t);
+        const jumpAt = this._teleportSnapAt(id, A.t, B.t);
         const tele = dx * dx + dy * dy > this.teleport * this.teleport || redeployed(a, b) || jumpAt < Infinity;
         const afterJump = alpha >= 1 || time >= jumpAt;
         const start = movementStart(A, B, id);
@@ -447,7 +447,7 @@ export class SnapshotBuffer {
           if (p && dtp > 0 && moveSpan > 0) {
             const dx = a[1] - p[1], dy = a[2] - p[2];
             if (dx * dx + dy * dy <= this.teleport * this.teleport && !redeployed(p, a)
-              && this._parasiteBlinkAt(id, P.t, A.t) === Infinity) {
+              && this._teleportSnapAt(id, P.t, A.t) === Infinity) {
               vx = dx / moveSpan; vy = dy / moveSpan;
             }
           }

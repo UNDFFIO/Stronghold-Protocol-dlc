@@ -19,7 +19,7 @@ export const RELIC_TIERS = Object.freeze([
  * @property {string} [position]
  * @property {string} [requiredBond]
  * @property {Readonly<{income: number}>} [economy]
- * @property {boolean} [reverseLpOnce]
+ * @property {number} [returnEnemies]
  * @property {number} [battleChoiceBonus]
  * @property {boolean} [scratchTicket]
  * @property {boolean} [hideNumbers]
@@ -44,6 +44,7 @@ export const RELIC_TIERS = Object.freeze([
  * @property {boolean} [extraEnemyType]
  * @property {boolean} [loseReserves]
  * @property {number} [bondLayerLossPerSecond]
+ * @property {number} [egirStage]
  */
 /**
  * @param {string} number
@@ -60,13 +61,19 @@ const relic = (number, name, tier, desc, sourceEffect, mods, extra = {}) => Obje
 
 // Tiers describe the adapted strength, rather than the original rarity. "All" means the owner's operators only.
 export const RELICS = Object.freeze([
+  relic('244', N_('“犹疑”'), 3, N_('我方阿戈尔盟约干员可以攻击空中单位'),
+    N_('所有我方干员阻挡数-1（不会低于1），让探索走向不同的结局'), {}, { normalDrop: false, egirStage: 1 }),
+  relic('245', N_('“观望”'), 4, N_('我方阿戈尔盟约干员可以攻击空中单位，阻挡数+1；击倒敌人时，攻击速度+100，持续8秒（重复触发刷新持续时间）'),
+    N_('所有我方干员阻挡数+1，让探索走向不同的结局'), {}, { normalDrop: false, egirStage: 2 }),
+  relic('246', N_('“决心”'), 5, N_('我方阿戈尔盟约干员可以攻击空中单位，阻挡数+1；击倒敌人时，攻击速度+100，持续8秒（重复触发刷新持续时间）。我方已部署的浊心斯卡蒂、水月的攻击范围视为上述干员的额外攻击范围；上述干员攻击范围内的敌人移动速度无法超过初始速度'),
+    N_('所有我方干员阻挡数+2，防御力和生命+120%，法术抗性+20，让探索走向不同的结局'), {}, { normalDrop: false, egirStage: 3 }),
   relic('239', N_('坍缩之种'), 6, N_('每回合进入休整期前，随机禁用自身阵地的4个可部署地块（战场#04、#05为3个，#08为5个），持续至本回合结束；禁用位置每回合变化，原有单位退回整备区。Boss战回合不生效'),
     N_('所有我方单位的攻击力和生命值-15%'), {}),
   relic('227', N_('无垠赠礼'), 6, N_('游戏界面上的文字倒序显示（仅对自己生效）'),
     N_('坍缩值+3，让探索开启不同的方向'), {}, { reverseText: true }),
   relic('228', N_('路网'), 6, N_('每回合随机选取一种本局原定种类以外的敌人，战斗中额外出现原定敌人数50%的该类敌人（仅对自己生效）'),
     N_('战斗出现额外敌人，让探索开启不同的方向'), {}, { extraEnemyType: true }),
-  relic('219', N_('追忆仪'), 6, N_('获得时，失去整备区所有干员和装备，失去7件随机收藏品'),
+  relic('219', N_('追忆仪'), 6, N_('获得时，失去整备区所有干员和装备，随机失去至多7件非负面收藏品；因此失去的史诗、传说藏品可在额外回合重新获得'),
     N_('获得时，失去所有的源石锭及希望，并使战斗后获得的指挥等级经验和源石锭-50％。在误入奇境有特殊用处'), {}, { loseReserves: true }),
   relic('220', N_('“小磨唧”'), 6, N_('战斗中，每秒随机使自身一个已激活且层数大于0的盟约减少20层，最低降至0层。进入休整期时恢复扣除的层数'),
     N_('费用自然回复速度降低50％，让探索开启不同的方向。在故肆有特殊用处'), {}, { bondLayerLossPerSecond: 20 }),
@@ -97,8 +104,8 @@ export const RELICS = Object.freeze([
     N_('我方干员击倒敌人时，回复10%最大生命。'), {}),
   relic('119', N_('“庇护”'), 1, N_('我方高台干员部署时立刻获得最大生命值100%的屏障'),
     N_('高台干员部署时立刻获得最大生命100%的屏障。'), {}),
-  relic('158', N_('时间机器'), 1, N_('下一场战斗中，扣除的目标生命值改为等量增加（仅生效一场）'),
-    N_('原创：下一场战斗目标生命值扣除变为增加。'), {}, { reverseLpOnce: true }),
+  relic('158', N_('时间机器'), 1, N_('每场战斗中，前3个进入蓝门的敌人立即传送回红门，每个敌人仅生效1次。'),
+    N_('原创：保留敌人的生命值与状态，立即传送回红门。'), {}, { returnEnemies: 3 }),
   relic('003', N_('橙味风暴'), 1, N_('所有我方干员的攻击力+8%'), N_('携带名额 +1；四种形态攻击提高 1/3/5/7%。'), { atkPct: 0.08 }),
   relic('002', N_('凉拌海草'), 1, N_('所有我方干员的攻击速度+10'), N_('携带名额 +1；四种形态攻速增加 1/3/5/7。'), { aspd: 10 }),
   relic('001', N_('精选兽肉罐头'), 1, N_('所有我方干员每秒回复50点生命'), N_('携带名额 +1；四种形态每秒回血 3/5/8/10。'), { hpRegen: 50 }),
@@ -241,18 +248,18 @@ export function dropWeights(round, { leaked = false } = {}) {
   return leaked ? [weights[0] + weights[1], weights[2], weights[3], weights[4], 0] : weights;
 }
 
-export function canReceiveRelic(r, owned, { hasScratchTicket = false, bonds = {}, extraRound = 0 } = {}) {
+export function canReceiveRelic(r, owned, { hasScratchTicket = false, bonds = {}, extraRound = 0, recollectionRemovedRelics = new Set() } = {}) {
   const ids = idsOf(owned);
-  return !!r && !(extraRound > 0 && (r.normalRoundsOnly || ((r.tier === 4 || r.tier === 5) && r.id !== 'relic_241')))
+  return !!r && !(extraRound > 0 && (r.normalRoundsOnly || ((r.tier === 4 || r.tier === 5) && !r.egirStage && r.id !== 'relic_241' && !recollectionRemovedRelics.has(r.id))))
     && (!r.requiredBond || bonds[r.requiredBond]?.active === true)
     && (r.fallbackOnly || (r.scratchTicket ? ids.has('relic_234') && !hasScratchTicket : !ids.has(r.id)));
 }
 
-export function pickRelic(round, owned, rng, { multiplayer = false, tierWeights = null, hasScratchTicket = false, excludeIds = [], bonds = {}, extraRound = 0 } = {}) {
+export function pickRelic(round, owned, rng, { multiplayer = false, tierWeights = null, hasScratchTicket = false, excludeIds = [], bonds = {}, extraRound = 0, recollectionRemovedRelics = new Set() } = {}) {
   const excluded = new Set(excludeIds);
   const weights = tierWeights ?? dropWeights(round);
   const pools = RELIC_TIERS.map(({ tier, normalDrop }) => normalDrop === false ? [] : RELICS.filter((r) => !r.fallbackOnly && r.normalDrop !== false && r.tier === tier && !excluded.has(r.id)
-    && canReceiveRelic(r, owned, { hasScratchTicket, bonds, extraRound }) && (!r.multiplayerOnly || multiplayer)));
+    && canReceiveRelic(r, owned, { hasScratchTicket, bonds, extraRound, recollectionRemovedRelics }) && (!r.multiplayerOnly || multiplayer)));
   const total = weights.reduce((sum, w, i) => sum + (pools[i].length ? w : 0), 0);
   if (!total) return null;
   let roll = rng() * total;
@@ -265,11 +272,11 @@ export function pickRelic(round, owned, rng, { multiplayer = false, tierWeights 
 }
 
 /** Distinct eligible candidates first; each missing slot is filled with the repeatable kettle. */
-export function pickRelicChoices(round, owned, rng, { leaked = false, multiplayer = false, hasScratchTicket = false, bonds = {}, count = 3, extraRound = 0 } = {}) {
+export function pickRelicChoices(round, owned, rng, { leaked = false, multiplayer = false, hasScratchTicket = false, bonds = {}, count = 3, extraRound = 0, recollectionRemovedRelics = new Set() } = {}) {
   const excluded = [];
   const choices = [];
   for (let i = 0; i < count; i++) {
-    const opts = { multiplayer, hasScratchTicket, bonds, extraRound, excludeIds: excluded, tierWeights: dropWeights(round, { leaked }) };
+    const opts = { multiplayer, hasScratchTicket, bonds, extraRound, recollectionRemovedRelics, excludeIds: excluded, tierWeights: dropWeights(round, { leaked }) };
     const r = pickRelic(round, owned, rng, opts);
     if (!r && !dropWeights(round).some((w) => w > 0)) break;
     choices.push(r?.id ?? 'relic_014');

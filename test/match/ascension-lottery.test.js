@@ -124,7 +124,8 @@ test('lottery acquisition keeps special collectible effects: phone reduction and
     h.m.startRound(5);
     assert.deepEqual([...ps.ascensionLottery.ids].sort(), ['relic_014', 'relic_157', 'relic_158']);
     assert.equal(h.m.difficultyLevel, 6);
-    assert.equal(activeReverseLp(ps), true);
+    assert.equal(activeReverseLp(ps), false);
+    assert.ok(ps.battleInput().relics.includes('relic_158'));
     assert.equal(grantRelic(ps, 'relic_157'), null, 'duplicate grants do not reduce difficulty again');
     h.m.startRound(6);
     assert.equal(activeReverseLp(ps), false);

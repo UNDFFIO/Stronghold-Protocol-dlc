@@ -318,7 +318,7 @@ export function liveLp(base, { phase, round, lp, statsLeaks = null, leaks = 0, c
  * @param {number} lp settled LP @param {number} pending @param {{ unite?: boolean, cap?: number }} [opts]
  */
 export function pendingTip(lp, pending, { unite = false, cap = 10, left = null } = {}) {
-  if (pending < 0) return t('时间机器：本场战斗结算时目标生命值增加 {0} 点', { 0: -pending });
+  if (pending < 0) return t('本场战斗结算时目标生命值增加 {0} 点', { 0: -pending });
   if (!(pending > 0)) return null;
   if (unite && Number.isFinite(left)) {
     const each = left > cap ? t('剩余不足 {cap} 个后，队友每击倒一个少扣 1 点', { cap }) : t('队友每击倒一个就少扣 1 点');
