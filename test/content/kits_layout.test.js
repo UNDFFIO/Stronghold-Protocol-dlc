@@ -17,6 +17,7 @@ import { KIT_FILES, TIER_KITS, KITS, STANDIN_KIT_FILES, STANDIN_KITS, OPERATOR_K
 import { KITS as CONTENT_KITS } from '../../server/sim/content/index.js';
 import { diyRecord } from '../../shared/diy.js';
 import { normalizeChess } from '../../server/sim/simdata.js';
+import { SPECIAL_KIT_FILES, SPECIAL_KITS } from '../../server/sim/content/kits/index.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '../..');
 const KIT_DIR = join(ROOT, 'server/sim/content/kits');
@@ -25,9 +26,22 @@ const BACKUPS = JSON.parse(readFileSync(join(ROOT, 'data/backups.json'), 'utf8')
 const jsIn = (dir) => readdirSync(join(KIT_DIR, dir)).filter((f) => f.endsWith('.js')).sort();
 
 test('kits/index.js lists every kit file of kits/ops/ exactly once, and only those', () => {
-  const listed = [...KIT_FILES.flat(), ...STANDIN_KIT_FILES, ...OPERATOR_KIT_FILES, ...VERSION_KIT_FILES, ...DIY_BORROW_KIT_FILES];
+  const listed = [...KIT_FILES.flat(), ...STANDIN_KIT_FILES, ...OPERATOR_KIT_FILES, ...VERSION_KIT_FILES, ...DIY_BORROW_KIT_FILES, ...SPECIAL_KIT_FILES];
   assert.equal(new Set(listed).size, listed.length, 'a file listed twice');
   assert.deepEqual([...listed].sort(), jsIn('ops'));
+});
+
+test('special kits register hidden standalone operators outside the self-select roster', async () => {
+  for (const file of SPECIAL_KIT_FILES) {
+    const { default: kits } = await import(`../../server/sim/content/kits/ops/${file}`);
+    for (const [id, builder] of Object.entries(kits)) {
+      assert.equal(CHESS[id].chessType, 'SPECIAL');
+      assert.equal(CHESS[id].isHidden, true);
+      assert.equal(SPECIAL_KITS[id], builder);
+      assert.equal(KITS[id], builder);
+      assert.ok(!KITTED_CHARS.includes(CHESS[id].charId));
+    }
+  }
 });
 
 test('a stand-in kit file standin-<codename>.js registers the kit of that stand-in charId (data/backups.json units)', async () => {
@@ -113,10 +127,10 @@ test('a version kit file ver-<codename>.js registers that charId; ver-diy.js reg
 test('the registry is the tier groups, then the stand-ins, then the 自选 operators, then the version kits, then the borrowed 自选 charIds; content/index.js serves the same object', () => {
   assert.deepEqual(Object.keys(KITS), [
     ...TIER_KITS.flatMap((t) => Object.keys(t)), ...Object.keys(STANDIN_KITS), ...Object.keys(OPERATOR_KITS),
-    ...Object.keys(VERSION_KITS), ...Object.keys(DIY_BORROW_KITS),
+    ...Object.keys(VERSION_KITS), ...Object.keys(DIY_BORROW_KITS), ...Object.keys(SPECIAL_KITS),
   ]);
   // ver-diy.js is one file and 24 keys; every other kit file is one key
-  assert.equal(Object.keys(KITS).length, KIT_FILES.flat().length + STANDIN_KIT_FILES.length + OPERATOR_KIT_FILES.length + VERSION_KIT_FILES.length + DIY_BORROW_CHARS.length);
+  assert.equal(Object.keys(KITS).length, KIT_FILES.flat().length + STANDIN_KIT_FILES.length + OPERATOR_KIT_FILES.length + VERSION_KIT_FILES.length + DIY_BORROW_CHARS.length + Object.keys(SPECIAL_KITS).length);
   assert.equal(CONTENT_KITS, KITS);
 });
 
@@ -127,8 +141,9 @@ test('kit files stay browser-safe and deterministic: no Node-only or server-only
     const specifiers = [...src.matchAll(/^(?:import|export)\s[^;]*?\sfrom\s+['"]([^'"]+)['"]/gm), ...src.matchAll(/\bimport\(\s*['"`]([^'"`]+)['"`]/g)];
     for (const [, p] of specifiers) {
       assert.ok(p.startsWith('.'), `${f}: bare import ${p}`);
-      // never server / client code, never an index module (content/index.js, kits/index.js: an import cycle)
-      assert.ok(!/(^|\/)(match|net|public)\/|(^|\/)index\.js$/.test(p), `${f}: imports ${p}`);
+      // Never server / client code or a registry index (an import cycle). support/index.js is the shared pure
+      // membership / data helper, not a registry, and is safe for the special kit to reuse.
+      assert.ok(!/(^|\/)(match|net|public)\//.test(p) && (!/(^|\/)index\.js$/.test(p) || p.endsWith('/support/index.js')), `${f}: imports ${p}`);
     }
     assert.ok(!/Math\.random|Date\.now|performance\.now|setTimeout|setInterval/.test(src), `${f}: clock / Math.random (use battle.rng, battle.after / every)`);
   }

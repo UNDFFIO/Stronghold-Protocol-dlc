@@ -38,7 +38,7 @@ test('warm record indexes and art helpers follow every version, then restore the
       assert.equal(view.chess(c.chessId), c);
       assert.ok(chessAvatarUrl(manifest, c), c.chessId);
       assert.ok(chessPortraitUrl(manifest, c), c.chessId);
-      assert.equal(skillIconUrl(manifest, c), manifest.skills[c.assets.skillIcon], c.chessId);
+      assert.equal(skillIconUrl(manifest, c), c.skill ? manifest.skills[c.assets.skillIcon] : manifest.ui['skillIcon/empty'], c.chessId);
       assert.deepEqual(view.standIn(c.chessId), standInRecord(c, records.backups), `${c.chessId}: active stand-in`);
     }
     for (const c of Object.values(records.chess).filter(c => c.isDiy)) {

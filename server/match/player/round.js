@@ -7,7 +7,7 @@
 // the player state).
 
 import { relicIncome, relicRoundIncome, relicDeployPenalty } from '../../../shared/relics.js';
-import { startRelicRound, relicsView } from '../relics.js';
+import { startRelicRound, relicsView, grantVictoriaRelic } from '../relics.js';
 import { retainBestScratchTicket } from '../scratchTickets.js';
 import { boardOrder, pieceDir, tileKey } from '../board.js';
 import { computeBonds, bondSnapshot, activatedLayers, bondsWithGains } from '../bondsMeta.js';
@@ -95,7 +95,7 @@ export class PlayerRound {
     // [ASSUMED] A reduced cap returns excess operators in reverse board order, preserving every piece.
     if (relicDeployPenalty(this.relics)) for (const { r, c, piece } of boardOrder(this.board).reverse()) {
       if (this.deployCount <= this.deployCap) break;
-      if (piece.kind !== 'chess') continue;
+      if (piece.kind !== 'chess' || this.gd.chess(piece.id)?.noDeployCount) continue;
       this.board.delete(tileKey(r, c));
       this.stow(piece, { allowTemp: true });
       this.removeTokensOf(piece.uid);
@@ -110,6 +110,7 @@ export class PlayerRound {
     this.bonds = computeBonds(this.gd, this);
     this.dirty();
     this._reportActiveBonds(before, this.bonds);
+    grantVictoriaRelic(this);
   }
 
   /**

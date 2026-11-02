@@ -1,5 +1,6 @@
 // Shared DATA.md reference checks, extracted verbatim from build-data (DESIGN §32.5).
 import { statusKey, standInRecord, unitForm } from '../standIn.js';
+const isSkilllessSpecial = (rec) => rec.chessType === 'SPECIAL' && rec.skill === null && Array.isArray(rec.skills) && rec.skills.length === 0;
 /** Recursively find non-finite numbers (NaN/Infinity would silently become null in JSON). */
 function findNonFinite(obj, path, out) {
   if (typeof obj === 'number') { if (!Number.isFinite(obj)) out.push(path); return; }
@@ -26,10 +27,11 @@ export function validateReferences(f, { officialOwnedSkills = true } = {}) {
     for (const t of c.talents || []) if (t.tokenKey && !c.tokens.includes(t.tokenKey)) err(`chess ${c.chessId}: talent token ${t.tokenKey} not in tokens`);
     if (c.isDiy) continue;
     if (!c.stats) err(`chess ${c.chessId}: no stats`);
-    if (!c.skill) err(`chess ${c.chessId}: no resolvable skill`);
+    const skillless = isSkilllessSpecial(c);
+    if (!c.skill && !skillless) err(`chess ${c.chessId}: no resolvable skill`);
     if (!Array.isArray(c.rangeGrid)) err(`chess ${c.chessId}: no range grid`);
     // DESIGN §16 loadout choices
-    if (!Array.isArray(c.skills) || c.skills.filter((s) => s.isDefault).length !== 1 || c.skills.find((s) => s.isDefault)?.skillId !== c.skill?.skillId) err(`chess ${c.chessId}: skills[] without exactly one default = skill`);
+    if (!skillless && (!Array.isArray(c.skills) || c.skills.filter((s) => s.isDefault).length !== 1 || c.skills.find((s) => s.isDefault)?.skillId !== c.skill?.skillId)) err(`chess ${c.chessId}: skills[] without exactly one default = skill`);
     if (c.modules && (c.modules.filter((m) => m.isDefault).length !== (c.module?.active ? 1 : 0) || !c.statsBase || !c.traitBase || !c.talentsBase)) err(`chess ${c.chessId}: inconsistent module choices`);
     // The old `placement` string is not a field. 高台 is the boolean `placeOnRanged` (build-data, from the Chinese
     // trait), read by shared/highGround.js, which still matches the Simplified line when the flag is absent.
@@ -206,7 +208,8 @@ function checkData(data, { kitExists = null, vanilla = null, owners = null, vali
       || !(rec.stats.maxHp > 0) || !(rec.stats.bat > 0)) bad(at + '.stats', 'numeric core stats and positive maxHp/bat required');
     if (!matchesSchema(rec.rangeGrid, GRID_SCHEMA)) bad(at + '.rangeGrid', 'range grid required');
     if (!object(rec.trait) || !Array.isArray(rec.talents)) bad(at, 'trait and talents required');
-    if (!Array.isArray(rec.skills) || !rec.skills.length) { bad(at + '.skills', 'skills required'); return; }
+    const skillless = isSkilllessSpecial(rec);
+    if (!skillless && (!Array.isArray(rec.skills) || !rec.skills.length)) { bad(at + '.skills', 'skills required'); return; }
     const seen = new Set();
     for (const s of rec.skills) {
       if (!object(s) || typeof s.skillId !== 'string' || !Number.isInteger(s.index) || seen.has(s.index) || !object(s.bb)) bad(at + '.skills', 'skill id, unique index and blackboard required');
@@ -215,7 +218,7 @@ function checkData(data, { kitExists = null, vanilla = null, owners = null, vali
         || !['duration','spCost','initSp'].every(k => typeof s[k] === 'number' && Number.isFinite(s[k])))) bad(at + '.skills', 'invalid skill kind, SP type or numeric field');
       if (s?.skillSpec) problems.push(...validateSkillSpec(s.skillSpec, at + '.skills.skillSpec'));
     }
-    if (defaults && (rec.skills.filter(s => s?.isDefault === true).length !== 1 || rec.skills.find(s => s?.isDefault)?.skillId !== rec.skill?.skillId)) bad(at, 'exactly one default equal to skill required', 'PLUGIN_RECORD_SKILLS');
+    if (defaults && !skillless && (rec.skills.filter(s => s?.isDefault === true).length !== 1 || rec.skills.find(s => s?.isDefault)?.skillId !== rec.skill?.skillId)) bad(at, 'exactly one default equal to skill required', 'PLUGIN_RECORD_SKILLS');
     if (defaults && rec.skill) {
       const { isDefault, ...s } = rec.skills.find(s => s?.isDefault) || {};
       if (JSON.stringify(s) !== JSON.stringify(rec.skill)) {
@@ -241,7 +244,12 @@ function checkData(data, { kitExists = null, vanilla = null, owners = null, vali
   for (const [id, c] of Object.entries(data.chess)) {
     for (const k of ['bonds', 'garrisonIds', 'tokens']) array(c[k], `chess.${id}.${k}`);
     const a = data.chess[c.baseId], b = data.chess[c.goldenId];
-    if (c.chessId !== id || (id !== c.baseId && id !== c.goldenId) || !a || !b || a === b || a.chessId !== c.baseId || b.chessId !== c.goldenId
+    if (c.chessType === 'SPECIAL') {
+      if (c.chessId !== id || c.baseId !== id || c.goldenId !== null || c.isGolden !== false || c.isDiy !== false
+        || c.upgradeNum !== 0 || c.upgradeChessId !== null || c.isHidden !== true || c.visible !== false) {
+        bad(id, 'special operator must be hidden, standalone and non-promotable', 'PLUGIN_DATA_PAIR');
+      }
+    } else if (c.chessId !== id || (id !== c.baseId && id !== c.goldenId) || !a || !b || a === b || a.chessId !== c.baseId || b.chessId !== c.goldenId
       || a.baseId !== c.baseId || b.baseId !== c.baseId || a.goldenId !== c.goldenId || b.goldenId !== c.goldenId
       || a.isGolden || !b.isGolden || a.charId !== b.charId || a.tier !== b.tier || c.isGolden !== (id === c.goldenId)
       || a.upgradeChessId !== b.chessId || b.upgradeChessId != null) bad(id, 'inconsistent normal/elite pair', 'PLUGIN_DATA_PAIR');

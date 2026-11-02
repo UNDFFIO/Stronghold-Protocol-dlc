@@ -182,7 +182,7 @@ export class PlayerPlacement {
       return OK;
     }
     // hand/temp → board: a chess swap reuses the source slot, even with a full bench (round53).
-    if (!occ || occ.kind !== 'chess') {
+    if (!this.gd.chess(piece.id)?.noDeployCount && (!occ || occ.kind !== 'chess' || this.gd.chess(occ.id)?.noDeployCount)) {
       if (this.deployCount >= this.deployCap) return fail(ERR.BOARD_FULL);
     }
     this._detach(loc);

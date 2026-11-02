@@ -208,7 +208,8 @@ for (const dir of DIRS) {
     const split = { own: 0, tier: 0, op: 0, pending: new Set() };
     let checked = 0;
     for (const { id, rec, def } of defsOf(data)) {
-      if (rec.isDiy || rec.charId == null) continue;
+      // Special skillless DLC operators use the generic attack profile, covered by special-operators.test.js.
+      if (rec.isDiy || rec.charId == null || rec.chessType === 'SPECIAL') continue;
       checked++;
       const key = officialKitKey(def);
       if (!rec.baseId || rec.baseId === id) {
@@ -358,9 +359,9 @@ for (const dir of DIRS) {
   });
 }
 
-test('kits of data/: the new lookup equals the by-id lookup for all 266 records', () => {
+test('kits of data/: the new lookup equals the by-id lookup for all 267 records', () => {
   const all = defsOf(dataOf(DEFAULT_DIR));
-  assert.equal(all.length, 266);
+  assert.equal(all.length, 267);
   for (const { id, def } of all) assert.equal(officialKitKey(def), oldKitKey(def), id);
 });
 

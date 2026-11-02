@@ -148,10 +148,34 @@ Top level: `{ season, seasonName, modes, economy, lpCapPerRound, bossOvertimeAft
 
 ---
 
-## 2. `chess.json` — `{ [chessId]: Chess }` (266 = 133 normal + 133 golden)
+## 2. `chess.json` — `{ [chessId]: Chess }` (266 official + 1 DLC special)
 
 112 are `visible` (non-hidden, non-DIY) normal chess: per tier 16/17/19/22/19/19. 17 are `isHidden` (retired
 上半 entries or effect-only such as `chess_char_1_15_a` 盟约·辅助干员 from band Pith); 4 are DIY (甄选) slots.
+These counts describe the 266 official records; the default DLC build also carries the special operator below.
+
+### 特殊干员（DLC）
+
+`shared/specialOperators.js` defines `chess_special_lionheart_a`（狮心王）as `chessType: 'SPECIAL'`,
+`visible: false`, `isHidden: true`, `unsellable: true`, `noDeployCount: true`, with only `victoriaShip`. It has no skill, elite form, promotion or ordinary
+acquisition event. The exclusive Royal Power collectible (`relic_247`) grants one copy when the active Victoria Alliance reaches 30 persistent stacks, once per player per match. Its stats, immunities and model come from `token_10040_siege2_vlion`'s ordinary
+`chess_char_6_07_a` variant: HP 4000, ATK 425, DEF 270, RES 0, block 1, interval 2.5 s, DP 0.
+Its attack range is a 13-tile diamond centered on its deployment tile (row widths 1/3/5/3/1, including its own
+tile), as specified by the maintainer on 2026-11-02. It attacks for true damage; [ASSUMED] tier VI follows Vina,
+and normal operator equipment rules apply. Its trait and three talents describe the maintainer-defined block transfer,
+Victoria healing sharing, control aura and on-field revival; `special-lionheart.js` in the special kit registry implements
+them. With the owner's six-member Victoria Bond active, enemies leaving its range are attracted toward it for 10 seconds.
+Direct healing is disabled. Each of the owner's Victoria layers also grants +1% max HP and DEF as additive
+`hpPct` / `defPct` bonuses; live layer changes refresh the same buff. This bonus pauses during the 25-second recovery
+and resumes at the latest layer count before full-HP restoration. Recovery grants invulnerability and prevents attacks
+without applying Stun; [ASSUMED] its lower enemy targeting priority uses taunt -1 until recovery ends.
+See [the match contract](design/match.md) for timing and exclusions.
+
+The default full `tools/build-data.mjs` build adds it **after** building the official acquisition pools, then checks
+its references. `node tools/build-special-operators.mjs` regenerates just the special records, bond membership and
+their four language overlays from the existing generated snapshot; it requires no official-data cache and is
+idempotent. Do not edit the generated JSON by hand. Earlier official-version builds retain their official roster.
+See [the match contract](design/match.md) for deployment and acquisition rules.
 
 | Field | Example | Meaning |
 |---|---|---|

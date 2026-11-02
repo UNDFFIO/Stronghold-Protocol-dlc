@@ -4,6 +4,15 @@ import { normalizeDifficultyLevel } from '../../shared/difficulty.js';
 import { createRng, deriveSeed } from '../sim/rng.js';
 import { msg, dn } from '../../shared/i18n.js';
 import { computeBonds } from './bondsMeta.js';
+import { LIONHEART_ID } from '../../shared/specialOperators.js';
+
+/** Live persistent milestone; never grant through a detached preview or a normal reward source. */
+export function grantVictoriaRelic(ps) {
+  if (ps.m.players?.get(ps.playerId) !== ps || !ps.alive || ps.left || ps.lp <= 0 || ps.royalPowerGranted) return null;
+  const bond = ps.bonds.victoriaShip;
+  if (!bond?.active || bond.layers < 30) return null;
+  return grantRelic(ps, 'relic_247', { victoriaMilestone: true });
+}
 
 /** Maintainer adaptation: settlement only, independent of the ordinary low-loss reward. */
 export function settleEgirRelic(ps, result) {
@@ -72,14 +81,24 @@ export function grantNegativeRelics(ps, count) {
 }
 
 /** Shared acquisition path for choices and immediate grants; preserves one-time collectible effects. */
-export function grantRelic(ps, id, { round = ps.m.round, egirEvolution = false } = {}) {
+export function grantRelic(ps, id, { round = ps.m.round, egirEvolution = false, victoriaMilestone = false } = {}) {
   const r = getRelic(id);
   if (r?.egirStage && !egirEvolution) return null;
+  if (r?.victoriaMilestone) {
+    const bond = computeBonds(ps.gd, ps).victoriaShip;
+    if (!victoriaMilestone || ps.royalPowerGranted || !bond?.active || bond.layers < 30 || ps.lp <= 0
+      || ps.m.players?.get(ps.playerId) !== ps || !ps.gd.chess(LIONHEART_ID)) return null;
+  }
   if (r?.deathNote && ps.m.order.some((p) => p !== ps && p.relics.some((entry) => entry.id === id))) return null;
   if (!ps.alive || ps.left || !canReceiveRelic(r, ps.relics, { bonds: ps.bonds, recollectionRemovedRelics: ps.recollectionRemovedRelics, extraRound: ps.m.gd.endlessRound(ps.m.round) })
     || (r.multiplayerOnly && ps.m.isSolo)) return null;
   const reward = { id: r.id, round };
   if (!ps.relics.some((o) => o.id === id)) ps.relics.push(reward);
+  if (r.victoriaMilestone) {
+    // Reserve before acquireChess's onGain/recompute hooks; removal and reactivation cannot replay the gift.
+    ps.royalPowerGranted = true;
+    ps.acquireChess(LIONHEART_ID, { source: 'relic:royal-power', fromPool: false });
+  }
   if (r.scratchTicket) issueScratchTicket(ps, r, round);
   if (r.healLpOnAcquire) {
     // Keep the owner's healed share through later boss-pool synchronization.

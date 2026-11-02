@@ -82,7 +82,7 @@ test('every chess, 自选 form and stand-in form: the raw keyframes plus every p
   };
   let n = 0, withSteps = 0;
   for (const c of Object.values(chess)) {
-    if (c.isDiy || !c.charId) continue;
+    if (c.isDiy || !c.charId || c.chessType === 'SPECIAL') continue;
     check(c.chessId, c.charId, c.status, c.statsBase ?? c.stats);
     n++;
     if (Object.keys(steps(c.charId)).length) withSteps++;
@@ -108,7 +108,7 @@ test('talent candidates: every chess talent is the last one unlocked at its stat
   };
   let potentialTalents = 0;
   for (const c of Object.values(chess)) {
-    if (c.isDiy || !c.charId) continue;
+    if (c.isDiy || !c.charId || c.chessType === 'SPECIAL') continue;
     const base = c.talentsBase ?? c.talents;
     (CT[c.charId].talents || []).forEach((t, index) => {
       const cands = (t.candidates || []).filter((x) => ok(x, c.status.phase, c.status.level));

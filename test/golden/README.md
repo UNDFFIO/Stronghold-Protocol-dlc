@@ -193,3 +193,31 @@ see [UPSTREAM-0.3.1.md](UPSTREAM-0.3.1.md) for the source and DLC compatibility 
 ## Upstream 0.3.2 sync (2026-10-25)
 
 Merged upstream `5def2977`, retaining DLC match progression. Five battle families reproduce upstream exactly; match digests retain DLC rewards and economy. See [UPSTREAM-0.3.2.md](UPSTREAM-0.3.2.md) for every moved scenario and its cause.
+
+## DLC 王权发放与狮心王层数成长（2026-11-02）
+
+在当前工作区的王权收藏品（激活维多利亚并达到30层时赠送狮心王）基础上，加入狮心王每层维多利亚生命上限和防御力各+1%的成长，一并重算全部291个场景。相对原黄金基线，仅 `matches.json` 中以下三个场景变化；其余288个场景保持不变，所有场景均无引擎错误：
+
+- `solo-FUNNY-2`：王权发放后，最终编队包含狮心王，部署计数、盟约层数和战斗统计随之变化。
+- `coop2-NORMAL-8-serverrun`：最终编队新增狮心王，战斗结果、后续编队和经济／随机数摘要变化。
+- `coop2-NORMAL-6-coverage-diy`：发放路径改变后续编队、装备、随机数与自选干员部署记录；最终编队未包含狮心王。该场景保留为原种子的结果回归。
+
+这些是王权发放与本次成长共同进入当前工作区基线后的结果，不将全部差异单独归因为属性成长。
+
+原 `coop2-NORMAL-6-coverage-diy` 已不再部署推进之王，因此保留该种子的结果回归，并补充
+`coop2-NORMAL-28-coverage-diy`（同样的自选配置和5级开局调度中心）。新场景在第4—8回合实际部署推进之王，
+继续覆盖商店抽取 → 部署 → 战斗路径，加入快速子集，并由 `test/golden-diy.test.js` 保持原有覆盖断言。
+语料由291个场景增加至292个；其余既有场景的上述变化范围不变。
+
+## DLC 狮心王恢复状态调整（2026-11-02）
+
+致命伤害后的25秒恢复改为无法攻击、嘲讽等级-1，不再施加眩晕。重算全部292个场景，
+相对本次调整前的工作区基线没有场景摘要变化；专门的狮心王测试覆盖恢复期间停攻、无自身眩晕、
+敌方索敌顺序以及恢复结束后解除优先度降低。
+
+## DLC 狮心王诱导延长（2026-11-02）
+
+6人维多利亚盟约下，敌人离开狮心王范围时的诱导由3秒延长至10秒。重算全部292个场景，
+仅 `matches.json` 中 `solo-FUNNY-2`、`coop2-NORMAL-8-serverrun`、`coop2-NORMAL-6-coverage-diy`
+相对本次修改前的工作区基线变化：更长诱导改变敌人移动和击倒／漏怪，继而影响后续盟约层数、
+编队、经济及随机数摘要。其余289个场景不变，无引擎错误；自选与补位覆盖断言保持通过。

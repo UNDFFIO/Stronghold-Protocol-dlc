@@ -5,6 +5,11 @@ the **UI owner** consuming `m.public` / `m.private` / `m.result`, and anyone dri
 Normative contracts stay in DESIGN.md §6 and §8 ([design/match.md](design/match.md),
 [design/network.md](design/network.md)); this file documents the implementation and every assumption it makes.
 
+DLC 特殊干员“狮心王”使用 `chess_special_lionheart_a`，为独立的【维多利亚】干员。无法出售，不占部署名额，
+仍计入盟约；服务端拒绝出售及用普通干员替换它来绕过部署上限，界面保持相同规则。激活维多利亚盟约且持久层数达到30时，`grantVictoriaRelic` 经 `grantRelic` 自动授予史诗收藏品王权（`relic_247`），立即调用 `acquireChess` 赠送1名狮心王；`royalPowerGranted` 在赠送前置位，本局仅一次。整备区满位时进入临时队列，额外回合也可触发；
+商店、随机赠送、合成奖励、自选编队均不包含它。数值与生成入口见 [DATA.md](DATA.md#特殊干员dlc)，
+完整规则见 [match contract](design/match.md)。
+
 ```
 server/match/
   Match.js         state machine, timers, round loop, co-op orchestration, views (the lobby⇄match interface is at the top)

@@ -1124,6 +1124,7 @@ function MatchScreen() {
 
   /** 出售 (operators, underframe +N) / 销毁 (items and Arts, confirmed: they cannot be sold). */
   const sellPiece = useCallback(async (piece) => {
+    if (piece?.kind === 'chess' && data.lookup('chess', piece.id)?.unsellable) return false;
     if (!piece) return false;
     const closeIt = () => { setDetail((d) => (d?.kind === 'piece' && d.uid === piece.uid ? null : d)); setSel((x) => (x && x.uid === piece.uid ? null : x)); };
     if (piece.kind === 'item') {

@@ -45,6 +45,7 @@ export const RELIC_TIERS = Object.freeze([
  * @property {boolean} [loseReserves]
  * @property {number} [bondLayerLossPerSecond]
  * @property {number} [egirStage]
+ * @property {boolean} [victoriaMilestone]
  */
 /**
  * @param {string} number
@@ -61,6 +62,8 @@ const relic = (number, name, tier, desc, sourceEffect, mods, extra = {}) => Obje
 
 // Tiers describe the adapted strength, rather than the original rarity. "All" means the owner's operators only.
 export const RELICS = Object.freeze([
+  relic('247', N_('王权'), 4, N_('立即获得1名干员“狮心王”'),
+    N_('原创：激活维多利亚盟约且达到30层时获得，本局仅一次；不进入常规收藏品获取途径。'), {}, { normalDrop: false, victoriaMilestone: true }),
   relic('244', N_('“犹疑”'), 3, N_('我方阿戈尔盟约干员可以攻击空中单位'),
     N_('所有我方干员阻挡数-1（不会低于1），让探索走向不同的结局'), {}, { normalDrop: false, egirStage: 1 }),
   relic('245', N_('“观望”'), 4, N_('我方阿戈尔盟约干员可以攻击空中单位，阻挡数+1；击倒敌人时，攻击速度+100，持续8秒（重复触发刷新持续时间）'),
@@ -250,7 +253,7 @@ export function dropWeights(round, { leaked = false } = {}) {
 
 export function canReceiveRelic(r, owned, { hasScratchTicket = false, bonds = {}, extraRound = 0, recollectionRemovedRelics = new Set() } = {}) {
   const ids = idsOf(owned);
-  return !!r && !(extraRound > 0 && (r.normalRoundsOnly || ((r.tier === 4 || r.tier === 5) && !r.egirStage && r.id !== 'relic_241' && !recollectionRemovedRelics.has(r.id))))
+  return !!r && !(extraRound > 0 && (r.normalRoundsOnly || ((r.tier === 4 || r.tier === 5) && !r.egirStage && !r.victoriaMilestone && r.id !== 'relic_241' && !recollectionRemovedRelics.has(r.id))))
     && (!r.requiredBond || bonds[r.requiredBond]?.active === true)
     && (r.fallbackOnly || (r.scratchTicket ? ids.has('relic_234') && !hasScratchTicket : !ids.has(r.id)));
 }

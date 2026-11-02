@@ -67,7 +67,7 @@ describe('assetUrls', () => {
     assert.equal(chessAvatarUrl(manifest, piece('char_498_inside', true)), inside.avatarE2);
     let official = 0;
     for (const c of Object.values(chess)) {
-      if (!c.charId || c.isDiy) continue;
+      if (!c.charId || c.isDiy || c.chessType === 'SPECIAL') continue;
       official++;
       const portraitId = c.assets?.portrait;
       assert.equal(m.chars[portraitId], undefined, `${c.chessId}: portrait id is not a character key`);

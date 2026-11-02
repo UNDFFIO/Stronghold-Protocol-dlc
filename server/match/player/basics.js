@@ -30,7 +30,7 @@ export class PlayerBasics {
   get botControlled() { return this.isBot || this.left || this.autoplay; }
 
   get deployCap() { return Math.max(1, Math.max(this.gd.deployCap + this.deployCapBonus, this.deployCapMin) - relicDeployPenalty(this.relics)); }
-  get deployCount() { let n = 0; for (const p of this.board.values()) if (p.kind === 'chess') n++; return n; }
+  get deployCount() { let n = 0; for (const p of this.board.values()) if (p.kind === 'chess' && !this.gd.chess(p.id)?.noDeployCount) n++; return n; }
   get tempEmpty() { return this.temp.every((x) => x == null); }
 
   /**

@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { versionAssetData, presentationUnion } from './versions.mjs';
 import { EXPECTED_LOCAL_GROUPS } from '../local-extract/expected.mjs';
 import { avatarUrl, portraitUrl, spineEntry, unitPictureUrl } from '../../public/js/assets.js';
+import { chessAvatarUrl, chessPortraitUrl } from '../../public/js/ui/assetUrls.js';
 
 // These current-version tokens have no Spine: their presentation is an official effect / marker.
 // See docs/ASSETS.md "Token models from the local client"; the audit still lists their pictures and fx.
@@ -62,6 +63,15 @@ export function assetCoverage({ root, sets = versionAssetData(root), assets = re
     };
     for (const [id, rec] of Object.entries(all.operators)) add('operator', id, rec.name, opChecks(id, rec));
     for (const [id, rec] of Object.entries(d.chess)) {
+      if (rec.chessType === 'SPECIAL') {
+        const source = rec.assets?.spine;
+        const sp = spine(source);
+        const checks = { avatar: status(present(chessAvatarUrl(assets, rec))),
+          portrait: status(present(chessPortraitUrl(assets, rec))), model: status(model(sp)), clips: status(clips(sp)) };
+        if (fx) checks.fx = status(!!fx.units?.[source]);
+        add('chess', id, rec.name, checks, `reuses summon ${source}`);
+        continue;
+      }
       add('chess', id, rec.name, rec.charId ? opChecks(rec.charId, all.operators[rec.charId]) : {},
         rec.charId || 'selection placeholder; resolves after choosing an operator');
     }

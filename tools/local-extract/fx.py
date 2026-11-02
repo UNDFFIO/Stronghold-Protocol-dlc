@@ -3077,6 +3077,8 @@ def game_data(root):
     chess, backups, enemies, tokens = load('chess.json'), load('backups.json'), load('enemies.json'), load('tokens.json')
     chars, skills = [], {}
     for v in chess.values():
+        if v.get('chessType') == 'SPECIAL':  # Its source token is already collected below.
+            continue
         cid = v.get('charId')
         if not cid:
             continue

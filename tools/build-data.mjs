@@ -50,6 +50,7 @@ import { createOfficialUnitBuilders } from '../server/plugins/officialUnitBuilde
 import { DEFAULT_VERSION, VERSIONS } from '../shared/versions.js';
 import { loadProfile, pinnedShaOf } from './versions/profiles.mjs';
 import { applyAdapters } from './versions/adapters.mjs';
+import { buildSpecialOperators } from '../shared/specialOperators.js';
 
 // ===== CLI & IO ==================================================================================
 
@@ -3337,6 +3338,14 @@ async function main() {
   // the unit forms rebuild every PRESET chess at every rank (before the annotation: each pass as built)
   const errors = [...validateAll(files), ...passes.flatMap((p) => checkUnitFormParity(p.ctx, p.chess).map((e) => `${e} (potential rank ${p.ctx.potRank})`))];
   errors.push(...attachPotential(passes));
+  // DLC operators stay outside every official/generated acquisition pool and the official form-parity passes.
+  if (IS_DEFAULT) {
+    Object.assign(chess, buildSpecialOperators(chess, tokens));
+    for (const c of Object.values(chess).filter((c) => c.chessType === 'SPECIAL')) {
+      for (const b of c.bonds) bonds[b].members.push(c.chessId);
+    }
+    errors.push(...validateReferences(files));
+  }
   let total = 0;
   const sizes = {};
   const texts = {};

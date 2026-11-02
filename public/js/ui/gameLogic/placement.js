@@ -207,7 +207,7 @@ export function placementContext({ priv, stage, editable, field = 'normal', getC
   for (const e of pieces.values()) if (e.area === 'hand') handAt.set(e.idx, e);
   const cap = Number.isInteger(priv?.deployCap) ? priv.deployCap : 8;
   let deployed = 0;
-  for (const e of pieces.values()) if (e.area === 'board' && e.piece.kind === 'chess') deployed += 1;
+  for (const e of pieces.values()) if (e.area === 'board' && e.piece.kind === 'chess' && !getChess(e.piece.id)?.noDeployCount) deployed += 1;
   const count = Number.isInteger(priv?.deployCount) ? priv.deployCount : deployed;
   const ov = stageOverrides(priv, getEffect);
   // the own normal board keeps the data's deploy tiles (with the terrain overrides folded in); the boss field of a
@@ -392,7 +392,7 @@ export function canPlace(ctx, uid, target) {
       if (Number.isInteger(piece.ownerUid) && !ownerDeployed) return no('BAD_TARGET', t('召唤者尚未部署'));
       return { ok: true, action: 'move' };
     }
-    if ((!occ || occ.piece.kind !== 'chess') && ctx.count >= ctx.cap) return no('BOARD_FULL', t('已达到部署上限'));
+    if (!ctx.getChess(piece.id)?.noDeployCount && (!occ || occ.piece.kind !== 'chess' || ctx.getChess(occ.piece.id)?.noDeployCount) && ctx.count >= ctx.cap) return no('BOARD_FULL', t('已达到部署上限'));
     return { ok: true, action: occ ? 'swap' : 'move' };
   }
   return no('BAD_TILE', t('无法放置在该位置'));

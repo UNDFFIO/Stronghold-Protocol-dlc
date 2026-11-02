@@ -222,7 +222,9 @@ export function underframeActions(ctx, uid) {
   if (p.kind === 'item') return itemDestroyable(ctx, uid) ? { retreat: false, sell: null, destroy: true } : null;
   if (p.kind === 'token') return onBoard ? { retreat: true, sell: null, destroy: false } : null;
   if (p.kind !== 'chess') return null;
-  const price = ctx.getChess?.(p.id)?.sellPrice;
+  const rec = ctx.getChess?.(p.id);
+  if (rec?.unsellable) return { retreat: onBoard, sell: null, destroy: false };
+  const price = rec?.sellPrice;
   return { retreat: onBoard, sell: Number.isFinite(price) ? price : 1, destroy: false };
 }
 

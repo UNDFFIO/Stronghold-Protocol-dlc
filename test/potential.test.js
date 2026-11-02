@@ -62,7 +62,7 @@ test('刺玫 at every potential: 潜能1 ATK 413 / cost 17 / 70 s and 土壤基�
 test('a resolved record carries no annotation; the full record minus them is what 0.2.1 shipped (the stats and talents of 潜能6)', () => {
   let n = 0;
   for (const c of Object.values(chess)) {
-    if (c.isDiy || !c.charId) continue;
+    if (c.isDiy || !c.charId || c.chessType === 'SPECIAL') continue;
     for (let p = 1; p <= 5; p++) {
       const r = atPotential(c, p);
       assert.notEqual(r, c);
@@ -101,7 +101,7 @@ test('every chess and 自选 form at every potential: the raw keyframes plus the
   };
   let n = 0;
   for (const c of Object.values(chess)) {
-    if (c.isDiy || !c.charId) continue;
+    if (c.isDiy || !c.charId || c.chessType === 'SPECIAL') continue;
     for (let rank = 0; rank <= FULL_RANK; rank++) { const r = atRank(c, rank); check(c.chessId, c.charId, c.status, r.statsBase ?? r.stats, rank); n++; }
   }
   assert.equal(n, 258 * 6);
@@ -138,7 +138,7 @@ test('talent candidates at every potential: each talent is the last one unlocked
     }
   };
   for (const c of Object.values(chess)) {
-    if (c.isDiy || !c.charId) continue;
+    if (c.isDiy || !c.charId || c.chessType === 'SPECIAL') continue;
     checkList(c.chessId, c.charId, c.status, c.talentsBase ?? c.talents);
   }
   for (const [charId, u] of Object.entries(backups.units)) for (const f of Object.values(u.forms)) checkList(`${charId}@${f.status.phase}/${f.status.level}`, charId, f.status, f.talents);

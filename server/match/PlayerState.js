@@ -220,6 +220,7 @@ export class PlayerState {
     this.effects = [];
     /** Battle collectibles last for this match only; they do not occupy equipment or hand slots. */
     this.relics = [];
+    this.royalPowerGranted = false;
     this.recollectionRemovedRelics = new Set();
     this.relicSettledRounds = new Set();
     this.deathNoteDeaths = 0;

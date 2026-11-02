@@ -27,7 +27,8 @@ const bonds = load('bonds');
 const config = load('config');
 const raw = (f) => JSON.parse(readFileSync(join(CACHE, 'excel', `${f}.json`), 'utf8'));
 
-const all = Object.values(chess);
+// This suite checks the official shop rows and their official stand-ins.
+const all = Object.values(chess).filter((c) => c.chessType !== 'SPECIAL');
 const base = all.filter((c) => !c.isGolden);
 const ofType = (t) => base.filter((c) => c.chessType === t);
 const isFiniteNum = (v) => typeof v === 'number' && Number.isFinite(v);

@@ -40,6 +40,7 @@ const isFiniteNum = (v) => typeof v === 'number' && Number.isFinite(v);
 const isInt = (v) => Number.isInteger(v);
 const isPair = (p) => Array.isArray(p) && p.length === 2 && p.every(isInt);
 const normalChess = Object.values(chess).filter((c) => !c.isGolden);
+const officialChess = Object.values(chess).filter((c) => c.chessType !== 'SPECIAL');
 const visible = normalChess.filter((c) => c.visible);
 
 /** Every number reachable in an object is finite (JSON cannot hold NaN, but null stats would slip). */
@@ -75,14 +76,15 @@ test('numbers: every stats/bb/enemyScale object holds only finite numbers (no nu
   assert.deepEqual(bad.slice(0, 10), [], `${bad.length} bad numeric fields`);
 });
 
-test('chess: 266 records, 112 visible non-DIY (16/17/19/22/19/19 per tier)', () => {
-  assert.equal(Object.keys(chess).length, 266);
+test('chess: 266 official + 1 special, 112 visible non-DIY (16/17/19/22/19/19 per tier)', () => {
+  assert.equal(officialChess.length, 266);
+  assert.equal(Object.keys(chess).length, 267);
   assert.equal(visible.length, 112);
   const perTier = {};
   for (const c of visible) perTier[c.tier] = (perTier[c.tier] || 0) + 1;
   assert.deepEqual(perTier, { 1: 16, 2: 17, 3: 19, 4: 22, 5: 19, 6: 19 });
   assert.equal(normalChess.filter((c) => c.isDiy).length, 4);
-  assert.equal(normalChess.filter((c) => c.isHidden).length, 17);
+  assert.equal(normalChess.filter((c) => c.isHidden && c.chessType !== 'SPECIAL').length, 17);
 });
 
 test('chess: ids, golden pairs and references resolve', () => {
@@ -90,7 +92,8 @@ test('chess: ids, golden pairs and references resolve', () => {
     assert.equal(c.chessId, id);
     assert.ok(chess[c.baseId], `${id}: baseId`);
     assert.equal(chess[c.baseId].isGolden, false, `${id}: baseId must be normal`);
-    assert.ok(c.goldenId && chess[c.goldenId]?.isGolden, `${id}: goldenId`);
+    if (c.chessType === 'SPECIAL') assert.equal(c.goldenId, null, `${id}: no elite form`);
+    else assert.ok(c.goldenId && chess[c.goldenId]?.isGolden, `${id}: goldenId`);
     assert.equal(c.tier, chess[c.baseId].tier, `${id}: tier differs from base`);
     assert.ok(c.tier >= 1 && c.tier <= 6);
     for (const b of c.bonds) assert.ok(bonds[b], `${id}: bond ${b}`);
@@ -112,6 +115,12 @@ test('chess: every non-DIY chess has stats, range, classification and a resolvab
     assert.ok(['melee', 'ranged', 'heal', 'none'].includes(c.attackKind), `${c.chessId}: attackKind`);
     assert.ok(['arrow', 'bolt', 'orb', 'none'].includes(c.projectile), `${c.chessId}: projectile`);
     assert.equal(typeof c.canHitFly, 'boolean');
+    if (c.chessType === 'SPECIAL') {
+      assert.equal(c.skill, null);
+      assert.deepEqual(c.skills, []);
+      assert.ok(c.isHidden && !c.visible);
+      continue;
+    }
     assert.ok(c.skill && typeof c.skill.skillId === 'string', `${c.chessId}: skill`);
     assert.ok(c.skill.level === (c.isGolden ? 7 : 4), `${c.chessId}: skill level ${c.skill.level}`);
     assert.ok(typeof c.skill.trigger?.rule === 'string', `${c.chessId}: trigger`);
@@ -439,6 +448,7 @@ test('chess/tokens: talent tokens resolve and every token variant says where it 
 test('chess: skills[] = every skill unlocked at the status, at the chess skill level; exactly one default = skill', () => {
   for (const c of Object.values(chess)) {
     if (c.isDiy) { assert.equal(c.skills, undefined, `${c.chessId}: DIY has no skills`); continue; }
+    if (c.chessType === 'SPECIAL') { assert.deepEqual(c.skills, []); assert.equal(c.skill, null); continue; }
     assert.ok(Array.isArray(c.skills) && c.skills.length >= 1 && c.skills.length <= 3, `${c.chessId}: skills`);
     const idx = c.skills.map((s) => s.index);
     assert.deepEqual(idx, [...idx].sort((a, b) => a - b), `${c.chessId}: skills ordered by index`);

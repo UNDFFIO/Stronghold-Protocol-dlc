@@ -1,7 +1,7 @@
 // JSON-only subset of SIM.md §7.3. Functions and unknown members are rejected, never evaluated.
 import { object, problem, jsonProblems } from './dataUtils.js';
 export const MOD_KEYS = 'atkFlat atkPct atkFinal defFlat defPct hpFlat hpPct resFlat aspd batPct blockCnt rangeExtend defIgnoreFlat defIgnorePct resIgnoreFlat resIgnorePct dodgePhys dodgeArts spRecoveryFlat maxTargets taunt hpRegen hpRegenRatio spCostFlat moveFlat massFlat blockRadiusScale atkMul defMul hpMul resMul moveMul dmgDealtMul dmgTakenMul physTakenMul artsTakenMul trueTakenMul elemTakenMul elementalTakenMul healingDealtMul healingTakenMul spRecoveryMul costMul redeployMul atkScaleMul physDealtMul artsDealtMul'.split(' ');
-export const FLAG_KEYS = 'stun freeze sleep silence disarm stealth invulnerable unblockable levitate fear cold reveal bind noHeal untargetable blockFly noMove noSp burstLock hidden noBlock tremble hitCount hitCountArts attract float noDisplace isolated camou liftoff selfBound healFree stealthOff groundbind'.split(' ');
+export const FLAG_KEYS = 'stun freeze sleep silence disarm stealth invulnerable unblockable levitate fear cold reveal bind noHeal untargetable blockFly noMove noSp burstLock hidden noBlock tremble hitCount hitCountArts attract float noDisplace isolated camou liftoff selfBound healFree stealthOff groundbind blockCntZero'.split(' ');
 const enums = s => ({ enum: s.split(' ') });
 const number = { type: 'number', minimum: 0, maximum: 1e9 }, signed = { type: 'number', minimum: -1e9, maximum: 1e9 };
 const count = { type: 'integer', minimum: 1, maximum: 100 }; // [ASSUMED] bounded per-attack work, DESIGN §32.5.

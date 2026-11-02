@@ -38,6 +38,10 @@ docs/SIM.md §7.2, DESIGN §35.22.4).
 
 ## Naming
 
+DLC special operators use `SPECIAL_KIT_FILES` / `SPECIAL_KITS`, merged into `KITS` after the official registries.
+`ops/special-lionheart.js` registers `chess_special_lionheart_a`; it is excluded from `KITTED_CHARS` and all ordinary
+acquisition pools. Its maintainer-defined rules live in [the match contract](../../../../docs/design/match.md).
+
 `ops/<base chess id without _a>-<codename>.js`, where the code name is the operator's official `charId` without its
 `char_<n>_` prefix (`data/chess.json` `charId`): `chess_char_3_04_a` (琳琅诗怀雅, `char_1033_swire2`) →
 `ops/chess_char_3_04-swire2.js`.

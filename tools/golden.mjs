@@ -737,6 +737,8 @@ export function matchScenarios() {
   if (toolVersion === DEFAULT_VERSION) out.push({ id: 'coop2-NORMAL-24-coverage-diy', mode: 'coop', difficulty: 'NORMAL', bots: 1, seed: 24, human: { diy: MATCH_DIY, shopLevel: 5 } });
   // Upstream 0.3.2 AI changes leave seed 24 without DIY deployments; seed 6 covers normal and elite Siege.
   if (toolVersion === DEFAULT_VERSION) out.push({ id: 'coop2-NORMAL-6-coverage-diy', mode: 'coop', difficulty: 'NORMAL', bots: 1, seed: 6, human: { diy: MATCH_DIY, shopLevel: 5 } });
+  // Royal Power changes seed 6's lineup; keep its outcome and cover the shop-to-battle DIY path with seed 28.
+  if (toolVersion === DEFAULT_VERSION) out.push({ id: 'coop2-NORMAL-28-coverage-diy', mode: 'coop', difficulty: 'NORMAL', bots: 1, seed: 28, human: { diy: MATCH_DIY, shopLevel: 5 } });
   // A player without any NORMAL operators must use stand-ins regardless of which operators its AI buys.
   out.push({ id: 'coop2-NORMAL-1-unowned-roster', mode: 'coop', difficulty: 'NORMAL', bots: 1, seed: 1,
     human: { notOwned: STANDIN_CHESS.filter((c) => !c.isGolden).map((c) => c.chessId) } });
@@ -1048,7 +1050,7 @@ const ABOUT = {
  * fields (one of them a Hidden Core), six matches (solo 标准 / 绝境, co-op 2 / 4, the boosted Hidden Core run, the 补位
  * match) and the normal-record stand-in battles.
  */
-const FAST_MATCHES = new Set(['solo-FUNNY-1', 'solo-HARD-1', 'coop2-NORMAL-3', 'coop4-ABYSS-7', 'solo-HARD-9-boosted', 'coop2-NORMAL-14-standins', `coop2-NORMAL-${MATCH_DIY_SEED}-diy`, 'coop2-NORMAL-1-coverage-standins', 'coop2-NORMAL-5-coverage-diy', 'coop2-NORMAL-68-coverage-diy', 'coop2-NORMAL-24-coverage-diy', 'coop2-NORMAL-6-coverage-diy', 'coop2-NORMAL-1-unowned-roster']);
+const FAST_MATCHES = new Set(['solo-FUNNY-1', 'solo-HARD-1', 'coop2-NORMAL-3', 'coop4-ABYSS-7', 'solo-HARD-9-boosted', 'coop2-NORMAL-14-standins', `coop2-NORMAL-${MATCH_DIY_SEED}-diy`, 'coop2-NORMAL-1-coverage-standins', 'coop2-NORMAL-5-coverage-diy', 'coop2-NORMAL-68-coverage-diy', 'coop2-NORMAL-24-coverage-diy', 'coop2-NORMAL-6-coverage-diy', 'coop2-NORMAL-28-coverage-diy', 'coop2-NORMAL-1-unowned-roster']);
 const FAST_FIELDS = new Set(['boss-boss_1-pair', 'boss-boss_4-solo', 'boss-boss_7-pair', 'hidden-boss_9-pair', 'unite-1', 'unite-2']);
 export function isFast(sc) {
   if (sc.family === 'matches') return FAST_MATCHES.has(sc.id);

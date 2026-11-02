@@ -85,6 +85,9 @@ export const KIT_FILES = Object.freeze([
  */
 export const STANDIN_KIT_FILES = Object.freeze(['standin-acguad.js', 'standin-sharp2.js', 'standin-acspec.js', 'standin-acmedc.js', 'standin-acfend.js', 'standin-acpion.js', 'standin-acnipe.js', 'standin-accast.js', 'standin-acsupo.js']);
 
+/** Maintainer-defined special operators, kept outside all official and self-select rosters. */
+export const SPECIAL_KIT_FILES = Object.freeze(['special-lionheart.js']);
+
 /**
  * The 自选 operator kit files (`ops/op-<codename>.js`, registry key = the operator's charId, an owned-6★ pick of
  * data/backups.json; a new file is appended). An operator without a file is not offered as a 自选 pick (KITTED_CHARS).
@@ -406,6 +409,7 @@ const STANDIN_MODULES = await Promise.all(STANDIN_KIT_FILES.map(loadKitFile));
 const OPERATOR_MODULES = await Promise.all(OPERATOR_KIT_FILES.map(loadKitFile));
 const VERSION_MODULES = await Promise.all(VERSION_KIT_FILES.map(loadKitFile));
 const DIY_MODULES = await Promise.all(DIY_BORROW_KIT_FILES.map(loadKitFile));
+const SPECIAL_MODULES = await Promise.all(SPECIAL_KIT_FILES.map(loadKitFile));
 const registryOf = (m) => (m && m.default && typeof m.default === 'object' ? m.default : {});
 
 /** The registry of each tier group (index 0 = tier 1): baseChessId → kit builder, in KIT_FILES order. */
@@ -437,11 +441,14 @@ export const VERSION_KITS = Object.freeze(Object.assign({}, ...VERSION_MODULES.m
 /** Borrowed 自选 kits (`ops/ver-diy.js`): charId → builder, in DIY_BORROW_CHARS order. */
 export const DIY_BORROW_KITS = Object.freeze(Object.assign({}, ...DIY_MODULES.map(registryOf)));
 
+export const SPECIAL_KITS = Object.freeze(Object.assign({}, ...SPECIAL_MODULES.map(registryOf)));
+
 /**
  * The merged kit registry: baseChessId → (bb, chess, def) => Kit, tier 1 … tier 6, then the stand-ins' charIds, then
  * the 自选 operators' charIds, then the version charId kits, then the borrowed 自选 charIds.
  */
-export const KITS = Object.freeze(Object.assign({}, ...TIER_KITS, STANDIN_KITS, OPERATOR_KITS, VERSION_KITS, DIY_BORROW_KITS));
+export const KITS = Object.freeze(Object.assign({}, ...TIER_KITS, STANDIN_KITS, OPERATOR_KITS, VERSION_KITS, DIY_BORROW_KITS,
+  SPECIAL_KITS));
 
 /**
  * Every character a 自选 pick may field with a faithful kit: the 预备干员 (GENERIC_KIT_CHARS), the stand-ins with a kit

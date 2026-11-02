@@ -35,6 +35,8 @@ export function chessAvatarUrl(m, chess, { skin = null } = {}) {
   if (picture) return picture;
   const chars = obj(obj(m)?.chars);
   const id = str(chess?.assets?.avatar) || str(chess?.charId);
+  const token = id && obj(obj(m)?.tokens)?.[id];
+  if (token) return str(token.avatar) || (token.owner ? str(chars?.[token.owner]?.avatar) : null);
   if (!chars || !id) return null;
   if (id.endsWith('_2') && !chars[id]) {
     const base = chars[id.slice(0, -2)];
@@ -58,6 +60,9 @@ export function chessPortraitUrl(m, chess, { skin = null } = {}) {
   if (picture) return picture;
   const chars = obj(obj(m)?.chars);
   const id = str(chess?.assets?.portrait);
+  const tokenId = str(chess?.assets?.avatar);
+  const token = tokenId && obj(obj(m)?.tokens)?.[tokenId];
+  if (!id && token) return chessAvatarUrl(m, chess);
   if (!chars) return null;
   if (id) {
     // A golden piece whose portrait id is the character key uses portraitE2 when the entry has one.

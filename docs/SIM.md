@@ -668,6 +668,12 @@ physDealtMul, artsDealtMul, dmgTakenMul, physTakenMul, artsTakenMul, trueTakenMu
 elementalTakenMul (元素脆弱: 元素伤害), healingDealtMul, healingTakenMul, atkScaleMul, spRecovery, spCostFlat, redeployMul,
 hpRegen, shield, flags{…}`.
 
+The final flag `blockCntZero` suppresses `blockCnt` to 0 after all additive block bonuses; `blockCntBeforeSuppression`
+retains that nonnegative unsuppressed count. The DLC Lionheart kit uses it to transfer Ranged-position operators'
+capacity without losing later equipment/skill changes. Its revival stays on the same deployed unit: a `fatal` hook,
+a 25-second invulnerability/stun window, then `mode: 'restore'` for full HP. Its controls and shared healing pause
+during that window; the allied block suppression remains. See [the match contract](design/match.md).
+
 Aggregation: `ATK/DEF/maxHp = (base + Σflat) × (1 + Σpct) × Πmul`, for ATK with the 最终加算 `ΣatkFinal` after the
 percentages: `ATK = ((base + ΣatkFlat) × (1 + ΣatkPct) + ΣatkFinal) × ΠatkMul`; `res = clamp((base + ΣresFlat) × ΠresMul, 0, 100)`;
 `aspd = clamp(base + Σaspd, 20, 600)` (floor 20: PRTS 数值范围 ATTACK_SPEED 默认下限; user playtest #6); `interval = bat × (1 + ΣbatPct) × 100 / aspd`; `moveSpeed = (base + ΣmoveFlat) × ΠmoveMul`;

@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { isCompletePng } from './formats.mjs';
 
 export const CUSTOM_RELIC_ICON_FILES = Object.freeze({
+  relic_247: 'relic_247.png',
   relic_242: 'relic_241.png',
   relic_241: 'relic_241.png',
   relic_154: 'relic_154.png',

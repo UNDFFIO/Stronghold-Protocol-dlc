@@ -28,6 +28,47 @@ async function closed(page) {
   await page.waitForSelector('.relic-panel', { hidden: true });
 }
 
+test('王权：史诗藏品名称、效果、透明图标与窄屏详情可见', {
+  skip: !ENABLED && 'set SP_E2E=1 and provide system Chrome', timeout: 120000,
+}, async () => {
+  const page = await browser.newPage();
+  try {
+    await page.goto(`${base}/dev/game-mock.html?shot=1&phase=PREP&render=fallback`, { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('.relic-icons__heading');
+    await page.evaluate(() => globalThis.__MOCK__.mutate((s) => {
+      s.priv.relics = [{ id: 'relic_247', round: 1 }];
+    }));
+    await page.waitForFunction(() => {
+      const img = document.querySelector('.effect--relic[data-relic-id="relic_247"] img');
+      return img?.complete && img.naturalWidth > 0;
+    });
+    await page.$eval('.relic-icons__heading', (el) => el.click());
+    await page.waitForSelector('.relic-panel');
+    const copy = await page.$eval('.relic-panel', (el) => el.textContent);
+    assert.match(copy, /王权/); assert.match(copy, /立即获得1名干员“狮心王”/); assert.match(copy, /史诗/);
+    const png = await page.evaluate(async () => {
+      const manifest = await (await fetch('/data/assets.json')).json();
+      const res = await fetch(manifest.relics.relic_247);
+      const bitmap = await createImageBitmap(await res.blob());
+      const canvas = document.createElement('canvas'); canvas.width = bitmap.width; canvas.height = bitmap.height;
+      const ctx = canvas.getContext('2d'); ctx.drawImage(bitmap, 0, 0);
+      const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+      return { status: res.status, width: bitmap.width,
+        alpha: pixels.some((v, i) => i % 4 === 3 && v === 0), opaque: pixels.some((v, i) => i % 4 === 3 && v === 255) };
+    });
+    assert.equal(png.status, 200); assert.ok(png.width > 0); assert.ok(png.alpha && png.opaque);
+    for (const selector of ['.tbanner', '.mpop--phase', '.pbanner--overlay']) await page.waitForSelector(selector, { hidden: true });
+    await page.screenshot({ path: `${OUT}/royal-power-collection.png` });
+    await page.setViewport({ width: 390, height: 844 });
+    const bounds = await page.$eval('.relic-panel', (el) => {
+      const r = el.getBoundingClientRect();
+      return { left: r.left, right: r.right, overflow: el.scrollWidth - el.clientWidth };
+    });
+    assert.ok(bounds.left >= 0 && bounds.right <= 390 && bounds.overflow <= 1);
+    await page.screenshot({ path: `${OUT}/royal-power-mobile.png` });
+  } finally { await page.close(); }
+});
+
 test('collapse: engine reuses illegal highlights and retains them after selection clears', {
   skip: !ENABLED && 'set SP_E2E=1 and provide system Chrome', timeout: 120000,
 }, async () => {

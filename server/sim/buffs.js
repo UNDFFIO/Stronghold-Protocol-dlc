@@ -48,6 +48,8 @@ export const FLAG_KEYS = Object.freeze([
   // 自缚 (the unit's own immobility: 守墓石像's 转换模式, the 自缚 leaders) beside its `noMove` — 束缚 sets noMove too, and
   // only 自缚 makes a unit "不视为可达目标" for 余 S2's teleport (PRTS 余 S2 备注)
   'selfBound', 'healFree', 'stealthOff',
+  // Final block-count suppression; keep the unsuppressed value for effects that transfer that capacity.
+  'blockCntZero',
   // 缚地 (status `groundbind`): an enemy air unit counts as a ground unit meanwhile (Unit.isFlying)
   'groundbind',
 ]);

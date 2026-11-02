@@ -36,7 +36,8 @@ export function presentationUnion(sets) {
         for (const m of form.modules || []) if (m.typeIcon) modules.add(m.typeIcon);
       }
     };
-    for (const rec of Object.values(d.chess || {})) add(rec.charId, rec, [rec]);
+    // Special operators reuse their source token's art; there is no official character bundle for their identity.
+    for (const rec of Object.values(d.chess || {})) if (rec.chessType !== 'SPECIAL') add(rec.charId, rec, [rec]);
     for (const [id, rec] of Object.entries(d.backups?.units || {})) add(id, rec, Object.values(rec.forms || {}));
   }
   for (const o of Object.values(operators)) o.skills.sort((a, b) => a.index - b.index);
