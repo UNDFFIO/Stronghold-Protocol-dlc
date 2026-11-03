@@ -2989,7 +2989,7 @@
   "狮心王": "Lionheart King",
   "无法出售，不占用部署名额。无法被治疗。": "Cannot be sold and does not count toward the deployment limit. Cannot be healed.",
   "王权": "Sovereignty",
-  "【维多利亚】盟约每叠加1层，自身生命上限和防御力各+1%。在场时，我方所有远程位干员的阻挡数归零，自身获得所移除的阻挡数。我方其他【维多利亚】干员被治疗时，自身恢复相当于其实际恢复量50%的生命值。": "Each stack of the Victoria Bond grants this operator +1% Max HP and DEF. While deployed, sets the Block of all allied Ranged-position operators to 0 and gains the removed Block. When another allied Victoria operator is healed, restores HP equal to 50% of the HP actually restored to that operator.",
+  "自身更容易受到攻击。【维多利亚】盟约每叠加1层，自身生命上限和防御力各+1%。在场时，我方所有远程位干员的阻挡数归零，自身获得所移除的阻挡数。我方其他【维多利亚】干员被治疗时，自身恢复相当于其实际恢复量50%的生命值。": "More likely to be attacked. Each stack of the Victoria Bond grants this operator +1% Max HP and DEF. While deployed, sets the Block of all allied Ranged-position operators to 0 and gains the removed Block. When another allied Victoria operator is healed, restores HP equal to 50% of the HP actually restored to that operator.",
   "不灭": "Undying",
   "受到致命伤害时不撤退，保留1点生命值，阻挡数归零，并获得25秒无敌。期间无法攻击，被攻击的优先度降低，停止施加控制及共享治疗，远程位干员的阻挡数仍为0；结束后恢复全部生命值及自身效果。可重复触发。": "Upon taking fatal damage, remains deployed at 1 HP, sets own Block to 0, and gains Invulnerability for 25 seconds. During this time, cannot attack, has reduced targeting priority, and stops applying crowd control and receiving shared healing; allied Ranged-position operators remain at 0 Block. When this ends, restores all HP and own effects. Can trigger repeatedly.",
   "王威": "Royal Dread",

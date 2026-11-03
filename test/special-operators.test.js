@@ -64,8 +64,8 @@ test('Lionheart is excluded from the shop, random rewards and every generated ac
   assert.equal(h.m.gd.goldenIdOf(LIONHEART_ID), null);
 });
 
-test('Lionheart has the pictured 13-tile attack range in every deployment direction', () => {
-  const picture = ['..X..', '.XXX.', 'XXXXX', '.XXX.', '..X..'];
+test('Lionheart has the pictured 21-tile attack range in every deployment direction', () => {
+  const picture = ['.XXX.', 'XXXXX', 'XXXXX', 'XXXXX', '.XXX.'];
   const expected = new Set();
   for (let r = 0; r < picture.length; r++) for (let c = 0; c < picture[r].length; c++) {
     if (picture[r][c] === 'X') expected.add((10 + r - 2) * COLS + 4 + c - 2);
@@ -380,7 +380,7 @@ test('the range slow needs the active six-person bond and lapses after leaving t
     h.run(0.3);
     assert.ok(Math.abs(e.s.moveSpeed - (count === 6 ? 0.7 : 1)) < 1e-9, `Victoria members: ${count}`);
     if (count !== 6) continue;
-    e.x = 9; // outside the 13-tile diamond
+    e.x = 9; // outside the 21-tile range
     h.run(0.5);
     assert.equal(e.s.moveSpeed, 1, 'no slow outside the range');
   }
@@ -457,15 +457,22 @@ test('fatal damage starts a repeatable 25-second on-field revival and pauses act
   checkInvariants(h.b);
 });
 
-test('recovery lowers enemy targeting priority by one taunt level until revival', () => {
-  const h = traitBattle({ enemies: [{ key: 'enemy_dummy', pos: [10, 6] }] }).step();
+test('Royal Power raises targeting priority without a Victoria bond, pauses during recovery and resumes after revival', () => {
+  const h = traitBattle({ bonds: {}, enemies: [{ key: 'enemy_dummy', pos: [10, 6] }] }).step();
   const k = h.unit(LIONHEART_ID), r = h.unit('test_ranged'), e = h.enemy('enemy_dummy');
-  // Make the king the latest deployment, so its ordinary priority wins the initial tie.
-  k.aggroSeq = r.aggroSeq + 1;
+  // A later-deployed ordinary ally loses to 王权, but wins during 不灭.
+  r.aggroSeq = k.aggroSeq + 1;
   const before = k.s.taunt;
+  assert.equal(before, 1);
+  assert.match(king.talents[0].desc, /^自身更容易受到攻击。/);
   assert.equal(sortAllyTargets(e, [r, k])[0], k);
+  h.run(1);
+  assert.equal(k.s.taunt, 1, 'refreshes do not stack taunt');
+  e.blockedBy = r;
+  assert.equal(sortAllyTargets(e, [k, r])[0], r, 'blocker priority is not overridden');
+  e.blockedBy = null;
   h.b.dealHPLose({ source: null, target: k, amount: 1e6 });
-  assert.equal(k.s.taunt, before - 1);
+  assert.equal(k.s.taunt, -1, '王权 pauses; recovery still reduces taunt below ordinary allies');
   assert.equal(sortAllyTargets(e, [k, r])[0], r);
   assert.equal(sortAllyTargets(e, [k])[0], k, 'still targetable when no higher-priority ally is available');
   h.run(25.1);

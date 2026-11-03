@@ -160,13 +160,15 @@ These counts describe the 266 official records; the default DLC build also carri
 `visible: false`, `isHidden: true`, `unsellable: true`, `noDeployCount: true`, with only `victoriaShip`. It has no skill, elite form, promotion or ordinary
 acquisition event. The exclusive Royal Power collectible (`relic_247`) grants one copy when the active Victoria Alliance reaches 30 persistent stacks, once per player per match. Its stats, immunities and model come from `token_10040_siege2_vlion`'s ordinary
 `chess_char_6_07_a` variant: HP 4000, ATK 425, DEF 270, RES 0, block 1, interval 2.5 s, DP 0.
-Its attack range is a 13-tile diamond centered on its deployment tile (row widths 1/3/5/3/1, including its own
-tile), as specified by the maintainer on 2026-11-02. It attacks for true damage; [ASSUMED] tier VI follows Vina,
+Its attack range is a 21-tile area centered on its deployment tile (a 5×5 square without its four corners,
+row widths 3/5/5/5/3, including its own tile), as specified by the maintainer on 2026-11-03. It attacks for true damage; [ASSUMED] tier VI follows Vina,
 and normal operator equipment rules apply. Its trait and three talents describe the maintainer-defined block transfer,
 Victoria healing sharing, control aura, six-member range slow and on-field revival; `special-lionheart.js` in the special kit registry implements
 them. With the owner's six-member Victoria Bond active, enemies leaving its range are attracted toward it for 10 seconds,
 and enemies inside the range move 30% slower unless they are attracted.
-Direct healing is disabled. Each of the owner's Victoria layers also grants +1% max HP and DEF as additive
+Direct healing is disabled. Royal Power makes this operator more likely to be attacked; [ASSUMED] it grants taunt +1
+without requiring an active Victoria Bond. This bonus pauses during recovery, leaving recovery's taunt -1 in effect,
+and resumes afterwards. Each of the owner's Victoria layers also grants +1% max HP and DEF as additive
 `hpPct` / `defPct` bonuses; live layer changes refresh the same buff. This bonus pauses during the 25-second recovery
 and resumes at the latest layer count before full-HP restoration. Recovery grants invulnerability and prevents attacks
 without applying Stun; [ASSUMED] its lower enemy targeting priority uses taunt -1 until recovery ends.

@@ -6,6 +6,7 @@ import { bondLayers, unitBonds } from '../../support/index.js';
 const DRAIN = 'lionheart:block-drain';
 const GAIN = 'lionheart:block-gain';
 const RECOVERY = 'lionheart:recovery';
+const TAUNT = 'lionheart:royal-taunt';
 const VICTORIA_STATS = 'lionheart:victoria-stats';
 const SLOW = 'lionheart:slow';
 const SLOW_EVERY = 0.2;   // 王威 aura refresh period (s)
@@ -39,6 +40,10 @@ function fieldState(battle) {
     // [ASSUMED] Multiple kings share one removed capacity pool; the first active deployment receives it.
     const receiver = holders.find(awake);
     for (const u of kings) {
+      // [ASSUMED] 王权 uses the usual +1 taunt level; pause it during 不灭 so recovery retains taunt -1.
+      if (awake(u)) {
+        if (!u.findBuff(TAUNT)) battle.addBuff(u, { key: TAUNT, mods: { taunt: 1 } });
+      } else if (u.findBuff(TAUNT)) battle.removeBuff(u, TAUNT);
       // Each of the owner's Victoria layers adds one percentage point, alongside other additive stat bonuses.
       // The king's own effects pause during recovery; restore the latest layer bonus before the full-HP revival.
       const bonus = awake(u) ? bondLayers(battle, u.ownerId, 'victoriaShip') * 0.01 : 0;

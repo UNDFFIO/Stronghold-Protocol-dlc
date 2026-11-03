@@ -24,13 +24,13 @@ export function buildSpecialOperators(chess, tokens) {
       upgradeNum: 0, upgradeChessId: null,
       status: { phase: form.phase, level: form.level, skillLevel: 0, equipLevel: 0 },
       stats: clone(form.stats), immunities: clone(form.immunities),
-      // Maintainer's 13-tile diamond, including the deployment tile (2026-11-02).
+      // Maintainer's pictured 5×5 range without corners, including the deployment tile (2026-11-03).
       rangeId: null, rangeGrid: [
-        [-2, 0],
-        [-1, -1], [-1, 0], [-1, 1],
+        [-2, -1], [-2, 0], [-2, 1],
+        [-1, -2], [-1, -1], [-1, 0], [-1, 1], [-1, 2],
         [0, -2], [0, -1], [0, 0], [0, 1], [0, 2],
-        [1, -1], [1, 0], [1, 1],
-        [2, 0],
+        [1, -2], [1, -1], [1, 0], [1, 1], [1, 2],
+        [2, -1], [2, 0], [2, 1],
       ],
       dmgType: 'true', attackKind: form.attackKind, projectile: form.projectile,
       canHitFly: form.canHitFly, targetPriority: form.targetPriority,
@@ -40,7 +40,7 @@ export function buildSpecialOperators(chess, tokens) {
       },
       skill: null, skills: [],
       talents: [
-        { name: N_('王权'), desc: N_('【维多利亚】盟约每叠加1层，自身生命上限和防御力各+1%。在场时，我方所有远程位干员的阻挡数归零，自身获得所移除的阻挡数。我方其他【维多利亚】干员被治疗时，自身恢复相当于其实际恢复量50%的生命值。'),
+        { name: N_('王权'), desc: N_('自身更容易受到攻击。【维多利亚】盟约每叠加1层，自身生命上限和防御力各+1%。在场时，我方所有远程位干员的阻挡数归零，自身获得所移除的阻挡数。我方其他【维多利亚】干员被治疗时，自身恢复相当于其实际恢复量50%的生命值。'),
           bb: {}, bbStr: {}, rangeGrid: null },
         { name: N_('不灭'), desc: N_('受到致命伤害时不撤退，保留1点生命值，阻挡数归零，并获得25秒无敌。期间无法攻击，被攻击的优先度降低，停止施加控制及共享治疗，远程位干员的阻挡数仍为0；结束后恢复全部生命值及自身效果。可重复触发。'),
           bb: {}, bbStr: {}, rangeGrid: null },
