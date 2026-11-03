@@ -163,8 +163,9 @@ acquisition event. The exclusive Royal Power collectible (`relic_247`) grants on
 Its attack range is a 13-tile diamond centered on its deployment tile (row widths 1/3/5/3/1, including its own
 tile), as specified by the maintainer on 2026-11-02. It attacks for true damage; [ASSUMED] tier VI follows Vina,
 and normal operator equipment rules apply. Its trait and three talents describe the maintainer-defined block transfer,
-Victoria healing sharing, control aura and on-field revival; `special-lionheart.js` in the special kit registry implements
-them. With the owner's six-member Victoria Bond active, enemies leaving its range are attracted toward it for 10 seconds.
+Victoria healing sharing, control aura, six-member range slow and on-field revival; `special-lionheart.js` in the special kit registry implements
+them. With the owner's six-member Victoria Bond active, enemies leaving its range are attracted toward it for 10 seconds,
+and enemies inside the range move 30% slower unless they are attracted.
 Direct healing is disabled. Each of the owner's Victoria layers also grants +1% max HP and DEF as additive
 `hpPct` / `defPct` bonuses; live layer changes refresh the same buff. This bonus pauses during the 25-second recovery
 and resumes at the latest layer count before full-HP restoration. Recovery grants invulnerability and prevents attacks

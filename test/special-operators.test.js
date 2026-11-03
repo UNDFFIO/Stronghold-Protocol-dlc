@@ -142,6 +142,17 @@ function traitBattle(extra = {}) {
   });
 }
 
+/** A moving dummy at (10, 6) for the 王威 slow: inside the king's range, six-person Victoria bond by default. */
+function slowBattle(opts = {}) {
+  return makeBattle({
+    units: [{ chessId: LIONHEART_ID, row: 10, col: 4 }],
+    defs: { enemies: { enemy_dummy: enemyRec({ key: 'enemy_dummy', hp: 1e7, atk: 0, speed: 1 }) } },
+    enemies: [{ key: 'enemy_dummy', pos: [10, 6] }],
+    bonds: { victoriaShip: { count: 6, active: true, tier: 2, layers: 0 } },
+    autoFinish: false, timeLimit: 60, ...opts,
+  });
+}
+
 test('Lionheart gains one additive percent max HP and DEF per Victoria layer, without compounding', () => {
   for (const layers of [0, 1, 30, 100, 999]) {
     const h = traitBattle({ bonds: { victoriaShip: { count: 3, active: true, tier: 1, layers } } }).step();
@@ -338,6 +349,68 @@ for (const count of [5, 6]) test(`range exit attracts enemies only with the acti
     h.run(0.3);
     assert.equal(e.findBuff('attract'), null, 'attraction expires after ten seconds');
   }
+});
+
+test('the six-person Victoria bond slows enemies in range by 30%, and an attracted enemy is exempt', () => {
+  const h = slowBattle().step();
+  h.b.rng.int = () => 4; // always the control aura's silence roll: it never changes move speed
+  const e = h.enemy('enemy_dummy'), k = h.unit(LIONHEART_ID);
+  h.b.addBuff(e, { key: 'test:hold', flags: { noMove: true } });
+  assert.equal(e.s.moveSpeed, 1);
+  h.run(0.3);
+  assert.ok(Math.abs(e.s.moveSpeed - 0.7) < 1e-9, 'in range: -30% move speed');
+  assert.equal(e.findBuff('lionheart:slow')?.source, k);
+  h.b.applyStatus(e, 'attract', { duration: 5, source: k, point: [10, 4] });
+  assert.ok(!e.findBuff('lionheart:slow'), 'the running slow is dropped at once');
+  h.step();
+  assert.equal(e.s.moveSpeed, 1, 'an attracted enemy keeps its own speed');
+  h.run(0.5);
+  assert.equal(e.s.moveSpeed, 1, 'the aura does not reapply while the attraction lasts');
+  h.b.removeStatus(e, 'attract');
+  h.run(0.3);
+  assert.ok(Math.abs(e.s.moveSpeed - 0.7) < 1e-9, 'the aura resumes after the attraction ends');
+  checkInvariants(h.b);
+});
+
+test('the range slow needs the active six-person bond and lapses after leaving the range', () => {
+  for (const count of [0, 5, 6]) {
+    const h = slowBattle({ bonds: { victoriaShip: { count, active: true, tier: count >= 6 ? 2 : 1, layers: 0 } } }).step();
+    const e = h.enemy('enemy_dummy');
+    h.b.addBuff(e, { key: 'test:hold', flags: { noMove: true } });
+    h.run(0.3);
+    assert.ok(Math.abs(e.s.moveSpeed - (count === 6 ? 0.7 : 1)) < 1e-9, `Victoria members: ${count}`);
+    if (count !== 6) continue;
+    e.x = 9; // outside the 13-tile diamond
+    h.run(0.5);
+    assert.equal(e.s.moveSpeed, 1, 'no slow outside the range');
+  }
+});
+
+test('the range slow pauses during the 25-second revival and resumes afterwards', () => {
+  const h = slowBattle().step();
+  h.b.rng.int = () => 4; // the control aura rolls only silence: no extra movement-speed modifier
+  const k = h.unit(LIONHEART_ID), e = h.enemy('enemy_dummy');
+  h.b.addBuff(e, { key: 'test:hold', flags: { noMove: true } });
+  h.run(0.3);
+  assert.ok(Math.abs(e.s.moveSpeed - 0.7) < 1e-9);
+  h.b.dealHPLose({ source: null, target: k, amount: 1e6 });
+  assert.equal(k.hp, 1);
+  h.run(0.4);
+  assert.equal(e.s.moveSpeed, 1, 'the aura is paused while the king recovers');
+  h.run(25);
+  assert.equal(k.hp, k.s.maxHp);
+  assert.ok(Math.abs(e.s.moveSpeed - 0.7) < 1e-9, 'the aura resumes with the latest state');
+  checkInvariants(h.b);
+});
+
+test('two Lionhearts refresh one shared slow instead of stacking it', () => {
+  const h = slowBattle({ units: [{ chessId: LIONHEART_ID, uid: 1, row: 10, col: 4 },
+    { chessId: LIONHEART_ID, uid: 2, row: 11, col: 4 }] }).step();
+  const e = h.enemy('enemy_dummy');
+  h.b.addBuff(e, { key: 'test:hold', flags: { noMove: true } });
+  h.run(0.3);
+  assert.ok(Math.abs(e.s.moveSpeed - 0.7) < 1e-9, 'not 0.49: the shared slow does not stack');
+  checkInvariants(h.b);
 });
 
 test('fatal damage starts a repeatable 25-second on-field revival and pauses active traits only', () => {

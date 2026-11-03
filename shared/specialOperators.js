@@ -44,7 +44,7 @@ export function buildSpecialOperators(chess, tokens) {
           bb: {}, bbStr: {}, rangeGrid: null },
         { name: N_('不灭'), desc: N_('受到致命伤害时不撤退，保留1点生命值，阻挡数归零，并获得25秒无敌。期间无法攻击，被攻击的优先度降低，停止施加控制及共享治疗，远程位干员的阻挡数仍为0；结束后恢复全部生命值及自身效果。可重复触发。'),
           bb: {}, bbStr: {}, rangeGrid: null },
-        { name: N_('王威'), desc: N_('范围内每名敌人每停留1秒，等概率获得下列一种效果：眩晕0.6秒、寒冷2秒、束缚0.7秒、停顿1秒、沉默10秒或1层麻痹。激活6人【维多利亚】盟约时，离开攻击范围的敌人受到10秒诱导，向自身移动。'),
+        { name: N_('王威'), desc: N_('范围内每名敌人每停留1秒，等概率获得下列一种效果：眩晕0.6秒、寒冷2秒、束缚0.7秒、停顿1秒、沉默10秒或1层麻痹。激活6人【维多利亚】盟约时，攻击范围内的敌人移动速度-30%，受到诱导的敌人不受该效果影响；离开攻击范围的敌人受到10秒诱导，向自身移动。'),
           bb: {}, bbStr: {}, rangeGrid: null },
       ].map((t, index) => ({ ...t, index, descRaw: t.desc, tokenKey: null, hidden: false, fromModule: false })),
       tokens: [], module: null,

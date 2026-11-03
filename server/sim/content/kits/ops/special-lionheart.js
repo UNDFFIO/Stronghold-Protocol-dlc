@@ -1,4 +1,4 @@
-// 狮心王 — maintainer-defined DLC traits (2026-11-02), not an official Golden Vow mechanic.
+// 狮心王 — maintainer-defined DLC traits (2026-11-02; the 王威 range slow added 2026-11-03), not an official Golden Vow mechanic.
 import { LIONHEART_ID } from '../../../../../shared/specialOperators.js';
 import { bodyInRange } from '../../../body.js';
 import { bondLayers, unitBonds } from '../../support/index.js';
@@ -7,6 +7,9 @@ const DRAIN = 'lionheart:block-drain';
 const GAIN = 'lionheart:block-gain';
 const RECOVERY = 'lionheart:recovery';
 const VICTORIA_STATS = 'lionheart:victoria-stats';
+const SLOW = 'lionheart:slow';
+const SLOW_EVERY = 0.2;   // 王威 aura refresh period (s)
+const SLOW_FOR = 0.3;     // aura buff lifetime (s): the slow lapses shortly after the king stops covering the enemy
 const CONTROL = [
   { key: 'stun', duration: 0.6 }, { key: 'cold', duration: 2 },
   { key: 'bind', duration: 0.7 }, { key: 'sluggish', duration: 1 },
@@ -110,9 +113,32 @@ export default {
         }, { owner: unit });
       }, { owner: unit, priority: 100 });
 
+      // 王威: with the owner's six-member Victoria bond active, enemies inside the range move 30 % slower. A short pulsed
+      // buff, like the other range slows of this engine, so leaving the range or the king's recovery ends it shortly after
+      // the last pulse; every Lionheart refreshes the same key, so two kings never stack. [ASSUMED] The reduction is one
+      // more `moveMul` factor beside the other speed modifiers (停顿 and friends still multiply).
+      battle.every(SLOW_EVERY, () => {
+        if (!awake(unit)) return;
+        const bond = battle.getPlayer(unit.ownerId)?.bonds?.victoriaShip;
+        if (!bond?.active || (bond.count ?? 0) < 6) return;
+        for (const e of battle.enemies) {
+          // 诱导中的敌人不受此效果影响 (the engine walks an attracted enemy at its own speed).
+          if (!present(e) || e.hidden || e.findBuff('attract') || !bodyInRange(e, unit.rangeKeySet)) continue;
+          battle.addBuff(e, {
+            key: SLOW, duration: SLOW_FOR, mods: { moveMul: 0.7 }, status: 'slow', visible: true,
+            source: unit, tags: ['talent'],
+          });
+        }
+      }, { owner: unit, immediate: true });
+
+      // 诱导中的敌人不受王威减速影响: drop the shared slow the moment an attract lands, not a tick later.
+      battle.on('statusApplied', (c) => {
+        if (c.status === 'attract' && c.target?.side === 'enemy' && c.target.findBuff(SLOW)) battle.removeBuff(c.target, SLOW);
+      }, { owner: unit });
+
       // [ASSUMED] Each enemy rolls independently after each full second continuously inside the range.
       // Existing statuses retain their remaining duration while the king recovers; no new control is applied.
-      const inside = new Map();
+      const inside = new Map(), lured = new Set();
       battle.on('tick', ({ dt }) => {
         if (!awake(unit)) { inside.clear(); return; }
         const seen = new Set();
@@ -129,7 +155,9 @@ export default {
           } else inside.set(e, elapsed);
         }
         for (const e of inside.keys()) if (!seen.has(e)) {
-          if (present(e) && !e.hidden && bond?.active && bond.count >= 6) {
+          // The range-exit lure lands once per enemy per battle; re-entering the range does not refresh it.
+          if (!lured.has(e) && present(e) && !e.hidden && bond?.active && bond.count >= 6) {
+            lured.add(e);
             battle.applyStatus(e, 'attract', { duration: 10, source: unit, point: [unit.tileR, unit.tileC] });
           }
           inside.delete(e);

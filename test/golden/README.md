@@ -221,3 +221,10 @@ Merged upstream `5def2977`, retaining DLC match progression. Five battle familie
 仅 `matches.json` 中 `solo-FUNNY-2`、`coop2-NORMAL-8-serverrun`、`coop2-NORMAL-6-coverage-diy`
 相对本次修改前的工作区基线变化：更长诱导改变敌人移动和击倒／漏怪，继而影响后续盟约层数、
 编队、经济及随机数摘要。其余289个场景不变，无引擎错误；自选与补位覆盖断言保持通过。
+
+## DLC 狮心王王威减速（2026-11-03）
+
+6人维多利亚盟约下，狮心王攻击范围内的敌人移动速度-30%，受到诱导的敌人不受影响。重算全部292个场景，
+相对本次修改前的工作区基线，仅 `matches.json` 中 `coop2-NORMAL-8-serverrun`、`coop2-NORMAL-6-coverage-diy`、
+`coop2-NORMAL-28-coverage-diy` 变化：减速改变敌人移动、击倒和漏怪，继而影响后续盟约层数、编队、
+经济及随机数摘要。其余289个场景不变，无引擎错误。
