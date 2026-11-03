@@ -804,6 +804,9 @@
                           },
                           "groundbind": {
                             "type": "boolean"
+                          },
+                          "blockCntZero": {
+                            "type": "boolean"
                           }
                         },
                         "required": [],
@@ -1607,6 +1610,9 @@
                                   "type": "boolean"
                                 },
                                 "groundbind": {
+                                  "type": "boolean"
+                                },
+                                "blockCntZero": {
                                   "type": "boolean"
                                 }
                               },
@@ -3607,6 +3613,9 @@
                             },
                             "groundbind": {
                               "type": "boolean"
+                            },
+                            "blockCntZero": {
+                              "type": "boolean"
                             }
                           },
                           "required": [],
@@ -4410,6 +4419,9 @@
                                     "type": "boolean"
                                   },
                                   "groundbind": {
+                                    "type": "boolean"
+                                  },
+                                  "blockCntZero": {
                                     "type": "boolean"
                                   }
                                 },
@@ -6424,6 +6436,9 @@
                                 },
                                 "groundbind": {
                                   "type": "boolean"
+                                },
+                                "blockCntZero": {
+                                  "type": "boolean"
                                 }
                               },
                               "required": [],
@@ -7227,6 +7242,9 @@
                                         "type": "boolean"
                                       },
                                       "groundbind": {
+                                        "type": "boolean"
+                                      },
+                                      "blockCntZero": {
                                         "type": "boolean"
                                       }
                                     },

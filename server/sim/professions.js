@@ -485,6 +485,9 @@ const onFrontLine = (unit, target) => {
 // subprofession table
 
 export const SUB = Object.freeze({
+  // Official `notchar1`: non-operator units — summons and tokens (data/tokens.json) and the special 狮心王 built from
+  // 王权's summon, which keeps the official token's id. No branch trait: the data supplies dmgType / attackKind.
+  notchar1: P({}),
   // --- SNIPER
   fastshot: P({ priority: 'fly', dmgMul: (b, u, t) => (t.isFlying ? (u.profile.flyScale ?? 1) : 1) }),
   closerange: P({}),
