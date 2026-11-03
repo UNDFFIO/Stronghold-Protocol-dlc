@@ -79,7 +79,7 @@ export default {
             };
             const cd = battle.spawnEnemy(candleKey, {
               def, pos: [e.y, e.x], route: { motion: 'WALK', start: [r, c], end: [r, c], checkpoints: [] },
-              countInTotal: false, ownerPlayerId: e.ownerId,
+              countInTotal: false, noLeak: true, ownerPlayerId: e.ownerId,
             });
             if (!cd) continue;
             cd.name = '心烛';
@@ -89,7 +89,6 @@ export default {
             cd.hp = cd.s.maxHp;
             cd.mem.candleOwner = unit;
             cd.mem.candleOf = e;
-            cd.mem.noLeak = true;                           // never a leak at the time limit (Battle._timeout)
             battle.addBuff(cd, { key: 'etlchi:candle', flags: { unblockable: true, noMove: true } });
             unit.mem.candles.push(cd);
             battle.fx('candle', { x: cd.x, y: cd.y, id: cd.id, of: e.id });

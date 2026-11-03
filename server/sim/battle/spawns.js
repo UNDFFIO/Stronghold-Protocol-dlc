@@ -82,7 +82,8 @@ export class BattleSpawns {
 
   /**
    * Spawn an enemy now. opts: { routeIndex, route, pos:[r,c], mods:{hpMul,atkMul,defMul,resMul,speedMul}, tag,
-   * sourcePlayerId, ownerPlayerId, bounty:{coins,ownerPlayerId}, countInTotal, inTotal }
+   * sourcePlayerId, ownerPlayerId, bounty:{coins,ownerPlayerId}, countInTotal, inTotal, noLeak }
+   * noLeak marks a neutral skill target before spawn hooks (timeout-exempt, not an ordinary Ascension enemy).
    */
   spawnEnemy(enemyKey, opts = {}) {
     // Removal is not a kill: no rewards, on-death mechanics, leaks or scheduled-enemy counters.
@@ -130,6 +131,8 @@ export class BattleSpawns {
         tauntLevel: def.tauntLevel, massLevel: def.massLevel, hpRecoveryPerSec: def.hpRecoveryPerSec, rangeRadius: def.rangeRadius,
       },
     });
+    // Neutral skill targets must be identifiable before synchronous deploy/enemySpawn hooks run.
+    if (opts.noLeak) e.mem.noLeak = true;
     e.alive = true;
     e.deployed = true;
     e.blockWeight = def.blockCnt ?? 1;

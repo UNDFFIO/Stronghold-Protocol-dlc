@@ -1239,6 +1239,44 @@ test('隐德来希 S3: candles have their own record (neutral, no attack, origin
   clean(h);
 });
 
+for (const level of [14, 20]) for (const exit of ['original', 'skill', 'owner', 'timeout']) test(`隐德来希 S3: difficulty ${level}, ${exit} exit never creates an orphaned echo`, () => {
+  const h = makeBattle({
+    difficultyLevel: level,
+    defs: { enemies: { e_a: dummy('e_a', { hp: 1e6 }) } },
+    units: [{ chessId: 'chess_char_5_06_a', row: 9, col: 4 }],
+    enemies: [{ key: 'e_a', pos: [10, 5] }, { key: 'e_a', pos: [12, 9], count: 2 }],
+    timeLimit: 60,
+  });
+  h.step();
+  const u = h.unit('chess_char_5_06_a');
+  const originals = h.b.enemies.slice();
+  u.skill.gainSp(1000);
+  assert.ok(u.skill.activate('test'));
+  const [cd] = u.mem.candles;
+  assert.ok(cd, 'the fourth spawn is a candle');
+  assert.equal(cd.mem.noLeak, true);
+  assert.ok(!cd.difficultyHasEcho, 'a candle never qualifies as an ordinary enemy');
+  // The candle must not advance the fourth-real-enemy counter either.
+  const fourth = h.spawn('e_a', { pos: [12, 9] });
+  assert.equal(fourth.difficultyHasEcho, true);
+  h.b.leak(fourth); // do not spawn its legitimate echo in this cleanup test
+  if (exit === 'skill' || exit === 'timeout') u.skill.stop();
+  if (exit === 'owner') h.b.kill(u, null);
+  if (exit === 'timeout') {
+    h.b.forceEnd('timeout');
+    assert.equal(h.result().reason, 'timeout');
+    assert.ok(h.result().perPlayer.p1.leaked.every(e => e.enemyKey === fourth.defId), 'only real enemies can leak');
+  } else {
+    for (const e of originals) h.b.kill(e, null);
+    assert.equal(h.b.enemies.filter(e => e.alive).length, 0, 'no orphaned candle echo');
+    h.step();
+    assert.equal(h.result().reason, 'cleared');
+    assert.equal(h.result().perPlayer.p1.leaked.length, 1, 'only the intentionally leaked fourth enemy');
+    assert.equal(h.result().perPlayer.p1.leaked[0].enemyKey, fourth.defId);
+  }
+  clean(h);
+});
+
 test('隐德来希 T1 萃血: stealing max HP never lowers a wounded target\'s current HP (only caps it); never below 1 max HP', () => {
   const h = makeBattle({
     defs: { enemies: { enemy_dummy: dummy(), enemy_tiny: dummy('enemy_tiny', { hp: 100 }) } },

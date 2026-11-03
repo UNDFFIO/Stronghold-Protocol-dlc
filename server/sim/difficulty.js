@@ -5,7 +5,8 @@ import { hypot } from './detmath.js';
 
 const P = Object.fromEntries(DIFFICULTY_RULES.map(r => [r.key, r.params]));
 const leader = e => e.isBoss || e.bossPool || e.def.rank === 'BOSS';
-const ordinary = e => e.side === 'enemy' && !e.isBoss && !e.bossPool && e.def.rank === 'NORMAL' && e.tag !== 'part';
+// Neutral skill targets (心烛) are not ordinary enemies: in particular, they must never make autonomous echoes.
+const ordinary = e => e.side === 'enemy' && !e.mem.noLeak && !e.isBoss && !e.bossPool && e.def.rank === 'NORMAL' && e.tag !== 'part';
 const op = u => u?.side === 'ally' && u.kind === 'op';
 const liveEnemy = e => e.alive && e.deployed && !e.hidden && e.hp > 0;
 const fx = (b, kind, u, extra = {}) => b.fx(kind, { x: u.x, y: u.y, id: u.id, ...extra });

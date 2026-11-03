@@ -56,6 +56,11 @@ It no longer changes any debuff duration on damage. Regression coverage: `test/s
 
 ## 1. Driving a battle (match owner)
 
+Neutral skill targets such as 隐德来希 S3's 心烛 pass `noLeak: true` to `spawnEnemy`; it sets
+`mem.noLeak` before synchronous spawn hooks. They are timeout-exempt and excluded from Ascension's ordinary-enemy
+rules (Death Embers, Last Gift, Echo and Stealth Run). In particular, a candle neither advances the every-fourth
+ordinary-spawn counter nor produces an independent, counted echo when removed. Other enemy rules are unchanged.
+
 DLC `difficultyLevel` enables cumulative Ascension rules (`shared/difficulty.js`, `server/sim/difficulty.js`).
 From level 2, a killed ordinary enemy leaves Death Embers for 5 game seconds: five one-second Arts damage pulses
 at its fixed death position. Radius is `1 + b.round * 0.2` tiles; each pulse deals
