@@ -177,6 +177,37 @@ test('fixed-round grants: 小贾斯汀 / 昆图斯 / 马克维茨 / 变形者集
   }
 });
 
+test('extra rounds (额外回合): 变形者集群 keeps its 每5回合 schedule (R20, R25); finite and one-off grants stay finished', () => {
+  // DLC extra rounds continue the round count (Hidden Core R15, the first extra round R16), and the official table
+  // lists 变形者集群's 「每5回合」 as R5/R10/R15 — the whole official match. Only a schedule that runs to the mode's
+  // last round is a period cut by the end of the match; the explicit lists and the one-offs keep their own bounds.
+  const CASES = [
+    ['band_damaztic', A('6_09'), [20, 25]],
+    ['band_justin', A('3_12'), []],
+    ['band_jesica', A('4_01'), []],
+    ['band_fang', A('5_04'), []],
+    ['band_orchid', A('4_01'), []],
+    ['band_quintus', A('5_08'), []],
+    ['band_malkie', A('5_07'), []],
+    ['band_mlyss', 'chess_item_5_06_e_b', []],
+    ['band_pith', 'chess_char_1_15_a', []],
+    ['band_dusk', 'chess_item_6_02_m', []],
+  ];
+  for (const [band, id, rounds] of CASES) {
+    const { m, ps, prepStart } = setup({ band, seed: 5 });
+    m.gd.endlessStartRound = 16;
+    const got = [];
+    for (let r = 16; r <= 26; r++) {
+      const before = handIds(ps).filter((x) => x === id).length;
+      prepStart(r);
+      if (handIds(ps).filter((x) => x === id).length > before) got.push(r);
+      ps.hand.fill(null); ps.temp.fill(null);
+    }
+    assert.deepEqual(got, rounds, band);
+    cover(band);
+  }
+});
+
 test('杜宾 加练！: a 教鞭 every 2 rounds (even rounds)', () => {
   const { ps, prepStart } = setup({ band: 'band_doberm' });
   const got = [];
@@ -390,6 +421,18 @@ test('鸭爵 “神秘顾客”: from R5, 0–2 ground enemies in the last 40 % 
     m.dispatch(p0, 'onBattleStart', ev);
     assert.ok(!ev.spawns.some((sp) => ducks.includes(sp.enemyKey)), `R${r} ${kind} ${band}`);
   }
+  // the extra rounds keep it: 「从第5回合起」 names no end and the round count goes on (R20 = extra R5)
+  h.ps('p_1').bandId = 'band_ducklord';
+  m.gd.endlessStartRound = 16;
+  let extraSwaps = 0;
+  for (let k = 0; k < 30; k++) {
+    m.round = 20;
+    m.seed = 4 + k;
+    const ev = { input: p0.battleInput({ side: 'L', colOffset: 0 }), kind: 'normal', round: 20, spawns: wave() };
+    m.dispatch(p0, 'onBattleStart', ev);
+    extraSwaps += ev.spawns.filter((sp) => ducks.includes(sp.enemyKey)).length;
+  }
+  assert.ok(extraSwaps > 0, 'the swap still runs in the extra rounds');
   // duckReplace keeps unreplaced copies of a multi-count spec
   const ctx = { gd: m.gd, rng: Object.assign(() => 0, m.rngMeta) };
   ctx.rng.int = () => 2; ctx.rng.shuffle = (a) => a; ctx.rng.pick = (a) => a[0];

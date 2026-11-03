@@ -8,6 +8,8 @@
 //   band_first_self_refresh_present_char {count,bond}  杜遥夜   first 2 manual refreshes/round: ≥count <bond> chess (tier ≤ shop level)
 //   band_shop_refresh_copy_max_lv_char {count}         梓兰     every manual refresh: highest-tier shop chess copied into another slot, copy frozen
 //   preparation_start_gain_chess_from_round {round}    梓兰/小贾斯汀/昆图斯/马克维茨/变形者集群/Pith/夕/杰西卡/缪尔赛思/芬  prep start of `round`: bbStr.chess
+//                                                               a periodic schedule that runs to the mode's last round continues in the DLC
+//                                                               extra rounds (变形者集群 R20, R25 …; extraRoundCadence)
 //   preparation_start_gain_chess_every_n_round {round} 杜宾     prep start, every `round` rounds (round % n = 0): bbStr.chess
 //   give_coin_in_round {round,coin}                    老鲤     income of round `round` = coin (R1/R2 0, R3 15)
 //   prep_start_gain_chess_from_pool_in_round {round}   老鲤     prep start of `round`: 1 chess of pool
@@ -154,6 +156,30 @@ K.band_shop_refresh_copy_max_lv_char = () => ({
   },
 });
 
+/**
+ * A fixed-round grant schedule as a repeating cadence for the DLC 额外回合 (maintainer report of 2026-11-04: 变形者集群's
+ * 【变形同构】 「每5回合获得1件特殊装备<变形同构体>」 gave nothing after R15). The official table writes one buff per round —
+ * 变形者集群 R5/R10/R15, and R15 is the mode's last round (the Hidden Core) — because an official match ends there: a
+ * schedule whose last round IS the match's last round is the period's whole list, so past it the period continues
+ * (R20, R25 …). A schedule that stops short is finite by its own text (小贾斯汀 R1/4/7/10, 杰西卡 R4/7/10/13, 芬
+ * R8/10/12/14), and a one-off lists one round (梓兰 R10, 昆图斯 R3 …): neither continues. [ASSUMED] the extension of the
+ * official text into extra rounds.
+ * @returns {null | { first: number, last: number, step: number, id: string, count: number }}
+ */
+function extraRoundCadence(ps, gd) {
+  if (!Array.isArray(ps) || ps.length < 2) return null;
+  const rows = ps.map((p) => ({ round: int(p.round, -1), id: p.chess ?? p.chess_id, count: timesOf(p.count, 1) }))
+    .sort((a, b) => a.round - b.round);
+  if (!rows.every((r) => r.round > 0 && r.id)) return null;
+  const step = rows[1].round - rows[0].round;
+  if (step <= 0) return null;
+  if (!rows.every((r, i) => r.round === rows[0].round + i * step)) return null;
+  if (!rows.every((r) => r.id === rows[0].id && r.count === rows[0].count)) return null;
+  const last = rows[rows.length - 1].round;
+  if (last !== (gd.hiddenRound ?? gd.bossRound)) return null;
+  return { first: rows[0].round, last, step, id: rows[0].id, count: rows[0].count };
+}
+
 K.preparation_start_gain_chess_from_round = (ps) => ({
   onPrepStart(ctx) {
     for (const p of ps) {
@@ -161,6 +187,11 @@ K.preparation_start_gain_chess_from_round = (ps) => ({
       if (ctx.round !== int(p.round, -1) || !id) continue;
       for (let k = 0; k < timesOf(p.count, 1); k++) grant(ctx, id, { requirePool: false, source: 'band' });
     }
+    // extra rounds: the cadence continues past the last listed round (变形者集群: R20, R25 …)
+    const cadence = extraRoundCadence(ps, ctx.gd);
+    if (!cadence || ctx.round <= cadence.last || !ctx.gd.endlessRound?.(ctx.round)) return;
+    if ((ctx.round - cadence.first) % cadence.step !== 0) return;
+    for (let k = 0; k < cadence.count; k++) grant(ctx, cadence.id, { requirePool: false, source: 'band' });
   },
 });
 

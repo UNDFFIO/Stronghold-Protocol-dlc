@@ -68,6 +68,23 @@ test('extra boss awards stop at the last available curse without blocking the ne
   assert.equal(p.relics.filter(r => r.round === 27 && getRelic(r.id).tier === 6).length, 0);
 });
 
+test('变形者集群 keeps its 每5回合 grant in the extra rounds: none at R16–19, 变形同构体 at extra R5 (R20)', t => {
+  const h = atVote(t, { mode: 'solo' });
+  const p = h.ps('p_0');
+  const id = 'chess_item_6_09_e_a';
+  const copies = () => [...p.hand, ...p.temp].filter((x) => x && x.id === id).length;
+  p.bandId = 'band_damaztic';
+  const before = copies();
+  accept(h);
+  assert.equal(h.m.round, 16);
+  for (const r of [16, 17, 18, 19]) {
+    assert.ok(h.drive(() => h.m.phase === PHASE.PREP && h.m.round === r));
+    assert.equal(copies(), before, `extra R${r - 15} (R${r}) is not a 5-round grant`);
+  }
+  assert.ok(h.drive(() => h.m.phase === PHASE.PREP && h.m.round === 20));
+  assert.equal(copies(), before + 1, 'extra R5 (R20) grants the 变形同构体');
+});
+
 test('only unanimous acceptance immediately grants one random curse to humans and bots, excluding departed and eliminated players', t => {
   const h = atVote(t, { humans: 3, bots: 1 });
   h.m.endlessVote = null;
