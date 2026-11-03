@@ -84,6 +84,23 @@
 .dhead__info { display: flex; flex-direction: column; gap: .05rem; min-width: 0; padding-top: .02rem; flex: 1; }
 .dhead__chips { display: flex; align-items: center; gap: .08rem; flex-wrap: wrap; }
 .dhead__name { font-size: calc(.32 * var(--t)); font-weight: 900; letter-spacing: .04em; line-height: 1.2; }
+/* 死亡笔记 × 死神之眼（2026-11-04）: the enemy card's name is a writing target — hovering draws a red strike across it,
+   clicking writes the name; the card leaves once the stroke is drawn (ui/detailPanel.js DeathNoteName) */
+.dhead__name .dn-name { position: relative; display: inline-block; max-width: 100%; margin: 0; padding: 0; border: 0; border-radius: 0;
+  background: none; color: inherit; font: inherit; letter-spacing: inherit; line-height: inherit; text-align: left; cursor: pointer; }
+.dhead__name .dn-name:hover, .dhead__name .dn-name:focus-visible { color: #ffb3aa; }
+.dhead__name .dn-name:focus-visible { outline: 1px solid #a8342c; outline-offset: .04rem; }
+.dhead__name .dn-name:disabled { cursor: default; }
+.dn-name__strike { position: absolute; left: -.04em; right: -.04em; top: 52%; height: max(1px, .022rem); pointer-events: none;
+  border-radius: 1px; transform: scaleX(0); transform-origin: left center; rotate: -1.4deg;
+  background: linear-gradient(90deg, #8d221c, #e04a3d 55%, #7a1a16); box-shadow: 0 0 .04rem #ff4a3a66; }
+.dn-name:hover .dn-name__strike, .dn-name:focus-visible .dn-name__strike, .dn-name.is-writing .dn-name__strike {
+  animation: dn-strike .32s var(--ease-out) forwards;
+}
+@keyframes dn-strike { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@media (prefers-reduced-motion: reduce) {
+  .dn-name:hover .dn-name__strike, .dn-name:focus-visible .dn-name__strike, .dn-name.is-writing .dn-name__strike { animation: none; transform: scaleX(1); }
+}
 .dhead__en { font-family: var(--font-display); font-size: calc(.12 * var(--t)); letter-spacing: .2em; color: var(--text-dim); text-transform: uppercase; }
 /* 0.2.0 补位: the replaced operator under a stand-in's name (「银灰的替补」, ui/detailPanel.js ChessDetail) */
 .dhead__for { display: block; font-size: max(calc(.13 * var(--t)), 9px); letter-spacing: .04em; color: var(--ice); }

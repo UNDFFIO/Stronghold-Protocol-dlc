@@ -1,6 +1,35 @@
 import { useEffect, useState } from '../../vendor/hooks.module.js';
 import { html, Modal, Button, Icon, Tooltip } from './components.js';
 import { t } from '../../../shared/i18n.js';
+import { PHASE } from '../../../shared/constants.js';
+
+/**
+ * This render's death-note record for the owner's own collection — the writing page and the enemy card's name read
+ * the same numbers. `held` comes from m.private.deathNote (the server's deathNoteView: null without relic_241).
+ * @param {{ priv?: any, pub?: any, phase?: string, alive?: boolean, conn?: any,
+ *   onWrite?: (name:string, round:number) => Promise<boolean>, onEyes?: (round:number) => Promise<boolean> }} o
+ */
+export function deathNoteContext({ priv = null, pub = null, phase, alive = false, conn = null, onWrite = null, onEyes = null } = {}) {
+  if (!priv) return null;
+  return {
+    held: !!priv.deathNote,
+    canUse: phase === PHASE.PREP && !!alive && !priv.ready && conn?.status === 'online',
+    used: !!priv.deathNote?.used,
+    cost: priv.deathNote?.cost ?? (priv.shinigamiEyes ? 4 : 8),
+    eyes: !!priv.shinigamiEyes,
+    funds: priv.funds || 0,
+    round: pub?.round,
+    onWrite, onEyes,
+  };
+}
+
+/**
+ * Whether an enemy card's name is a writing target: the player holds the note, has traded for the Shinigami Eyes, and
+ * this round's once-per-round write is still unpaid. The click is one more way to write a name — the same use and
+ * Funds, the maintainer's decision of 2026-11-04 — not a free or extra removal.
+ * @param {ReturnType<typeof deathNoteContext>} ctx
+ */
+export const canWriteEnemyName = (ctx) => !!ctx && ctx.held && ctx.canUse && ctx.eyes && !ctx.used && ctx.funds >= ctx.cost;
 
 export function DeathNoteWriting({ context }) {
   const [name, setName] = useState('');
@@ -39,7 +68,7 @@ function ShinigamiEyes({ context }) {
     finally { setBusy(false); }
   };
   return html`<div class=${`death-note-eyes${context.eyes ? ' is-active' : ''}`}>
-    <${Tooltip} placement="right" text=${t('消耗当前目标生命值的一半（剩余值向上取整），解除敌人名称遮蔽，自身目标生命值不再显示，书写消耗降为4资金。本局仅可交换1次。')}>
+    <${Tooltip} placement="right" text=${t('消耗当前目标生命值的一半（剩余值向上取整），解除敌人名称遮蔽，自身目标生命值不再显示，书写消耗降为4资金。获得后可在敌方详情中点击敌人名字书写；本局仅可交换1次。')}>
       <button type="button" class="death-note-eyes__pact" aria-label=${t('死神之眼')} aria-pressed=${!!context.eyes}
         disabled=${!context.canUse || context.eyes || busy} onClick=${trade}>
         <svg class="death-note-eyes__art" viewBox="0 0 240 240" fill="none" stroke="currentColor" aria-hidden="true">

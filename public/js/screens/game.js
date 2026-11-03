@@ -94,6 +94,7 @@ import { ShopBar } from '../ui/shopBar.js';
 import { useShopCornerVisibility } from '../ui/shopCornerVisibility.js';
 import { selectedBondTimers } from '../ui/bondTimers.js';
 import { DetailPanel, resolveDetail } from '../ui/detailPanel.js';
+import { deathNoteContext, canWriteEnemyName } from '../ui/deathNote.js';
 import { RewardOverlay } from '../ui/rewardOverlay.js';
 import { FinalAssaultPlate, HiddenCorePlate, EndPlate, preloadBossPlateArt, bossPlateArtReady, finalPlateRows, endPlateOf } from '../ui/bossPlates.js';
 import { DownedPlate, downedDue, preloadDownedArt, downedArtReady } from '../ui/downedPlate.js';
@@ -1769,6 +1770,19 @@ function MatchScreen() {
     field, layers, layer, who: watchWho, bondLayers: battleState?.bondLayers || null,
   });
   const collection = ownerRelics({ pub, priv, myId, ownerId: strip.ownerId });
+  // The death note's numbers for this render: the collection's writing page, the eye pact and the enemy card's name all
+  // read the same server-owned record (only the player the strip shows may write — a scouted teammate's view is read-only).
+  const deathNote = strip.ownerId === myId
+    ? deathNoteContext({ priv, pub, phase, alive, conn, onWrite: actions.deathNote, onEyes: actions.shinigamiEyes })
+    : null;
+  // With the Shinigami Eyes the enemy card's name writes itself (maintainer's request of 2026-11-04): a previewed enemy
+  // only — a live battle unit's card has no write to apply [ASSUMED] — and only while this round's write is still unpaid.
+  const eraseName = canWriteEnemyName(deathNote) && resolved?.type === 'enemy' && resolved.unitId == null && resolved.enemy?.name
+    ? {
+      cost: deathNote.cost,
+      onErase: (name) => actions.deathNote(name, deathNote.round),
+      onErased: () => { setDetail(null); setSel(null); },
+    } : null;
   const stripFid = strip.fieldId;
   const liveLayers = (combat || settleMode) && battleState?.bondLayers ? battleState.bondLayers : null;
   // the observing pill names the player whose bonds the strip shows (the same teammate as the strip's "👁 name" tag)
@@ -1916,9 +1930,7 @@ function MatchScreen() {
       <div class="gm__effects">
         <${RelicCollection} key=${strip.ownerId} owner=${strip.name} relics=${collection.relics} reward=${collection.reward} round=${pub?.round || 1} shield=${collection.shield} nextShield=${collection.nextShield}
           revival=${strip.ownerId === myId ? { phase, alive, targets: revivalTargets(pub, myId), onRevive: actions.relicRevive } : null}
-          deathNote=${strip.ownerId === myId ? { canUse: phase === PHASE.PREP && alive && !priv?.ready && conn.status === 'online',
-            used: priv?.deathNote?.used, cost: priv?.deathNote?.cost ?? (priv?.shinigamiEyes ? 4 : 8), eyes: !!priv?.shinigamiEyes,
-            funds: priv?.funds || 0, round: pub?.round, onWrite: actions.deathNote, onEyes: actions.shinigamiEyes } : null}
+          deathNote=${deathNote}
           scratch=${strip.ownerId === myId ? scratchContext : null}
           queuedChess=${strip.ownerId === myId ? priv?.relicChessQueue?.length || 0 : 0} />
         <div class="gm__effect-base"><${EffectsList} effects=${watchingOther && field ? (field.effects ?? null) : priv?.effects} /></div>
@@ -1987,7 +1999,7 @@ function MatchScreen() {
 
       ${resolved ? html`<${DetailPanel} detail=${resolved} snapHp=${snapHp} onClose=${() => { setDetail(null); setSel(null); }}
         bonds=${detailBonds} offBonds=${offBonds} loadout=${detailLoadout} ops=${priv?.ops ?? null} side=${dSide} shopOpen=${shopOpen} live=${liveStats} bondTimers=${bondTimers} voice=${true}
-        morphMode=${morphMode} unequipAllowed=${unequipAllow}
+        morphMode=${morphMode} unequipAllowed=${unequipAllow} eraseName=${eraseName}
         onUnequip=${editable && unequipAllow ? (itemUid) => actions.unequip(itemUid) : null}
         onBond=${(id) => openBond(id, detailOwner, 'detail')} />` : null}
 

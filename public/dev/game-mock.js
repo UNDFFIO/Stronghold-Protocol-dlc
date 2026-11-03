@@ -588,6 +588,9 @@ async function mockRequest(t, f = {}) {
       const cost = p.shinigamiEyes ? 4 : 8;
       if (p.funds < cost) fail('NO_FUNDS');
       p.funds -= cost; p.deathNote = { used: true, cost };
+      // like the server's deathNoteKeys: the named type leaves every field's preview for this round
+      const removed = new Set(data.list('enemies').filter((e) => e.name === f.name).map((e) => e.key));
+      if (removed.size) p.nextEnemies = (p.nextEnemies || []).filter((e) => !removed.has(e.enemyKey));
       refreshPrivate(); return {};
     }
     case 'g.scratchBuy': {

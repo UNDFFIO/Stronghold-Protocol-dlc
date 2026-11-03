@@ -35,7 +35,7 @@
 // screen's 局内数值 section draws the same ones for the chosen skill / module, without a live entry (GitHub issue #64).
 
 import { BondTimers } from './bondTimers.js';
-import { useEffect } from '../../vendor/hooks.module.js';
+import { useEffect, useState } from '../../vendor/hooks.module.js';
 import { html, Icon, TierChip, MicroLabel, Button, confirmDialog, useTicker } from './components.js';
 import { OperatorImage, Img, RichText, UnitThumb, BondGlyph, GIcon, diyToken } from './gameComponents.js';
 import { attackInterval, rangeGridBox, fmtNum, tileKey, chessLoadout, nextThreshold, bondTier, briefingBondTip, pieceBondIds, grantedBonds, morphPairings, ownStandIn, standInOf, standInLoadout, standInLabel, standInTip, standInForText, ownDiyRecord, ownDiyPick, diyRecordFor, pickGetter, unitPick, unitCultivation } from './gameLogic.js';
@@ -529,7 +529,34 @@ export function ItemDetail({ item, piece, editable, onDestroy, offBonds = null, 
     ${piece && editable ? html`<div class="dactions"><${Button} variant="danger" onClick=${() => onDestroy(piece, item)}>${t('销毁道具')}<//></div>` : null}`;
 }
 
-function EnemyDetail({ enemy, snapHp, count, live = null }) {
+/**
+ * The enemy card's name as a death-note target (maintainer's request of 2026-11-04): with the Shinigami Eyes and this
+ * round's write still available, hovering draws a red strike across the name; clicking writes the name — the usual
+ * once-per-round use and Funds — and the card leaves once the strike has been drawn. A touch tap starts the same strike,
+ * so the deletion reads the same without a hover.
+ */
+function DeathNoteName({ name, cost, onErase, onErased }) {
+  const [busy, setBusy] = useState(false);
+  const write = async () => {
+    if (busy || !name) return;
+    setBusy(true);
+    const started = Date.now();
+    let ok;
+    try { ok = await onErase(name); } catch { ok = false; }
+    if (!ok) { setBusy(false); return; }
+    // the ink stroke finishes even when the server answered first
+    const left = 320 - (Date.now() - started);
+    if (left > 0) await new Promise((resolve) => setTimeout(resolve, left));
+    onErased?.();
+  };
+  return html`<button type="button" class=${cx('dn-name', busy && 'is-writing')} disabled=${busy}
+    aria-label=${t('将「{name}」写入死亡笔记（{cost}资金）', { name, cost })}
+    title=${t('点击名字，将其写进死亡笔记')} onClick=${write}>
+    ${name}<span class="dn-name__strike" aria-hidden="true"></span>
+  </button>`;
+}
+
+function EnemyDetail({ enemy, snapHp, count, live = null, eraseName = null }) {
   const m = data.get('assets');
   const s = enemy.stats || {};
   const types = Array.isArray(enemy.acTypes) ? enemy.acTypes : enemy.acType ? [enemy.acType] : [];
@@ -554,7 +581,9 @@ function EnemyDetail({ enemy, snapHp, count, live = null }) {
           <span class="dtag-kind">${s.motion === 'FLY' ? t('空中') : t('地面')}</span>
           ${count ? html`<span class="dtag-kind num">×${count}</span>` : null}
         </div>
-        <h3 class="dhead__name">${enemy.name}</h3>
+        <h3 class="dhead__name">${eraseName
+          ? html`<${DeathNoteName} name=${enemy.name} cost=${eraseName.cost} onErase=${eraseName.onErase} onErased=${eraseName.onErased} />`
+          : enemy.name}</h3>
         <div class="dfactions">${types.map((t) => html`<span key=${t} class="dfaction"><${Img} src=${factionIconUrl(m, factions[t]?.icon)} />${factions[t]?.name || t}</span>`)}</div>
         ${hp ? html`<div class="dhp dhp--enemy"><i style=${`width:${Math.max(0, Math.min(100, (hp.hp / Math.max(1, hp.max)) * 100))}%`}></i><span class="num">${fmtNum(hp.hp)} / ${fmtNum(hp.max)}</span></div>` : null}
       </div>
@@ -858,7 +887,7 @@ export function selectVoiceKey(detail) {
  *   (the owner's request of 2026-10-08 「添加一下干员点击上去的语气一样的语音」 lifted 2026-10-03's 「整备阶段不需要干员语音」
  *   for this line only; [ASSUMED] the official prep tap says 选中干员 like the battle's FOCUS_CHAR)
  */
-export function DetailPanel({ detail, editable, snapHp, onClose, onSell, onDestroy, bonds = [], offBonds = null, loadout = null, ops = null, onBond = null, side = 'left', shopOpen = false, live = null, bondTimers = null, voice = false, morphMode = 'official', onUnequip = null, unequipAllowed = false }) {
+export function DetailPanel({ detail, editable, snapHp, onClose, onSell, onDestroy, bonds = [], offBonds = null, loadout = null, ops = null, onBond = null, side = 'left', shopOpen = false, live = null, bondTimers = null, voice = false, morphMode = 'official', onUnequip = null, unequipAllowed = false, eraseName = null }) {
   const getter = typeof live === 'function' ? live : null;
   useTicker(detail && (getter || bondTimers) ? 250 : 0);
   // 选中干员 voice (audio.voice 'select'): once per opened operator — the panel stays mounted while the target changes,
@@ -894,7 +923,7 @@ export function DetailPanel({ detail, editable, snapHp, onClose, onSell, onDestr
         bonds=${bonds} offBonds=${offBonds} loadout=${loadout} onBond=${onBond} live=${liveNow} hint=${detail.hint || null} unitItems=${detail.unitItems || null}
         standIn=${detail.standIn || null} diy=${detail.diy || null} cultOpts=${detail.cultOpts || { ops }} morphMode=${morphMode} onUnequip=${onUnequip} />` : null}
       ${detail.type === 'item' ? html`<${ItemDetail} item=${detail.item} piece=${detail.piece} editable=${editable} onDestroy=${destroyIt} offBonds=${offBonds} morphMode=${morphMode} unequipAllowed=${unequipAllowed} />` : null}
-      ${detail.type === 'enemy' ? html`<${EnemyDetail} enemy=${detail.enemy} snapHp=${snapHp} count=${detail.count} live=${liveNow} />` : null}
+      ${detail.type === 'enemy' ? html`<${EnemyDetail} enemy=${detail.enemy} snapHp=${snapHp} count=${detail.count} live=${liveNow} eraseName=${eraseName} />` : null}
       ${detail.type === 'token' ? html`<${TokenDetail} token=${detail.token} piece=${detail.piece} ownerId=${detail.ownerId ?? null} snapHp=${snapHp} live=${liveNow} />` : null}
       ${detail.type === 'terrain' ? html`<${TerrainDetail} terrain=${detail.terrain} />` : null}
       ${detail.type === 'device' ? html`<${DeviceDetail} device=${detail.device} snapHp=${snapHp} live=${liveNow} />` : null}

@@ -39,7 +39,7 @@ export class PlayerViews {
   effectsView() {
     const out = [];
     if (this.shinigamiEyes) out.push({ id: 'shinigami-eyes', name: N_('死神之眼'),
-      desc: N_('解除敌人名称遮蔽，自身目标生命值不再显示，书写消耗降为4资金'), iconKind: 'item' });
+      desc: N_('解除敌人名称遮蔽，自身目标生命值不再显示，书写消耗降为4资金；可在敌方详情中点击敌人名字书写'), iconKind: 'item' });
     const band = this.bandId ? this.gd.band(this.bandId) : null;
     if (band) out.push({ id: band.effectId || band.bandId, name: band.effectName || band.name, desc: band.desc || '', iconKind: 'band', iconId: band.iconId || band.bandId });
     for (const e of this.effects) {

@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { PHASE } from '../../shared/constants.js';
 import { validateC2S } from '../../shared/protocol.js';
 import { RELICS, RELIC_TIERS, getRelic, dropWeights, pickRelic, pickRelicChoices, relicModifiers, relicIncome } from '../../shared/relics.js';
@@ -443,6 +444,20 @@ test('死亡笔记：普通作战和联防的本人死亡由真实结算入口�
     assert.equal(ps.deathNoteLpLost, 10);
     assert.ok(ps.relics.some((r) => r.id === 'relic_241'));
     assert.equal(helper.deathNoteDeaths, 0);
+  } finally { h.m.dispose(); }
+});
+
+test('死亡笔记：点击敌方名字发送本地化敌名时，服务端按别名解析到同一类型', () => {
+  const aliases = JSON.parse(readFileSync(new URL('../../data/i18n/en.json', import.meta.url), 'utf8')).names || {};
+  const h = makeMatch({ humans: 1, fake: true }).start();
+  try {
+    const ps = h.ps('p_0');
+    h.toPrep(3); ps.funds = 8; grantRelic(ps, 'relic_241');
+    const [key, rec] = Object.entries(h.m.gd.raw.enemies).find(([, r]) => r.name && aliases[r.name] && aliases[r.name] !== r.name);
+    assert.ok(key && rec, 'an enemy with an English alias');
+    assert.ok(resolveDeathNoteName(h.m, aliases[rec.name]).includes(key));
+    assert.deepEqual(ps.writeDeathNote(aliases[rec.name], 3), { ok: true });
+    assert.ok(deathNoteKeys(h.m).includes(key));
   } finally { h.m.dispose(); }
 });
 

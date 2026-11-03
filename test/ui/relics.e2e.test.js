@@ -1150,3 +1150,93 @@ test('阿戈尔升级藏品：三阶段名称品质、累计效果与官方图�
     for (const id of ids) assert.equal((await page.goto(`${base}/assets/relics/${id}.png`)).status(), 200);
   } finally { await page.close(); }
 });
+
+test('死神之眼：敌方卡片名字 hover 画出删除线，点击写入并移除该类型，未满足书写条件时不可点击', {
+  skip: !ENABLED && 'set SP_E2E=1 and provide system Chrome', timeout: 180000,
+}, async () => {
+  const page = await browser.newPage();
+  try {
+    await page.setViewport({ width: 1440, height: 900 });
+    await page.goto(`${base}/dev/game-mock.html?shot=1&phase=PREP`, { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('.relic-icons__heading');
+    for (const selector of ['.tbanner', '.mpop--phase', '.pbanner--overlay']) await page.waitForSelector(selector, { hidden: true });
+    await page.evaluate(() => globalThis.__MOCK__.mutate((s) => {
+      s.priv.relics = [{ id: 'relic_241', round: 3 }];
+      s.priv.funds = 16; s.priv.ready = false;
+      s.priv.deathNote = { used: false, cost: 4 };
+      s.priv.shinigamiEyes = true;
+    }));
+    const setNote = (used, eyes, funds) => page.evaluate(({ used, eyes, funds }) => globalThis.__MOCK__.mutate((s) => {
+      s.priv.deathNote = { used, cost: 4 }; s.priv.shinigamiEyes = eyes; s.priv.funds = funds; s.priv.ready = false;
+    }), { used, eyes, funds });
+    const openDrawer = async () => {
+      if (!(await page.$('.edrawer'))) await page.click('[data-testid="check-player"]');
+      await page.waitForSelector('.edrawer');
+      await page.click('.edrawer .tabs__tab:nth-child(2)');
+      await page.waitForSelector('.edrawer .erow');
+    };
+    const openFirstEnemy = async () => {
+      await page.click('.edrawer .erow');
+      await page.waitForSelector('.dpanel--enemy .dhead__name');
+      await page.waitForFunction(() => document.querySelector('.dpanel--enemy')?.getAnimations().every((a) => a.playState === 'finished'));
+      return page.$eval('.erow__name', (el) => el.textContent);
+    };
+    const closeDetail = async () => {
+      await page.click('.dpanel--enemy .dpanel__close');
+      await page.waitForSelector('.dpanel--enemy', { hidden: true });
+    };
+
+    await openDrawer();
+    const name = await openFirstEnemy();
+    const key = await page.evaluate(async (name) => (await import('/js/data.js')).data.list('enemies').find((e) => e.name === name)?.key, name);
+    const strike = await page.$eval('.dpanel--enemy .dn-name__strike', (el) => getComputedStyle(el).transform);
+    assert.match(strike, /matrix\(0,/, 'the strike is not drawn before the hover');
+    assert.equal(await page.$eval('.dpanel--enemy .dn-name', (el) => el.getAttribute('aria-label')), `将「${name}」写入死亡笔记（4资金）`);
+    assert.equal(await page.$eval('.dpanel--enemy .dn-name', (el) => el.title), '点击名字，将其写进死亡笔记');
+    await page.hover('.dpanel--enemy .dhead__name .dn-name');
+    await page.waitForFunction(() => document.querySelector('.dpanel--enemy .dn-name__strike')?.getAnimations()
+      .some((a) => a.animationName === 'dn-strike'));
+    await new Promise((resolve) => setTimeout(resolve, 420));
+    const drawn = await page.$eval('.dpanel--enemy .dn-name__strike', (el) => getComputedStyle(el).transform);
+    assert.doesNotMatch(drawn, /matrix\(0,/, 'hover draws the strike across the name');
+    await (await page.$('.dpanel--enemy')).screenshot({ path: `${OUT}/death-note-enemy-name-strike.png` });
+
+    const funds = await page.evaluate(() => globalThis.__MOCK__.S().priv.funds);
+    await page.click('.dpanel--enemy .dhead__name .dn-name');
+    await page.waitForFunction(() => globalThis.__MOCK__.S().priv.deathNote.used);
+    await page.waitForSelector('.dpanel--enemy', { hidden: true });
+    assert.equal(await page.evaluate(() => globalThis.__MOCK__.S().priv.funds), funds - 4, 'the click pays the writing cost');
+    const request = await page.evaluate(() => globalThis.__MOCK__.S().requests.filter(([t]) => t === 'g.deathNote'));
+    assert.equal(request.length, 1); assert.equal(request[0][1].name, name);
+    await page.waitForFunction((key) => !globalThis.__MOCK__.S().priv.nextEnemies.some((e) => e.enemyKey === key), {}, key);
+    await page.waitForFunction((name) => ![...document.querySelectorAll('.erow__name')].some((el) => el.textContent === name), {}, name);
+
+    // the name is only a writing target while the note, the eyes and this round's use all allow it
+    await setNote(true, true, 16);
+    await openFirstEnemy();
+    assert.equal(await page.$('.dpanel--enemy .dn-name'), null, 'already written this round');
+    await closeDetail();
+    await setNote(false, false, 16);
+    await openFirstEnemy();
+    assert.equal(await page.$('.dpanel--enemy .dn-name'), null, 'without the Shinigami Eyes');
+    await closeDetail();
+    await setNote(false, true, 3);
+    await openFirstEnemy();
+    assert.equal(await page.$('.dpanel--enemy .dn-name'), null, 'funds below the writing cost');
+    await closeDetail();
+
+    // touch: no hover — the tap starts the strike and writes all the same
+    await page.setViewport({ width: 390, height: 844 });
+    await setNote(false, true, 16);
+    await openFirstEnemy();
+    const tapName = await page.$eval('.dpanel--enemy .dn-name', (el) => el.textContent.trim());
+    await page.click('.dpanel--enemy .dn-name');
+    await page.waitForFunction(() => globalThis.__MOCK__.S().priv.deathNote.used);
+    await page.waitForSelector('.dpanel--enemy', { hidden: true });
+    const taps = await page.evaluate(() => globalThis.__MOCK__.S().requests.filter(([t]) => t === 'g.deathNote'));
+    assert.equal(taps.at(-1)[1].name, tapName);
+  } catch (error) {
+    await page.screenshot({ path: `${OUT}/death-note-enemy-name-error.png` });
+    throw error;
+  } finally { await page.close(); }
+});
