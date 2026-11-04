@@ -1,7 +1,7 @@
 import { guardDifficultyDamage } from '../difficulty.js';
 // HP-damage pipeline: hit → calculation → limit → ordered injury effects → hpDamage → HP application.
 import { sleepBlocks, liftoffEvades, damageDodgeMode } from './helpers.js';
-import { leaderHitCancelled, applyHpDecrease } from './health.js';
+import { leaderHitCancelled, applyHpDecrease, hpFloorLimit } from './health.js';
 import { applyElement } from './element.js';
 
 export { mitigate } from './calculation.js';
@@ -106,7 +106,13 @@ export function resolveDamage(battle, ctx) {
   // 限伤 cancels the whole hit. [ASSUMED] Its position relative to native injury effects is unverified; use one
   // pre-injury check for every shield kind (research 12 S43), preserving earlier attack/hit/gauge effects.
   if (estimate > 0 && leaderHitCancelled(battle, target, estimate)) return 0;
-  return settleEffects(battle, effects(final), amount => applyDamage(battle, ctx, amount, expected));
+  return settleEffects(battle, effects(final), amount => {
+    const floored = hpFloorLimit(target, dmg, amount);
+    // A floor-clamped instance that removes nothing is not a damage instance: no 受击回复 or `damaged` for it. The
+    // DLC ember's own half-HP skip already keeps that case out of play; this keeps the field's contract clean.
+    if (floored <= 0 && amount > 0) return 0;
+    return applyDamage(battle, ctx, floored, expected);
+  });
 }
 
 /** After ordered injury effects: HP guards and transfers, then shared HP bookkeeping. */

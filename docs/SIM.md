@@ -68,6 +68,10 @@ at its fixed death position. Radius is `1 + b.round * 0.2` tiles; each pulse dea
 20% in round 9, 30% in round 10, 40% in round 11, capped at 50% from round 12).
 Separate embers stack independently; the cap is per ember, not a shared damage cap. The ground FX uses the same duration and radius as
 the damage checks (maintainer-requested DLC change, superseding DESIGN §29.18).
+Operators and 炎佑 at or below 50% max HP take no ember damage; otherwise a pulse is capped at 10% of their max
+HP (`P.embers.maxHit`) and carries `hpFloor: s.maxHp / 2`, so the damage pipeline never takes them below half after
+mitigation, barriers and damage-taken multipliers (`attack/health.js hpFloorLimit`). Summons, tokens and devices take
+the raw share. Per-hit cap and floor are the maintainer's 2026-11-04 DLC rule; DESIGN §6 records the contract.
 From level 10, Rotating Armor alternates 10% Physical / Arts damage reduction every 12 game seconds on the
 battle clock, starting with Physical; late spawns inherit the current phase (DESIGN §29.19).
 From level 15, Overload Aftermath's `skillEnd` hook applies `asc:fatigue` to a living allied operator unless
@@ -942,6 +946,9 @@ stages; gauge intake has its own pipeline.
 
 Final HP handling includes special-HP mapping, `fatal` prevention, statistics, `hpChanged` for nonzero HP loss,
 `modifierApplied`/`damageApplied` for positive ordinary damage, legacy `damaged`, hurt-SP and death handling.
+A `dmg.hpFloor` (DLC 死亡余烬, `attack/health.js hpFloorLimit`) clamps the settled amount after the injury effects:
+the instance removes at most `max(0, target.hp − hpFloor)`, so the damage number and the statistics show the clamped
+loss; a shared boss pool keeps its own accounting and ignores the field, and HP loss (流失) has no such option.
 `amount` and `hpRemoved` are different quantities: a positive damage instance can remove zero HP under special
 HP rules. The client's damage number shows `amount`, and its red mark compares that final damage — after barriers,
 fixed reductions and `hpDamage` — with the expected damage (`attack/hit.js officialDamageMark`; PRTS 作战机制 「伤害红字」:

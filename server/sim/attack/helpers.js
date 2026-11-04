@@ -78,6 +78,7 @@ export function makeDamageInfo(d = {}) {
     // in range. null = the ordinary target of the trait.
     traitAlly: d.traitAlly ?? null,
     ...(d.origin != null ? { origin: d.origin } : {}),
+    ...(d.hpFloor != null && Number.isFinite(+d.hpFloor) ? { hpFloor: +d.hpFloor } : {}),
     ...(d.dodgeMode != null ? { dodgeMode: d.dodgeMode } : {}),
     ...(d.calculation != null ? { calculation: d.calculation } : {}),
     ...(d.ignoreCancelReasons != null ? { ignoreCancelReasons: [...d.ignoreCancelReasons] } : {}),

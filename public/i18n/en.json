@@ -2961,6 +2961,7 @@
   "注意维持阻挡单位的生存能力，避免防线连锁崩溃。": "Keep blocking units alive to prevent cascading defense failures.",
   "利用高频攻击或持续伤害消耗护盾。": "Use frequent attacks or damage over time to consume the shield.",
   "所有普通敌人倒下后留下持续{duration}秒的余烬，每秒对周围我方单位造成基于该敌人基础攻击力的法术伤害。余烬范围随回合数扩大，第{round}回合后伤害逐回合提高。": "All normal enemies leave embers lasting {duration}s when defeated, dealing Arts damage based on their base ATK each second to nearby allied units. The radius increases with each round, and damage increases each round after round {round}.",
+  "余烬对干员与炎佑：每次伤害不超过其最大生命值的10%，且不会使其生命值降至50%以下。": "Death Embers on Operators and Yanyou: each hit deals at most 10% of their max HP and never drops their HP below 50%.",
   "每登场{every}名普通敌人，其中第{every}名倒下后，在原地生成1个具有{percent}%最大生命值的【回响】继续前进": "Every {every}th normal enemy to appear spawns an Echo at its location when defeated, with {percent}% maximum HP, which continues advancing.",
   "所有敌人每进行{every}次普通攻击，锁定主目标当前位置，{delay}秒后对该位置周围{radius}格内的我方单位造成相当于自身基础攻击力{percent}%的法术伤害": "Every {every}th normal attack by any enemy locks onto the primary target’s current position; after {delay}s, allied units within {radius} tiles of that position take Arts damage equal to {percent}% of its base ATK.",
   "非领袖敌人处于控制状态期间，每累计1秒防御力和法术抗性提升{percent}%，最高提升{maxPercent}%；控制结束后保留增幅。": "Non-leader enemies gain {percent}% DEF and RES for each accumulated second under control, up to +{maxPercent}%. The bonus remains after control ends.",

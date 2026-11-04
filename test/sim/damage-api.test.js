@@ -45,6 +45,27 @@ test('sourced and sourceless entries share target mitigation, shields and hooks;
   }
 });
 
+test('hpFloor bounds ordinary damage after mitigation and injury effects, without touching HP loss', () => {
+  const { h, b, u, e } = arena();
+  b.addBuff(e, { key: 'in', mods: { dmgTakenMul: 2 } });
+  b.addBuff(e, { key: 'barrier', shield: 10 });
+  const floor = e.s.maxHp / 2;
+  e.hp = floor + 5;
+  // 100 true × 2 − 10 barrier = 190 nominal; the floor leaves only the 5 HP above half
+  assert.equal(b.dealDamage({ source: u, target: e, amount: 100, type: 'true', hpFloor: floor }), 5);
+  assert.equal(e.hp, floor);
+  assert.equal(u.stats.dmg, 5);
+  assert.equal(e.findBuff('barrier'), null, 'the barrier still absorbs its part of the instance');
+  // A clamped-to-zero instance is not a damage instance: no `damaged`, no kill bookkeeping.
+  e.hp = floor;
+  let damaged = 0;
+  b.on('damaged', () => damaged++);
+  assert.equal(b.dealDamage({ source: u, target: e, amount: 100, type: 'true', hpFloor: floor }), 0);
+  assert.equal(e.hp, floor);
+  assert.equal(damaged, 0, 'a floored instance removes nothing and reports no damage');
+  checkInvariants(h.b);
+});
+
 test('sourceless damage retains fatal and kill attribution, while ownerless damage has no credit', () => {
   for (const credited of [false, true]) {
     const { h, b, u, e } = arena();

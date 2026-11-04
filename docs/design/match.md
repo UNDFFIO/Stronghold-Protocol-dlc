@@ -23,6 +23,11 @@ DLC Ascension protocols are cumulative and defined in `shared/difficulty.js`. Le
 each one-second Arts pulse deals `min(50, 10 + max(0, n - 8) * 10)` percent of that enemy's base ATK:
 10% through round 8, 20% in round 9, 30% in round 10, 40% in round 11, capped at 50% from round 12.
 Separate embers stack independently; the cap applies to each ember, not their combined damage. Higher levels inherit it.
+Operators and 炎佑 (`enemy_9012_acloon`, the enemy-record ally) at or below 50% max HP take no ember damage;
+otherwise each pulse's pre-mitigation amount is capped at 10% of their max HP, and the damage pipeline's
+`DamageInfo.hpFloor` keeps them from dropping below 50% after mitigation, barriers and damage-taken multipliers.
+Summons, tokens and devices keep the raw share, so embers still clear them. [ASSUMED] the cap's scope matches the
+pre-existing half-HP protection (maintainer decision of 2026-11-04; the picker's `[?]` detail states both rules).
 The picker describes growing radius and damage without the formula (maintainer-requested DLC balance change;
 supersedes §29.18).
 Level 10, Rotating Armor, reduces either Physical or Arts damage taken by all enemies by 10%, alternating every

@@ -23,6 +23,18 @@ export function leaderHitCancelled(battle, target, amount) {
 }
 
 /**
+ * `dmg.hpFloor` (DLC 死亡余烬): an instance carrying it never takes a normal-HP target below that absolute HP. The
+ * clamp runs after mitigation and the ordered injury effects (barriers, count shields, damage-taken multipliers and
+ * fixed reductions), so it bounds the HP the target actually keeps; the client's damage number and the statistics see
+ * the clamped amount. A shared boss pool keeps its own accounting (`target.bossPool`), where the field means nothing.
+ */
+export function hpFloorLimit(target, dmg, amount) {
+  const floor = dmg?.hpFloor;
+  if (!(amount > 0) || !Number.isFinite(floor) || target.bossPool) return amount;
+  return Math.min(amount, Math.max(0, target.hp - floor));
+}
+
+/**
  * 流失 (HP loss) — the one path of both Battle.dealHPLose forms (attack.js dealHPLose, the object request; attack/legacy.js
  * legacyHPLose, the positional call): the target's DEF / RES for a `dmg.type` 'phys' / 'arts' loss (阿戈尔's devour, a
  * 物理流失, §21.19; mitigate's 5 % floor included), none for 'true' — an amount its caller already mitigated; then 限伤 and

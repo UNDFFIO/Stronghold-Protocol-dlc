@@ -40,6 +40,8 @@
  *
  * @typedef {Object} DamageInfo
  * @property {number} amount pre-mitigation
+ * @property {number} [hpFloor] absolute HP this instance never takes a normal-HP target below (applied after
+ *   mitigation and the ordered injury effects; a shared boss pool keeps its own accounting and ignores it)
  * @property {'phys'|'arts'|'true'|'elemental'|'element'} type
  * @property {'burn'|'necrosis'|'neural'|'apoptosis'|string|null} [element]
  * @property {number} [atkScale] legacy metadata; amount already contains attack scaling

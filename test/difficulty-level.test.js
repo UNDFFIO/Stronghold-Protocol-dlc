@@ -43,6 +43,16 @@ test('all 21 levels inherit ultimate stats and unlock exactly one unique cumulat
   for (const r of DIFFICULTY_RULES) assert.ok(r.description && r.counter);
 });
 
+test('level 2 embers keep their growth formula and state the operator cap and floor in the tooltip', () => {
+  const embers = DIFFICULTY_RULES.find(r => r.key === 'embers');
+  assert.equal(embers.level, 2);
+  assert.deepEqual(embers.params, { duration: 5, radius: 1, radiusPerRound: 0.2, damage: 0.1, afterRound: 8, damagePerRound: 0.1, maxDamage: 0.5, maxHit: 0.1 });
+  assert.equal(embers.detail, '余烬对干员与炎佑：每次伤害不超过其最大生命值的10%，且不会使其生命值降至50%以下。');
+  assert.equal(difficultyEffects(1).embers, false);
+  assert.equal(difficultyEffects(2).embers, true);
+  assert.equal(difficultyEffects(20).embers, true);
+});
+
 test('level 10 armor parameters and picker description use a 12-second rotation', () => {
   const armor = DIFFICULTY_RULES.find(r => r.key === 'rotatingArmor');
   assert.equal(armor.level, 10);

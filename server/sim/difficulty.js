@@ -103,12 +103,22 @@ export function installDifficulty(b) {
         const { x, y } = u;
         const p = P.embers, radius = p.radius + b.round * p.radiusPerRound;
         const damage = Math.min(p.maxDamage, p.damage + Math.max(0, b.round - p.afterRound) * p.damagePerRound);
+        const raw = u.base.atk * damage;
         b.fx('ascEmbers', { x, y, r: radius, dur: p.duration });
         for (let i = 1; i <= p.duration; i++) b.after(i, () => {
           for (const a of b.alliesInRadius(x, y, radius)) {
-            if ((op(a) || a.defId === 'enemy_9012_acloon') && a.hp <= a.s.maxHp / 2) continue;
-            b.dealDamage(u, a,
-              { type: 'arts', amount: u.base.atk * damage, canDodge: false, tags: ['asc:embers'] });
+            // DLC operator protection (shared/difficulty.js's detail): operators and 炎佑 take at most p.maxHit of
+            // their max HP per pulse and never drop below half — `hpFloor` clamps after mitigation and 受击倍率
+            // (attack/health.js hpFloorLimit). At or below half they take nothing at all. Summons and devices keep the
+            // raw share, so embers still clear them.
+            if (op(a) || a.defId === 'enemy_9012_acloon') {
+              if (a.hp <= a.s.maxHp / 2) continue;
+              const amount = Math.min(raw, a.s.maxHp * p.maxHit);
+              if (!(amount > 0)) continue;
+              b.dealDamage(u, a, { type: 'arts', amount, canDodge: false, tags: ['asc:embers'], hpFloor: a.s.maxHp / 2 });
+            } else {
+              b.dealDamage(u, a, { type: 'arts', amount: raw, canDodge: false, tags: ['asc:embers'] });
+            }
           }
         });
       }

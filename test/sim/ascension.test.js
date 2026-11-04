@@ -64,22 +64,73 @@ test('02: death embers damage only allies in the fixed death area, with visible 
   assert.equal(before - a.hp, 50, 'hazard has stopped');
 });
 
-test('02: death embers skip operators at or below half HP and resume above it', () => {
+test('02: death embers stop at half HP, resume above it and skip an operator at or below half', () => {
   const { b, e, a } = field(2);
   e.x = a.x; e.y = a.y;
   const half = a.s.maxHp / 2;
   a.hp = half + 1;
   b.kill(e, a);
   run(b, 1.1);
-  assert.equal(a.hp, half - 9, 'a pulse above half HP can cross the threshold');
+  assert.equal(a.hp, half, 'a pulse above half HP stops at the line');
   run(b, 1);
-  assert.equal(a.hp, half - 9, 'subsequent pulses skip an operator below half HP');
-  b.heal(a, a, 9);
-  run(b, 1);
-  assert.equal(a.hp, half, 'exactly half HP is protected too');
+  assert.equal(a.hp, half, 'subsequent pulses skip an operator at or below half HP');
   b.heal(a, a, 20);
   run(b, 1);
-  assert.equal(a.hp, half + 10, 'damage resumes after healing above half HP');
+  assert.equal(a.hp, half + 10, 'damage resumes above half HP but stops at the line');
+  b.heal(a, a, 100);
+  const before = a.hp;
+  run(b, 1);
+  assert.equal(before - a.hp, 10, 'a pulse still deals its full amount well above the line');
+});
+
+test('02: one high-damage pulse is capped at 10 % of max HP and never knocks the operator out', () => {
+  const high = new DataSource({
+    ...data.raw,
+    chess: { ...data.raw.chess, test_chess_a: chessRec({ skill: null, stats: { maxHp: 913, res: 15 } }) },
+    enemies: { ...data.raw.enemies, enemy_big: enemyRec({ hp: 5000, atk: 1000, speed: 0 }) },
+  }, getDefaultSource());
+  const { b, e, a } = field(2, 'enemy_big', { data: high, round: 12 });
+  e.x = a.x; e.y = a.y;
+  const full = a.hp;
+  b.kill(e, a);
+  run(b, 1.1);
+  const lost = full - a.hp;
+  assert.ok(lost > 0 && lost <= a.s.maxHp * 0.1 + 1e-9, `one pulse removes at most 10 % of max HP (${lost})`);
+  run(b, 4.1);
+  const second = b.spawnEnemy('enemy_big', { pos: [9, 10] });
+  second.x = a.x; second.y = a.y;
+  a.hp = a.s.maxHp / 2 + 1;
+  b.kill(second, a);
+  run(b, 1.1);
+  assert.equal(a.hp, a.s.maxHp / 2, 'the crossing pulse stops at half HP');
+  assert.equal(a.alive, true, 'an ember pulse cannot knock out an operator');
+});
+
+test('02: the per-pulse cap and half-HP floor cover operators and Yanyou, not other summons', () => {
+  const high = new DataSource({
+    ...data.raw,
+    enemies: { ...data.raw.enemies, enemy_big: enemyRec({ hp: 5000, atk: 1000, speed: 0 }) },
+  }, getDefaultSource());
+  const { b, e, a, other } = field(2, 'enemy_big', { data: high, round: 12 });
+  e.x = a.x; e.y = a.y;
+  other.x = a.x; other.y = a.y;
+  other.kind = 'token';
+  const fullA = a.hp, fullOther = other.hp;
+  b.kill(e, a);
+  run(b, 1.1);
+  assert.ok(fullA - a.hp <= a.s.maxHp * 0.1 + 1e-9, 'an operator pulse is capped');
+  assert.equal(fullOther - other.hp, 500, 'a summon takes the raw share');
+});
+
+test('02: the half-HP floor applies after damage-taken multipliers', () => {
+  const { b, e, a } = field(2, 'enemy_test', { round: 12 });
+  e.x = a.x; e.y = a.y;
+  const half = a.s.maxHp / 2;
+  a.hp = half + 10;
+  b.addBuff(a, { key: 'test:exposed', duration: 5, mods: { dmgTakenMul: 2 } });
+  b.kill(e, a);
+  run(b, 1.1);
+  assert.equal(a.hp, half, 'the clamped HP loss respects the line after the 2× multiplier');
 });
 
 test('02: death embers also protect Yanyou at or below half HP', () => {
@@ -92,16 +143,16 @@ test('02: death embers also protect Yanyou at or below half HP', () => {
   y.hp = half + 1;
   b.kill(e, a);
   run(b, 1.1);
-  const below = y.hp;
-  assert.ok(below < half, 'a pulse above half HP can cross the threshold');
+  assert.equal(y.hp, half, 'a pulse above half HP stops at the line');
   run(b, 1);
-  assert.equal(y.hp, below, 'later pulses skip Yanyou below half HP');
+  assert.equal(y.hp, half, 'later pulses skip Yanyou at or below half HP');
   y.hp = half;
   run(b, 1);
   assert.equal(y.hp, half, 'exactly half HP is protected too');
   y.hp = half + 20;
+  const before = y.hp;
   run(b, 1);
-  assert.ok(y.hp < half + 20, 'damage resumes above half HP');
+  assert.ok(y.hp < before && y.hp >= half, 'damage resumes above half HP but stops at the line');
 });
 
 for (const [round, radius, damage] of [[1, 1.2, 10], [8, 2.6, 10], [9, 2.8, 20], [10, 3, 30], [11, 3.2, 40], [12, 3.4, 50], [15, 4, 50]]) test(`02: round ${round} ember radius, damage and duration`, () => {
